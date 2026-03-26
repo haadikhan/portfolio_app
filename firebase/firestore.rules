@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasRole(role) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /kyc_profiles/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || hasRole("admin"));
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if hasRole("admin");
+    }
+
+    match /transactions/{txId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if hasRole("admin");
+      allow delete: if false;
+    }
+
+    match /wallets/{walletId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole("admin");
+    }
+
+    match /reports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole("admin");
+    }
+
+    match /notifications/{notificationId} {
+      allow read, update: if isSignedIn();
+      allow create: if hasRole("admin");
+    }
+
+    match /consents/{consentId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false;
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if hasRole("admin");
+      allow create: if hasRole("admin");
+      allow update, delete: if false;
+    }
+  }
+}
