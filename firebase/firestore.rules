@@ -10,27 +10,91 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
+    function isAdmin() {
+      return hasRole("admin");
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function ownerUserCreateAllowed() {
+      return request.resource.data.keys().hasOnly([
+          "email",
+          "name",
+          "createdAt",
+          "kycStatus",
+          "phone"
+        ])
+        && request.resource.data.kycStatus == "pending"
+        && !("role" in request.resource.data);
+    }
+
+    function ownerUserUpdateAllowed() {
+      return request.resource.data.keys().hasOnly([
+          "email",
+          "name",
+          "createdAt",
+          "kycStatus",
+          "phone",
+          "role"
+        ])
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.kycStatus == resource.data.kycStatus
+        && request.resource.data.role == resource.data.role;
+    }
+
     match /users/{userId} {
-      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && ownerUserCreateAllowed();
+      allow update: if isOwner(userId) && ownerUserUpdateAllowed();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Primary KYC collection (Wakalat Invest mobile + admin web)
+    match /kyc/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.status == "underReview";
+      allow update: if isAdmin() || (
+        isOwner(userId)
+        && resource.data.status in ["pending", "rejected"]
+        && request.resource.data.status == "underReview"
+        && request.resource.data.reviewedAt == resource.data.reviewedAt
+      );
       allow delete: if false;
     }
 
     match /kyc_profiles/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || hasRole("admin"));
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if hasRole("admin");
+      allow update: if isAdmin();
     }
 
+    // Ledger & wallet: server-only writes (Cloud Functions / Admin SDK)
     match /transactions/{txId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if hasRole("admin");
-      allow delete: if false;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
     }
 
     match /wallets/{walletId} {
-      allow read: if isSignedIn();
-      allow write: if hasRole("admin");
+      allow read: if isOwner(walletId) || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /deposit_requests/{requestId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /withdrawal_requests/{requestId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
     }
 
     match /reports/{reportId} {
@@ -44,15 +108,16 @@ service cloud.firestore {
     }
 
     match /consents/{consentId} {
-      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if false;
+      allow read: if isOwner(consentId) || isAdmin();
+      allow create, update: if isOwner(consentId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.accepted == true;
+      allow delete: if false;
     }
 
     match /audit_logs/{logId} {
       allow read: if hasRole("admin");
-      allow create: if hasRole("admin");
-      allow update, delete: if false;
+      allow create, update, delete: if false;
     }
   }
 }

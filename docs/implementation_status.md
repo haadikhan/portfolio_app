@@ -9,7 +9,8 @@
 ## Implemented Modules
 - Auth and OTP flow shell.
 - KYC capture/status shell.
-- Wallet and immutable ledger derivation logic.
+- Wallet and immutable ledger derivation logic (client-side prototypes) **and** production path: Firestore `transactions` + `wallets` projection with Cloud Functions (`firebase/functions`).
+- **Wallet & Ledger (production)**: investor wallet/history (read-only), deposit/withdrawal requests + proof upload, admin Finance console (queues, ledger list, profit/adjustment, wallet recalc). See `docs/wallet_ledger_schema.md`, `docs/wallet_ledger_operations.md`, `docs/wallet_ledger_e2e.md`.
 - Returns application logic with idempotency guard.
 - Investor dashboard metrics and growth chart.
 - Reports center shell and monthly generation trigger stub.
@@ -19,19 +20,13 @@
 - Legal disclaimer and consent gate.
 
 ## Firebase Backend Scaffolding
-- Firestore RBAC rules in `firebase/firestore.rules`.
-- Cloud Function stubs for monthly reports and event notifications.
-
-## Firebase Integration (Implemented)
-- Real `AuthService` for email/password signup, login, logout, and session checks.
-- Real `FirestoreService` for creating, fetching, updating, and streaming user profiles.
-- Riverpod providers/controllers for reactive auth and profile state.
-- Auth gate + login/signup/home screens connected to Firebase.
-- Android Google services plugin wiring added in Gradle files.
+- Firestore RBAC rules in `firebase/firestore.rules` (ledger collections server-write only).
+- Storage rules for `deposit_proofs/{uid}/**` in `firebase/storage.rules`.
+- Cloud Functions: wallet/ledger callables, `onTransactionUpdated` projection hook, nightly `reconcileWalletsDaily`; stubs for monthly reports and event notifications where applicable.
 
 ## Next Production Steps
-- Connect each screen to Firestore collections.
-- Add Firebase OTP implementation and secure KYC file uploads.
-- Implement server-side wallet recalculation and return batch posting.
+- Connect remaining screens to Firestore collections where still stubbed.
+- Add Firebase OTP implementation and secure KYC file uploads (beyond wallet proofs).
+- Return batch posting integration with ledger (if distinct from profit entries).
 - Add PDF generation service and branded templates.
 - Implement full FCM token registration and delivery retries.

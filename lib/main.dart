@@ -19,9 +19,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       child: initError == null
-          ? WakalatInvestApp(
-              config: AppConfig.fromEnvironment(),
-            )
+          ? WakalatInvestApp(config: AppConfig.fromEnvironment())
           : MaterialApp(
               home: Scaffold(
                 body: Center(

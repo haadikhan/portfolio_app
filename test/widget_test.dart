@@ -5,9 +5,7 @@ import 'package:portfolio_app/src/app/app.dart';
 import 'package:portfolio_app/src/core/config/app_config.dart';
 
 void main() {
-  testWidgets("shows auth gate entry state", (
-    WidgetTester tester,
-  ) async {
+  testWidgets("shows auth gate entry state", (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: WakalatInvestApp(

@@ -3,6 +3,7 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../models/app_user.dart";
+import "../models/user_kyc.dart";
 import "../services/auth_service.dart";
 import "../services/firestore_service.dart";
 
@@ -26,14 +27,41 @@ final authStateProvider = StreamProvider<User?>(
   (ref) => ref.read(authServiceProvider).authStateChanges(),
 );
 
-final currentUserProvider = Provider<User?>(
-  (ref) => ref.watch(firebaseAuthProvider).currentUser,
-);
+/// Resolves after auth restores (e.g. app restart). Avoids reading `currentUser` too early.
+final currentUserProvider = Provider<User?>((ref) {
+  final auth = ref.watch(authStateProvider);
+  return auth.maybeWhen(
+    data: (u) => u,
+    orElse: () => ref.read(firebaseAuthProvider).currentUser,
+  );
+});
 
+/// Follows [authStateChanges] then the Firestore user doc so restarts still load profile + kycStatus.
 final userProfileProvider = StreamProvider<AppUser?>((ref) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.read(firestoreServiceProvider).streamUser(user.uid);
+  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
+    if (user == null) {
+      return Stream<AppUser?>.value(null);
+    }
+    return Stream<void>.fromFuture(
+      ref.read(firestoreServiceProvider).ensureUserProfileFromAuthUser(user),
+    ).asyncExpand<AppUser?>((_) {
+      return ref.read(firestoreServiceProvider).streamUser(user.uid);
+    });
+  });
+});
+
+final userKycProvider = StreamProvider<UserKycRecord?>((ref) {
+  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
+    if (user == null) return Stream<UserKycRecord?>.value(null);
+    return ref.read(firestoreServiceProvider).streamUserKyc(user.uid);
+  });
+});
+
+final consentAcceptedProvider = StreamProvider<bool>((ref) {
+  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
+    if (user == null) return Stream<bool>.value(false);
+    return ref.read(firestoreServiceProvider).streamConsentAccepted(user.uid);
+  });
 });
 
 class AuthController extends StateNotifier<AsyncValue<void>> {
@@ -61,15 +89,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         email: email.trim(),
         name: name.trim(),
         createdAt: DateTime.now(),
+        kycStatus: KycLifecycleStatus.pending,
       );
       await _firestore.createUserProfile(user);
     });
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await _auth.login(email: email, password: password);
@@ -91,9 +117,40 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       await _firestore.updateUserProfile(userId: currentUser.uid, name: name);
     });
   }
+
+  Future<void> submitKyc({
+    required String cnicNumber,
+    required String phone,
+    String? cnicFrontUrl,
+    String? cnicBackUrl,
+    String? selfieUrl,
+  }) async {
+    final currentUser = _ref.read(currentUserProvider);
+    if (currentUser == null) throw Exception("No active user session.");
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _firestore.submitKyc(
+        userId: currentUser.uid,
+        cnicNumber: cnicNumber,
+        phone: phone,
+        cnicFrontUrl: cnicFrontUrl,
+        cnicBackUrl: cnicBackUrl,
+        selfieUrl: selfieUrl,
+      );
+    });
+  }
+
+  Future<void> acceptConsent() async {
+    final currentUser = _ref.read(currentUserProvider);
+    if (currentUser == null) throw Exception("No active user session.");
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _firestore.persistConsent(userId: currentUser.uid, accepted: true);
+    });
+  }
 }
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<void>>(
-  (ref) => AuthController(ref),
-);
+      (ref) => AuthController(ref),
+    );

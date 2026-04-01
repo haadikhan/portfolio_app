@@ -17,10 +17,7 @@ class AppConfig {
         "APP_NAME",
         defaultValue: "Wakalat Invest",
       ),
-      environment: const String.fromEnvironment(
-        "APP_ENV",
-        defaultValue: "dev",
-      ),
+      environment: const String.fromEnvironment("APP_ENV", defaultValue: "dev"),
       enableAnalytics: const bool.fromEnvironment(
         "ENABLE_ANALYTICS",
         defaultValue: false,

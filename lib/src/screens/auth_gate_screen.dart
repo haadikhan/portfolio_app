@@ -21,7 +21,8 @@ class AuthGateScreen extends ConsumerWidget {
           if (user == null) {
             context.go("/login");
           } else {
-            context.go("/home");
+            // Investor entry point after login.
+            context.go("/investor");
           }
         });
         return const Scaffold(body: Center(child: CircularProgressIndicator()));

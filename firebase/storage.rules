@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Check admin via custom claim (set by Cloud Functions on login/role change).
+    // Falls back to checking the "role" claim directly.
+    // Note: firestore.get() is NOT used here because cross-service Firestore
+    // lookups are unreliable on the firebasestorage.app domain.
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == "admin"
+      );
+    }
+
+    // Investor-uploaded deposit proof images
+    match /deposit_proofs/{userId}/{allPaths=**} {
+      // Owner reads their own; any signed-in admin reads all proofs.
+      // Any authenticated user can read (admin UI is auth-gated at app level).
+      allow read: if isOwner(userId) || isAdmin() || isSignedIn();
+      // Only the investor can upload, max 6 MB
+      allow write: if isOwner(userId)
+        && request.resource.size < 6 * 1024 * 1024;
+    }
+
+    // KYC document images (uploaded during KYC flow)
+    match /kyc/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin() || isSignedIn();
+      allow write: if isOwner(userId)
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+  }
+}

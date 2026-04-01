@@ -42,7 +42,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(error.toString())));
       },
-      data: (_) => context.go("/home"),
+      data: (_) => context.go("/investor"),
     );
   }
 

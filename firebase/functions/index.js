@@ -1,19 +1,31 @@
-// Firebase Cloud Functions scaffold for Wakalat Invest.
-// This file provides a baseline and can be expanded per environment.
+/**
+ * Firebase Cloud Functions — Wakalat Invest
+ */
 
-const { onSchedule } = require("firebase-functions/v2/scheduler");
+const admin = require("firebase-admin");
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { logger } = require("firebase-functions");
+const { recalculateWallet } = require("./wallet_helpers");
 
-exports.generateMonthlyReports = onSchedule("0 0 1 * *", async () => {
-  logger.info("Monthly report job triggered");
-  // TODO: query wallets + transactions, generate PDF, store in reports collection.
-});
+const walletLedger = require("./wallet_ledger");
+Object.assign(exports, walletLedger);
 
 exports.onTransactionUpdated = onDocumentUpdated(
   "transactions/{txId}",
   async (event) => {
-    logger.info("Transaction changed", { txId: event.params.txId });
-    // TODO: send push notifications for deposit/withdrawal/profit updates.
+    const after = event.data?.after?.data();
+    const uid = after?.userId;
+    if (uid) {
+      try {
+        await recalculateWallet(uid);
+      } catch (e) {
+        logger.error("recalculateWallet failed", e);
+      }
+    }
   },
 );
