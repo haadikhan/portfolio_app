@@ -290,6 +290,14 @@ class _AppDrawer extends ConsumerWidget {
               },
             ),
             _DrawerItem(
+              icon: Icons.pie_chart,
+              label: "My portfolio",
+              onTap: () {
+                Navigator.pop(context);
+                context.push("/portfolio");
+              },
+            ),
+            _DrawerItem(
               icon: Icons.account_balance_wallet_outlined,
               label: "Wallet & ledger",
               onTap: () {
