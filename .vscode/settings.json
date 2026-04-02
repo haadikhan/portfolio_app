@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.windows": {
+    "PUB_CACHE": "${workspaceFolder}\\.pub-cache"
+  }
+}

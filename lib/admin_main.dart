@@ -1,4 +1,4 @@
-///new screen
+// Entry point for the admin web app (see class doc on main below).
 import "package:firebase_core/firebase_core.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";

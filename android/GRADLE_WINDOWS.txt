@@ -1,0 +1,25 @@
+Gradle / Android Studio on Windows — "this and base files have different roots"
+
+This happens when the project lives on one drive (e.g. D:) and the Dart Pub cache is on another (e.g. C:\Users\...\AppData\Local\Pub\Cache). Gradle then mixes paths from two drive roots and sync can fail.
+
+Fix (pick one):
+
+1) Same-drive Pub cache (recommended)
+   Set PUB_CACHE to a folder on the SAME drive as this project, then refresh packages:
+
+   PowerShell (replace the path with your project folder on D: or your drive):
+   setx PUB_CACHE "D:\Work\flutter\portfolio_app\.pub-cache"
+   Close and reopen the terminal / IDE, then from the project root:
+   flutter pub get
+
+   Or for one session only:
+   $env:PUB_CACHE = "D:\Work\flutter\portfolio_app\.pub-cache"
+   flutter pub get
+
+2) Cursor / VS Code
+   This repo includes .vscode/settings.json so the integrated terminal sets PUB_CACHE to <workspace>\.pub-cache. Open the project folder, run flutter pub get in that terminal, then Gradle sync.
+
+3) Move the project to the same drive as your Pub cache (usually C:), or use a directory junction (mklink /J) so the IDE opens the project from C:.
+
+After changing PUB_CACHE, run: flutter pub get
+If packages were cached on C:, you may need: flutter pub cache repair (optional)

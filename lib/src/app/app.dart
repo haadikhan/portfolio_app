@@ -1,8 +1,12 @@
 import "package:flutter/material.dart";
+import "package:flutter_localizations/flutter_localizations.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../core/config/app_config.dart";
+import "../core/i18n/language_provider.dart";
 import "../core/theme/app_theme.dart";
+import "../core/theme/theme_provider.dart";
 import "../features/admin/presentation/admin_dashboard_screen.dart";
 import "../features/auth/presentation/auth_screen.dart";
 import "../features/crm/presentation/crm_dashboard_screen.dart";
@@ -22,13 +26,18 @@ import "../screens/kyc_approved_gate_screen.dart";
 import "../screens/login_screen.dart";
 import "../screens/signup_screen.dart";
 
-class WakalatInvestApp extends StatelessWidget {
+class WakalatInvestApp extends ConsumerWidget {
   const WakalatInvestApp({super.key, required this.config});
 
   final AppConfig config;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
+    final locale =
+        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
+    final useUrduFont = locale.languageCode == "ur";
+
     final router = GoRouter(
       initialLocation: "/",
       routes: <RouteBase>[
@@ -96,7 +105,16 @@ class WakalatInvestApp extends StatelessWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: config.appName,
-      theme: AppTheme.light(),
+      theme: AppTheme.light(useUrduFont: useUrduFont),
+      darkTheme: AppTheme.dark(useUrduFont: useUrduFont),
+      themeMode: themeMode,
+      locale: locale,
+      supportedLocales: const [Locale("en"), Locale("ur")],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: router,
     );
   }
