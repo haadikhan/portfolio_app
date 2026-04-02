@@ -64,8 +64,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   }
 
   Future<String?> _upload(File file, String uid, String slot) async {
-    final ref = FirebaseStorage.instance
-        .ref("deposit_proofs/$uid/kyc_${slot}_${DateTime.now().millisecondsSinceEpoch}.jpg");
+    final ref = FirebaseStorage.instance.ref(
+      "deposit_proofs/$uid/kyc_${slot}_${DateTime.now().millisecondsSinceEpoch}.jpg",
+    );
     await ref.putFile(file);
     return await ref.getDownloadURL();
   }
@@ -79,11 +80,15 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       String? backUrl = _existingBackUrl;
       String? selfieUrl = _existingSelfieUrl;
 
-      if (_frontFile != null) frontUrl = await _upload(_frontFile!, uid, "front");
+      if (_frontFile != null)
+        frontUrl = await _upload(_frontFile!, uid, "front");
       if (_backFile != null) backUrl = await _upload(_backFile!, uid, "back");
-      if (_selfieFile != null) selfieUrl = await _upload(_selfieFile!, uid, "selfie");
+      if (_selfieFile != null)
+        selfieUrl = await _upload(_selfieFile!, uid, "selfie");
 
-      await ref.read(authControllerProvider.notifier).submitKyc(
+      await ref
+          .read(authControllerProvider.notifier)
+          .submitKyc(
             cnicNumber: _cnic.text.trim(),
             phone: _phone.text.trim(),
             cnicFrontUrl: frontUrl,
@@ -93,12 +98,17 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("KYC submitted successfully. We'll review within 24 hours.")),
+        const SnackBar(
+          content: Text(
+            "KYC submitted successfully. We'll review within 24 hours.",
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Submission failed: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -120,8 +130,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           final profile = profileAsync.valueOrNull;
           _seedFromRecord(kyc, profile);
 
-          final status = kyc?.status ?? profile?.kycStatus ?? KycLifecycleStatus.pending;
-          final locked = status == KycLifecycleStatus.underReview ||
+          final status =
+              kyc?.status ?? profile?.kycStatus ?? KycLifecycleStatus.pending;
+          final locked =
+              status == KycLifecycleStatus.underReview ||
               status == KycLifecycleStatus.approved;
 
           return Form(
@@ -161,8 +173,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     hintText: "e.g. 3520112345678",
                     prefixIcon: Icon(Icons.credit_card_outlined),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().length < 8) ? "Enter a valid CNIC number" : null,
+                  validator: (v) => (v == null || v.trim().length < 8)
+                      ? "Enter a valid CNIC number"
+                      : null,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -174,8 +187,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     hintText: "e.g. 03001234567",
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().length < 10) ? "Enter a valid mobile number" : null,
+                  validator: (v) => (v == null || v.trim().length < 10)
+                      ? "Enter a valid mobile number"
+                      : null,
                 ),
 
                 // ── Document images ─────────────────────────────────────
@@ -184,7 +198,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 const SizedBox(height: 4),
                 Text(
                   "Upload clear, well-lit photos. Blurry images will be rejected.",
-                  style: const TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.bodyMuted,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _ImagePickerTile(
@@ -235,11 +252,15 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Icon(Icons.send_rounded, size: 18),
                       label: Text(
-                        status == KycLifecycleStatus.rejected ? "Re-submit KYC" : "Submit for review",
+                        status == KycLifecycleStatus.rejected
+                            ? "Re-submit KYC"
+                            : "Submit for review",
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -269,38 +290,43 @@ class _StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color bg, Color fg, IconData icon, String title, String body) =
-        switch (status) {
+    final (
+      Color bg,
+      Color fg,
+      IconData icon,
+      String title,
+      String body,
+    ) = switch (status) {
       KycLifecycleStatus.pending => (
-          const Color(0xFFFFF8E1),
-          AppColors.warning,
-          Icons.info_outline_rounded,
-          "Verification required",
-          "Fill in your details and upload documents to unlock full account features.",
-        ),
+        const Color(0xFFFFF8E1),
+        AppColors.warning,
+        Icons.info_outline_rounded,
+        "Verification required",
+        "Fill in your details and upload documents to unlock full account features.",
+      ),
       KycLifecycleStatus.underReview => (
-          const Color(0xFFE3F2FD),
-          Colors.blue.shade700,
-          Icons.hourglass_top_rounded,
-          "Under review",
-          "Your documents have been submitted and are being reviewed by our team. This usually takes up to 24 hours.",
-        ),
+        const Color(0xFFE3F2FD),
+        Colors.blue.shade700,
+        Icons.hourglass_top_rounded,
+        "Under review",
+        "Your documents have been submitted and are being reviewed by our team. This usually takes up to 24 hours.",
+      ),
       KycLifecycleStatus.approved => (
-          const Color(0xFFE8F5E9),
-          AppColors.success,
-          Icons.verified_rounded,
-          "Identity verified",
-          "Your KYC is approved. You have full access to all investor features.",
-        ),
+        const Color(0xFFE8F5E9),
+        AppColors.success,
+        Icons.verified_rounded,
+        "Identity verified",
+        "Your KYC is approved. You have full access to all investor features.",
+      ),
       KycLifecycleStatus.rejected => (
-          const Color(0xFFFFEBEE),
-          AppColors.error,
-          Icons.warning_amber_rounded,
-          "Verification failed",
-          kyc?.rejectionReason?.isNotEmpty == true
-              ? "Reason: ${kyc!.rejectionReason}"
-              : "Your documents were not accepted. Please correct any issues and re-submit.",
-        ),
+        const Color(0xFFFFEBEE),
+        AppColors.error,
+        Icons.warning_amber_rounded,
+        "Verification failed",
+        kyc?.rejectionReason?.isNotEmpty == true
+            ? "Reason: ${kyc!.rejectionReason}"
+            : "Your documents were not accepted. Please correct any issues and re-submit.",
+      ),
     };
 
     return Container(
@@ -319,15 +345,22 @@ class _StatusBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: fg)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: fg,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(body,
-                    style: TextStyle(
-                        fontSize: 12, color: fg.withValues(alpha: 0.85))),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: fg.withValues(alpha: 0.85),
+                  ),
+                ),
               ],
             ),
           ),
@@ -340,8 +373,11 @@ class _StatusBanner extends StatelessWidget {
 // ─── Read-only profile field ─────────────────────────────────────────────────
 
 class _ReadOnlyField extends StatelessWidget {
-  const _ReadOnlyField(
-      {required this.icon, required this.label, required this.value});
+  const _ReadOnlyField({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -363,20 +399,30 @@ class _ReadOnlyField extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.bodyMuted)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.bodyMuted,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.heading)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.heading,
+                  ),
+                ),
               ],
             ),
           ),
-          const Icon(Icons.lock_outline_rounded,
-              size: 16, color: AppColors.bodyMuted),
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: AppColors.bodyMuted,
+          ),
         ],
       ),
     );
@@ -466,22 +512,26 @@ class _ImagePickerTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.heading)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.heading,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     pickedFile != null
                         ? "New photo selected"
                         : _hasImage
-                            ? "Photo uploaded"
-                            : "Tap to select photo",
+                        ? "Photo uploaded"
+                        : "Tap to select photo",
                     style: TextStyle(
                       fontSize: 11,
-                      color:
-                          _hasImage ? AppColors.success : AppColors.bodyMuted,
+                      color: _hasImage
+                          ? AppColors.success
+                          : AppColors.bodyMuted,
                     ),
                   ),
                 ],
@@ -496,8 +546,11 @@ class _ImagePickerTile extends StatelessWidget {
                 size: 20,
               ),
             if (locked)
-              const Icon(Icons.lock_outline_rounded,
-                  size: 16, color: AppColors.bodyMuted),
+              const Icon(
+                Icons.lock_outline_rounded,
+                size: 16,
+                color: AppColors.bodyMuted,
+              ),
           ],
         ),
       ),

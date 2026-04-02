@@ -1,9 +1,4 @@
-enum KycLifecycleStatus {
-  pending,
-  underReview,
-  approved,
-  rejected,
-}
+enum KycLifecycleStatus { pending, underReview, approved, rejected }
 
 class AppUser {
   const AppUser({

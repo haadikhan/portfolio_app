@@ -14,6 +14,7 @@ import "screens/admin_investor_list_screen.dart";
 import "screens/admin_kyc_detail_screen.dart";
 import "screens/admin_kyc_list_screen.dart";
 import "screens/admin_login_screen.dart";
+import "screens/admin_broadcast_screen.dart";
 import "screens/admin_returns_screen.dart";
 import "screens/admin_withdrawals_queue_screen.dart";
 import "widgets/admin_shell.dart";
@@ -42,10 +43,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: "/login",
-        builder: (_, __) => const AdminLoginScreen(),
-      ),
+      GoRoute(path: "/login", builder: (_, __) => const AdminLoginScreen()),
       ShellRoute(
         builder: (context, state, child) => AdminShell(child: child),
         routes: [
@@ -53,10 +51,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
             path: "/dashboard",
             builder: (_, __) => const AdminDashboardScreen(),
           ),
-          GoRoute(
-            path: "/kyc",
-            builder: (_, __) => const AdminKycListScreen(),
-          ),
+          GoRoute(path: "/kyc", builder: (_, __) => const AdminKycListScreen()),
           GoRoute(
             path: "/deposits",
             builder: (_, __) => const AdminDepositsQueueScreen(),
@@ -72,6 +67,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/returns",
             builder: (_, __) => const AdminReturnsScreen(),
+          ),
+          GoRoute(
+            path: "/broadcast",
+            builder: (_, __) => const AdminBroadcastScreen(),
           ),
           GoRoute(
             path: "/investors/:userId",
@@ -98,7 +97,8 @@ class WakalatAdminApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(adminRouterProvider);
     final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
-    final locale = ref.watch(languageProvider).valueOrNull ?? const Locale("en");
+    final locale =
+        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final useUrduFont = locale.languageCode == "ur";
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,

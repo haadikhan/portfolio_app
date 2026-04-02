@@ -52,9 +52,8 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(path: "/legal", builder: (_, __) => const LegalConsentScreen()),
         GoRoute(
           path: "/investor",
-          builder: (_, __) => const ConsentGateScreen(
-            child: InvestorDashboardScreen(),
-          ),
+          builder: (_, __) =>
+              const ConsentGateScreen(child: InvestorDashboardScreen()),
         ),
         GoRoute(
           path: "/portfolio",

@@ -13,7 +13,9 @@ const { logger } = require("firebase-functions");
 const { recalculateWallet } = require("./wallet_helpers");
 
 const walletLedger = require("./wallet_ledger");
+const notifications = require("./notifications");
 Object.assign(exports, walletLedger);
+Object.assign(exports, notifications);
 
 exports.onTransactionUpdated = onDocumentUpdated(
   "transactions/{txId}",

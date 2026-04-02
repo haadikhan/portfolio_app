@@ -30,7 +30,8 @@ class UserKycRecord {
   bool get isLocked => status == KycLifecycleStatus.underReview;
   bool get isApproved => status == KycLifecycleStatus.approved;
   bool get canResubmit =>
-      status == KycLifecycleStatus.rejected || status == KycLifecycleStatus.pending;
+      status == KycLifecycleStatus.rejected ||
+      status == KycLifecycleStatus.pending;
 
   factory UserKycRecord.fromMap(String userId, Map<String, dynamic> map) {
     final rawStatus = (map["status"] as String? ?? "pending").toLowerCase();

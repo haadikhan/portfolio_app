@@ -34,7 +34,10 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text("Analytics"),
-          const ListTile(title: Text("Recorded AUM"), subtitle: Text("PKR 50M")),
+          const ListTile(
+            title: Text("Recorded AUM"),
+            subtitle: Text("PKR 50M"),
+          ),
           const ListTile(title: Text("Active Users"), subtitle: Text("1,250")),
           const ListTile(
             title: Text("Total Deposits"),

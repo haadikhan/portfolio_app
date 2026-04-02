@@ -59,14 +59,16 @@ class _AdminApplyReturnScreenState
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
             title: const Text(
               "Confirm return application",
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.heading),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.heading,
+              ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -74,11 +76,8 @@ class _AdminApplyReturnScreenState
               children: [
                 _ConfirmRow(label: "Mode", value: mode),
                 _ConfirmRow(label: "Return", value: returnInfo),
-                _ConfirmRow(
-                    label: "Affected users",
-                    value: "$affectedUsers"),
-                _ConfirmRow(
-                    label: "Est. total profit", value: estimatedProfit),
+                _ConfirmRow(label: "Affected users", value: "$affectedUsers"),
+                _ConfirmRow(label: "Est. total profit", value: estimatedProfit),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -86,12 +85,12 @@ class _AdminApplyReturnScreenState
                     color: const Color(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.4)),
+                      color: AppColors.warning.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Text(
                     "This action will update portfolio balances and write to the transaction ledger. It cannot be undone.",
-                    style: TextStyle(
-                        fontSize: 12, color: AppColors.body),
+                    style: TextStyle(fontSize: 12, color: AppColors.body),
                   ),
                 ),
               ],
@@ -117,12 +116,14 @@ class _AdminApplyReturnScreenState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Row(
           children: [
-            const Icon(Icons.check_circle_rounded,
-                color: AppColors.success, size: 22),
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: 22,
+            ),
             const SizedBox(width: 8),
             const Text(
               "Return applied",
@@ -135,28 +136,38 @@ class _AdminApplyReturnScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _ConfirmRow(
-                label: "Successful",
-                value: "${result["successCount"]} users"),
+              label: "Successful",
+              value: "${result["successCount"]} users",
+            ),
             if ((result["failCount"] as int? ?? 0) > 0)
               _ConfirmRow(
-                  label: "Failed",
-                  value: "${result["failCount"]} users",
-                  valueColor: AppColors.error),
+                label: "Failed",
+                value: "${result["failCount"]} users",
+                valueColor: AppColors.error,
+              ),
             _ConfirmRow(
-                label: "Total profit distributed",
-                value: _money.format(result["totalProfit"] ?? 0)),
+              label: "Total profit distributed",
+              value: _money.format(result["totalProfit"] ?? 0),
+            ),
             if ((result["errors"] as List?)?.isNotEmpty == true) ...[
               const SizedBox(height: 8),
-              const Text("Errors:",
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.error)),
-              ...((result["errors"] as List).take(3).map(
+              const Text(
+                "Errors:",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.error,
+                ),
+              ),
+              ...((result["errors"] as List)
+                  .take(3)
+                  .map(
                     (e) => Text(
                       "• $e",
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.error),
+                        fontSize: 11,
+                        color: AppColors.error,
+                      ),
                     ),
                   )),
             ],
@@ -182,7 +193,9 @@ class _AdminApplyReturnScreenState
     }
 
     final estimatedTotal = portfolios.fold<double>(
-        0, (sum, p) => sum + p.currentValue * pct / 100);
+      0,
+      (sum, p) => sum + p.currentValue * pct / 100,
+    );
 
     final confirmed = await _confirmDialog(
       mode: "Percentage — all users",
@@ -194,8 +207,9 @@ class _AdminApplyReturnScreenState
 
     setState(() => _processingAll = true);
     try {
-      final result =
-          await ref.read(applyReturnProvider.notifier).applyPercentageToAll(pct);
+      final result = await ref
+          .read(applyReturnProvider.notifier)
+          .applyPercentageToAll(pct);
       if (!mounted) return;
       _showSummary(result);
       // Invalidate so list refreshes on next load
@@ -211,7 +225,10 @@ class _AdminApplyReturnScreenState
   // ── Mode B: apply manual per user ─────────────────────────────────────────
 
   Future<void> _applyManualToUser(
-      String uid, String userName, double currentValue) async {
+    String uid,
+    String userName,
+    double currentValue,
+  ) async {
     final controller = _controllerFor(uid);
     final profit = double.tryParse(controller.text.trim());
     if (profit == null || profit <= 0) {
@@ -250,8 +267,9 @@ class _AdminApplyReturnScreenState
   }
 
   Future<void> _applyAllManual(
-      List<Map<String, dynamic>> users,
-      List<PortfolioModel> portfolios) async {
+    List<Map<String, dynamic>> users,
+    List<PortfolioModel> portfolios,
+  ) async {
     // Only apply to users who have a non-empty profit field
     final toApply = users.where((u) {
       final uid = u["id"] as String;
@@ -286,8 +304,7 @@ class _AdminApplyReturnScreenState
 
     for (final u in toApply) {
       final uid = u["id"] as String;
-      final profit =
-          double.tryParse(_controllerFor(uid).text.trim()) ?? 0;
+      final profit = double.tryParse(_controllerFor(uid).text.trim()) ?? 0;
       try {
         final applied = await ref
             .read(applyReturnProvider.notifier)
@@ -313,8 +330,7 @@ class _AdminApplyReturnScreenState
   }
 
   void _toast(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -350,8 +366,7 @@ class _AdminApplyReturnScreenState
                 ),
               ],
               selected: {_mode},
-              onSelectionChanged: (s) =>
-                  setState(() => _mode = s.first),
+              onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
           ),
           const SizedBox(height: 4),
@@ -365,8 +380,7 @@ class _AdminApplyReturnScreenState
                 : _ManualModeTab(
                     searchController: _searchController,
                     searchQuery: _searchQuery,
-                    onSearchChanged: (q) =>
-                        setState(() => _searchQuery = q),
+                    onSearchChanged: (q) => setState(() => _searchQuery = q),
                     controllerFor: _controllerFor,
                     onApplyUser: _applyManualToUser,
                     onApplyAll: _applyAllManual,
@@ -398,15 +412,15 @@ class _PercentageModeTab extends ConsumerWidget {
     final portfoliosAsync = ref.watch(allPortfoliosProvider);
 
     return portfoliosAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator()),
-      error: (e, _) =>
-          Center(child: Text("Error loading portfolios: $e")),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text("Error loading portfolios: $e")),
       data: (portfolios) {
         final pctText = pctController.text.trim();
         final pct = double.tryParse(pctText) ?? 0;
         final totalEstimate = portfolios.fold<double>(
-            0, (s, p) => s + p.currentValue * pct / 100);
+          0,
+          (s, p) => s + p.currentValue * pct / 100,
+        );
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -423,7 +437,9 @@ class _PercentageModeTab extends ConsumerWidget {
               // Input
               TextField(
                 controller: pctController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (_) => (context as Element).markNeedsBuild(),
                 decoration: const InputDecoration(
                   labelText: "Monthly return %",
@@ -440,21 +456,23 @@ class _PercentageModeTab extends ConsumerWidget {
                   color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.25)),
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Column(
                   children: [
                     _PreviewRow(
-                        label: "Portfolios affected",
-                        value: "${portfolios.length}"),
+                      label: "Portfolios affected",
+                      value: "${portfolios.length}",
+                    ),
                     _PreviewRow(
-                        label: "Return rate",
-                        value: pct > 0 ? "$pct%" : "—"),
+                      label: "Return rate",
+                      value: pct > 0 ? "$pct%" : "—",
+                    ),
                     _PreviewRow(
-                        label: "Est. total profit",
-                        value: pct > 0
-                            ? _money.format(totalEstimate)
-                            : "—"),
+                      label: "Est. total profit",
+                      value: pct > 0 ? _money.format(totalEstimate) : "—",
+                    ),
                   ],
                 ),
               ),
@@ -471,13 +489,13 @@ class _PercentageModeTab extends ConsumerWidget {
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.send_rounded, size: 18),
                   label: Text(
-                    isProcessing
-                        ? "Processing…"
-                        : "Apply to all users",
+                    isProcessing ? "Processing…" : "Apply to all users",
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -509,10 +527,12 @@ class _ManualModeTab extends ConsumerWidget {
   final ValueChanged<String> onSearchChanged;
   final TextEditingController Function(String uid) controllerFor;
   final Future<void> Function(String uid, String name, double value)
-      onApplyUser;
+  onApplyUser;
   final Future<void> Function(
-      List<Map<String, dynamic>> users, List<PortfolioModel> portfolios)
-      onApplyAll;
+    List<Map<String, dynamic>> users,
+    List<PortfolioModel> portfolios,
+  )
+  onApplyAll;
   final Map<String, bool> processingUser;
   final bool isProcessingAll;
 
@@ -530,14 +550,16 @@ class _ManualModeTab extends ConsumerWidget {
             : <String, PortfolioModel>{};
 
         final filtered = users
-            .where((u) =>
-                searchQuery.isEmpty ||
-                (u["name"] as String? ?? "")
-                    .toLowerCase()
-                    .contains(searchQuery.toLowerCase()) ||
-                (u["email"] as String? ?? "")
-                    .toLowerCase()
-                    .contains(searchQuery.toLowerCase()))
+            .where(
+              (u) =>
+                  searchQuery.isEmpty ||
+                  (u["name"] as String? ?? "").toLowerCase().contains(
+                    searchQuery.toLowerCase(),
+                  ) ||
+                  (u["email"] as String? ?? "").toLowerCase().contains(
+                    searchQuery.toLowerCase(),
+                  ),
+            )
             .toList();
 
         return Column(
@@ -562,8 +584,10 @@ class _ManualModeTab extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: isProcessingAll
                       ? null
-                      : () => onApplyAll(filtered,
-                          portfoliosAsync.valueOrNull ?? []),
+                      : () => onApplyAll(
+                          filtered,
+                          portfoliosAsync.valueOrNull ?? [],
+                        ),
                   icon: isProcessingAll
                       ? const SizedBox(
                           width: 16,
@@ -623,14 +647,16 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded,
-              color: Colors.blue.shade700, size: 18),
+          Icon(
+            Icons.info_outline_rounded,
+            color: Colors.blue.shade700,
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style:
-                  TextStyle(fontSize: 12, color: Colors.blue.shade800),
+              style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
             ),
           ),
         ],
@@ -651,14 +677,18 @@ class _PreviewRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.bodyMuted)),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.heading)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.heading,
+            ),
+          ),
         ],
       ),
     );
@@ -666,8 +696,11 @@ class _PreviewRow extends StatelessWidget {
 }
 
 class _ConfirmRow extends StatelessWidget {
-  const _ConfirmRow(
-      {required this.label, required this.value, this.valueColor});
+  const _ConfirmRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
   final String label;
   final String value;
   final Color? valueColor;
@@ -679,14 +712,18 @@ class _ConfirmRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.bodyMuted)),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: valueColor ?? AppColors.heading)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: AppColors.bodyMuted),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? AppColors.heading,
+            ),
+          ),
         ],
       ),
     );

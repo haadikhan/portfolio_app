@@ -19,7 +19,8 @@ class AdminFinanceConsoleScreen extends ConsumerStatefulWidget {
       _AdminFinanceConsoleScreenState();
 }
 
-class _AdminFinanceConsoleScreenState extends ConsumerState<AdminFinanceConsoleScreen>
+class _AdminFinanceConsoleScreenState
+    extends ConsumerState<AdminFinanceConsoleScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
 
@@ -39,15 +40,14 @@ class _AdminFinanceConsoleScreenState extends ConsumerState<AdminFinanceConsoleS
   Widget build(BuildContext context) {
     final profile = ref.watch(userProfileProvider);
     return profile.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text("$e"))),
       data: (u) {
         if (u == null || !u.isAdmin) {
           return Scaffold(
             appBar: AppBar(title: const Text("Finance console")),
-            body: const Center(
-              child: Text("Admin access required."),
-            ),
+            body: const Center(child: Text("Admin access required.")),
           );
         }
         return Scaffold(
@@ -122,7 +122,8 @@ class _DepositQueueTab extends ConsumerWidget {
                     Row(
                       children: [
                         TextButton(
-                          onPressed: () => _approveDeposit(context, ref, doc.id),
+                          onPressed: () =>
+                              _approveDeposit(context, ref, doc.id),
                           child: const Text("Approve"),
                         ),
                         TextButton(
@@ -141,7 +142,8 @@ class _DepositQueueTab extends ConsumerWidget {
               loading: () => const LinearProgressIndicator(),
               error: (e, _) => Text("$e"),
               data: (revSnap) {
-                if (revSnap.docs.isEmpty) return const Text("No reviewed deposits yet.");
+                if (revSnap.docs.isEmpty)
+                  return const Text("No reviewed deposits yet.");
                 return Column(
                   children: revSnap.docs.map((doc) {
                     final m = doc.data();
@@ -151,7 +153,9 @@ class _DepositQueueTab extends ConsumerWidget {
                     return Card(
                       child: ListTile(
                         title: Text(_money.format(amt)),
-                        subtitle: Text("User: $uid · $status · ${_ts(m["updatedAt"])}"),
+                        subtitle: Text(
+                          "User: $uid · $status · ${_ts(m["updatedAt"])}",
+                        ),
                       ),
                     );
                   }).toList(),
@@ -164,32 +168,60 @@ class _DepositQueueTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _approveDeposit(BuildContext context, WidgetRef ref, String id) async {
-    final note = await _promptNote(context, title: "Approve deposit", hint: "Optional note");
+  Future<void> _approveDeposit(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final note = await _promptNote(
+      context,
+      title: "Approve deposit",
+      hint: "Optional note",
+    );
     if (note == null) return;
     try {
-      await ref.read(walletLedgerFunctionsProvider).approveDeposit(requestId: id, note: note);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .approveDeposit(requestId: id, note: note);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Approved.")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Approved.")));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$e")));
       }
     }
   }
 
-  Future<void> _rejectDeposit(BuildContext context, WidgetRef ref, String id) async {
-    final reason = await _promptNote(context, title: "Reject deposit", hint: "Reason");
+  Future<void> _rejectDeposit(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final reason = await _promptNote(
+      context,
+      title: "Reject deposit",
+      hint: "Reason",
+    );
     if (reason == null || reason.isEmpty) return;
     try {
-      await ref.read(walletLedgerFunctionsProvider).rejectDeposit(requestId: id, reason: reason);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .rejectDeposit(requestId: id, reason: reason);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rejected.")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Rejected.")));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$e")));
       }
     }
   }
@@ -251,7 +283,10 @@ class _WithdrawalQueueTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Text("Approved (settle)", style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          "Approved (settle)",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         approved.when(
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text("$e"),
@@ -305,7 +340,9 @@ class _WithdrawalQueueTab extends ConsumerWidget {
                 return Card(
                   child: ListTile(
                     title: Text(_money.format(amt)),
-                    subtitle: Text("User: $uid · $status · ${_ts(m["updatedAt"])}"),
+                    subtitle: Text(
+                      "User: $uid · $status · ${_ts(m["updatedAt"])}",
+                    ),
                   ),
                 );
               }).toList(),
@@ -317,36 +354,60 @@ class _WithdrawalQueueTab extends ConsumerWidget {
   }
 
   Future<void> _approveW(BuildContext context, WidgetRef ref, String id) async {
-    final note = await _promptNote(context, title: "Approve withdrawal", hint: "Optional note");
+    final note = await _promptNote(
+      context,
+      title: "Approve withdrawal",
+      hint: "Optional note",
+    );
     if (note == null) return;
     try {
-      await ref.read(walletLedgerFunctionsProvider).approveWithdrawal(requestId: id, note: note);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .approveWithdrawal(requestId: id, note: note);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Approved.")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Approved.")));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$e")));
       }
     }
   }
 
   Future<void> _rejectW(BuildContext context, WidgetRef ref, String id) async {
-    final reason = await _promptNote(context, title: "Reject / cancel withdrawal", hint: "Reason");
+    final reason = await _promptNote(
+      context,
+      title: "Reject / cancel withdrawal",
+      hint: "Reason",
+    );
     if (reason == null || reason.isEmpty) return;
     try {
-      await ref.read(walletLedgerFunctionsProvider).rejectWithdrawal(requestId: id, reason: reason);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .rejectWithdrawal(requestId: id, reason: reason);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Updated.")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Updated.")));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$e")));
       }
     }
   }
 
-  Future<void> _completeW(BuildContext context, WidgetRef ref, String id) async {
+  Future<void> _completeW(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
     final settlement = await _promptNote(
       context,
       title: "Complete withdrawal",
@@ -358,11 +419,15 @@ class _WithdrawalQueueTab extends ConsumerWidget {
           .read(walletLedgerFunctionsProvider)
           .completeWithdrawal(requestId: id, settlementRef: settlement);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completed.")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Completed.")));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$e")));
       }
     }
   }
@@ -436,7 +501,8 @@ class _AuditTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text("$e")),
       data: (snap) {
-        if (snap.docs.isEmpty) return const Center(child: Text("No audit logs."));
+        if (snap.docs.isEmpty)
+          return const Center(child: Text("No audit logs."));
         return ListView.builder(
           padding: const EdgeInsets.all(12),
           itemCount: snap.docs.length,
@@ -450,7 +516,9 @@ class _AuditTab extends ConsumerWidget {
             return Card(
               child: ListTile(
                 title: Text("$action · $entityType"),
-                subtitle: Text("$actorRole:$actorId\n$entityId · ${_ts(m["createdAt"])}"),
+                subtitle: Text(
+                  "$actorRole:$actorId\n$entityId · ${_ts(m["createdAt"])}",
+                ),
                 isThreeLine: true,
               ),
             );
@@ -515,11 +583,19 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
           child: const Text("Post profit"),
         ),
         const Divider(height: 32),
-        Text("Adjustment (signed)", style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          "Adjustment (signed)",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         TextField(
           controller: _adjAmount,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))],
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+          ],
           decoration: const InputDecoration(
             labelText: "Amount (+ / -)",
             border: OutlineInputBorder(),
@@ -537,7 +613,10 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
           child: const Text("Post adjustment"),
         ),
         const Divider(height: 32),
-        Text("Repair projection", style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          "Repair projection",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         TextField(
           controller: _repairUid,
           decoration: const InputDecoration(
@@ -562,10 +641,14 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     }
     setState(() => _busy = true);
     try {
-      await ref.read(walletLedgerFunctionsProvider).addProfitEntry(
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .addProfitEntry(
             userId: uid,
             amount: amt,
-            note: _profitNote.text.trim().isEmpty ? null : _profitNote.text.trim(),
+            note: _profitNote.text.trim().isEmpty
+                ? null
+                : _profitNote.text.trim(),
           );
       _toast("Profit posted.");
     } catch (e) {
@@ -585,11 +668,9 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     }
     setState(() => _busy = true);
     try {
-      await ref.read(walletLedgerFunctionsProvider).addAdjustmentEntry(
-            userId: uid,
-            amount: amt,
-            note: note,
-          );
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .addAdjustmentEntry(userId: uid, amount: amt, note: note);
       _toast("Adjustment posted.");
     } catch (e) {
       _toast("$e");
@@ -606,7 +687,9 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     }
     setState(() => _busy = true);
     try {
-      await ref.read(walletLedgerFunctionsProvider).recalculateWalletForUser(uid);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .recalculateWalletForUser(uid);
       _toast("Recalculated.");
     } catch (e) {
       _toast("$e");
@@ -637,7 +720,10 @@ Future<String?> _promptNote(
         maxLines: 3,
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text("Cancel"),
+        ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, controller.text.trim()),
           child: const Text("OK"),

@@ -25,9 +25,9 @@ class AppScaffold extends StatelessWidget {
     final canPop = GoRouter.of(context).canPop();
     final scheme = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
-        );
+      fontWeight: FontWeight.w700,
+      color: scheme.onSurface,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -36,8 +36,7 @@ class AppScaffold extends StatelessWidget {
         scrolledUnderElevation: 0.5,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () {
             if (canPop) {
               context.pop();
@@ -46,10 +45,7 @@ class AppScaffold extends StatelessWidget {
             }
           },
         ),
-        title: Text(
-          title,
-          style: titleStyle,
-        ),
+        title: Text(title, style: titleStyle),
         actions: [
           ...actions,
           const AppBarPreferenceActions(),

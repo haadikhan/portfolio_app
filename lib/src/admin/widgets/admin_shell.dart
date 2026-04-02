@@ -6,10 +6,26 @@ import "../../core/i18n/app_translations.dart";
 import "../../core/widgets/app_bar_actions.dart";
 import "../providers/admin_providers.dart";
 
+/// Ordered routes for [NavigationRail] and [Drawer] (must stay in sync).
+const _kAdminShellRoutes = <String>[
+  "/dashboard",
+  "/kyc",
+  "/deposits",
+  "/withdrawals",
+  "/investors",
+  "/returns",
+  "/broadcast",
+];
+
 class AdminShell extends ConsumerWidget {
   const AdminShell({super.key, required this.child});
 
   final Widget child;
+
+  void _go(BuildContext context, String route) {
+    Navigator.of(context).maybePop();
+    context.go(route);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,10 +65,94 @@ class AdminShell extends ConsumerWidget {
           );
         }
         final loc = GoRouterState.of(context).matchedLocation;
+        final scheme = Theme.of(context).colorScheme;
+
         return Scaffold(
+          drawer: Drawer(
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.only(top: 8),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Text(
+                      "Wakalat Invest — Admin",
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.dashboard_outlined),
+                    title: Text(context.tr("overview")),
+                    selected: loc.startsWith("/dashboard"),
+                    onTap: () => _go(context, "/dashboard"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.assignment_outlined),
+                    title: Text(context.tr("kyc_queue")),
+                    selected: loc.startsWith("/kyc"),
+                    onTap: () => _go(context, "/kyc"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.inbox_outlined),
+                    title: Text(context.tr("deposits")),
+                    selected: loc.startsWith("/deposits"),
+                    onTap: () => _go(context, "/deposits"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.outbox_outlined),
+                    title: Text(context.tr("withdrawals")),
+                    selected: loc.startsWith("/withdrawals"),
+                    onTap: () => _go(context, "/withdrawals"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.groups_outlined),
+                    title: Text(context.tr("investors")),
+                    selected: loc.startsWith("/investors"),
+                    onTap: () => _go(context, "/investors"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.trending_up_outlined),
+                    title: Text(context.tr("returns")),
+                    selected: loc.startsWith("/returns"),
+                    onTap: () => _go(context, "/returns"),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(
+                      Icons.notifications_rounded,
+                      color: scheme.primary,
+                    ),
+                    title: const Text("Notifications"),
+                    subtitle: const Text("Broadcast to all investors"),
+                    selected: loc.startsWith("/broadcast"),
+                    onTap: () => _go(context, "/broadcast"),
+                  ),
+                ],
+              ),
+            ),
+          ),
           appBar: AppBar(
             title: const Text("Wakalat Invest — Admin"),
+            // Bell first so it stays visible when the bar overflows on narrow widths.
             actions: [
+              IconButton(
+                tooltip: "Notifications — broadcast",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 48,
+                  minHeight: 48,
+                ),
+                icon: Icon(
+                  Icons.notifications_rounded,
+                  size: 26,
+                  color: scheme.primary,
+                ),
+                onPressed: () => context.go("/broadcast"),
+              ),
+              const AppBarPreferenceActions(),
               TextButton(
                 onPressed: () async {
                   await ref
@@ -62,81 +162,80 @@ class AdminShell extends ConsumerWidget {
                 },
                 child: Text(context.tr("sign_out")),
               ),
-              const AppBarPreferenceActions(),
               const SizedBox(width: 8),
             ],
           ),
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              NavigationRail(
-                selectedIndex: _indexFor(loc),
-                onDestinationSelected: (i) {
-                  switch (i) {
-                    case 0:
-                      context.go("/dashboard");
-                    case 1:
-                      context.go("/kyc");
-                    case 2:
-                      context.go("/deposits");
-                    case 3:
-                      context.go("/withdrawals");
-                    case 4:
-                      context.go("/investors");
-                    case 5:
-                      context.go("/returns");
-                  }
-                },
-                labelType: NavigationRailLabelType.all,
-                destinations: [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard),
-                    label: Text(context.tr("overview")),
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final useRail = constraints.maxWidth >= 720;
+              if (!useRail) {
+                return child;
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NavigationRail(
+                    selectedIndex: _indexFor(loc),
+                    onDestinationSelected: (i) {
+                      if (i >= 0 && i < _kAdminShellRoutes.length) {
+                        context.go(_kAdminShellRoutes[i]);
+                      }
+                    },
+                    labelType: NavigationRailLabelType.all,
+                    destinations: [
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.dashboard_outlined),
+                        selectedIcon: const Icon(Icons.dashboard),
+                        label: Text(context.tr("overview")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.assignment_outlined),
+                        selectedIcon: const Icon(Icons.assignment),
+                        label: Text(context.tr("kyc_queue")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.inbox_outlined),
+                        selectedIcon: const Icon(Icons.inbox),
+                        label: Text(context.tr("deposits")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.outbox_outlined),
+                        selectedIcon: const Icon(Icons.outbox),
+                        label: Text(context.tr("withdrawals")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.groups_outlined),
+                        selectedIcon: const Icon(Icons.groups),
+                        label: Text(context.tr("investors")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.trending_up_outlined),
+                        selectedIcon: const Icon(Icons.trending_up),
+                        label: Text(context.tr("returns")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.notifications_outlined),
+                        selectedIcon: const Icon(Icons.notifications_rounded),
+                        label: const Text("Notifications"),
+                      ),
+                    ],
                   ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.assignment_outlined),
-                    selectedIcon: Icon(Icons.assignment),
-                    label: Text(context.tr("kyc_queue")),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.inbox_outlined),
-                    selectedIcon: Icon(Icons.inbox),
-                    label: Text(context.tr("deposits")),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.outbox_outlined),
-                    selectedIcon: Icon(Icons.outbox),
-                    label: Text(context.tr("withdrawals")),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.groups_outlined),
-                    selectedIcon: Icon(Icons.groups),
-                    label: Text(context.tr("investors")),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.trending_up_outlined),
-                    selectedIcon: Icon(Icons.trending_up),
-                    label: Text(context.tr("returns")),
-                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: child),
                 ],
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(child: child),
-            ],
+              );
+            },
           ),
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text("Error: $e")),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text("Error: $e"))),
     );
   }
 
   int _indexFor(String loc) {
+    if (loc.startsWith("/broadcast")) return 6;
     if (loc.startsWith("/investors")) return 4;
     if (loc.startsWith("/kyc")) return 1;
     if (loc.startsWith("/deposits")) return 2;

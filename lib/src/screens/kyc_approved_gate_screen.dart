@@ -21,7 +21,8 @@ class KycApprovedGateScreen extends ConsumerWidget {
     final kycAsync = ref.watch(userKycProvider);
 
     return userAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text("Error: $e"))),
       data: (user) {
         final status = user?.kycStatus ?? KycLifecycleStatus.pending;
