@@ -37,5 +37,12 @@ service firebase.storage {
       allow write: if isOwner(userId)
         && request.resource.size < 10 * 1024 * 1024;
     }
+
+    // Admin-uploaded PDF statements (see Firestore `reports` collection)
+    match /reports/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin()
+        && request.resource.size < 25 * 1024 * 1024;
+    }
   }
 }

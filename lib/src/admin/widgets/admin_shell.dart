@@ -15,6 +15,7 @@ const _kAdminShellRoutes = <String>[
   "/withdrawals",
   "/investors",
   "/returns",
+  "/upload-reports",
   "/notifications",
   "/broadcast",
 ];
@@ -120,6 +121,12 @@ class AdminShell extends ConsumerWidget {
                     title: Text(context.tr("returns")),
                     selected: loc.startsWith("/returns"),
                     onTap: () => _go(context, "/returns"),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.picture_as_pdf_outlined),
+                    title: Text(context.tr("admin_nav_upload_reports")),
+                    selected: loc.startsWith("/upload-reports"),
+                    onTap: () => _go(context, "/upload-reports"),
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -267,6 +274,11 @@ class AdminShell extends ConsumerWidget {
                         label: Text(context.tr("returns")),
                       ),
                       NavigationRailDestination(
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        selectedIcon: const Icon(Icons.picture_as_pdf),
+                        label: Text(context.tr("admin_nav_upload_reports")),
+                      ),
+                      NavigationRailDestination(
                         icon: const Icon(Icons.inbox_outlined),
                         selectedIcon: const Icon(Icons.inbox),
                         label: Text(context.tr("notifications")),
@@ -293,8 +305,9 @@ class AdminShell extends ConsumerWidget {
   }
 
   int _indexFor(String loc) {
-    if (loc.startsWith("/broadcast")) return 7;
-    if (loc.startsWith("/notifications")) return 6;
+    if (loc.startsWith("/broadcast")) return 8;
+    if (loc.startsWith("/notifications")) return 7;
+    if (loc.startsWith("/upload-reports")) return 6;
     if (loc.startsWith("/investors")) return 4;
     if (loc.startsWith("/kyc")) return 1;
     if (loc.startsWith("/deposits")) return 2;

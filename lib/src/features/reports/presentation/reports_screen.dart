@@ -1,3 +1,6 @@
+import "dart:typed_data";
+
+import "package:file_saver/file_saver.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
@@ -10,6 +13,7 @@ import "../../../providers/auth_providers.dart";
 import "../../../providers/reports_providers.dart";
 import "../../../providers/transaction_history_providers.dart";
 import "../services/report_pdf_builder.dart";
+import "report_pdf_preview_screen.dart";
 
 enum _PeriodPreset { thisMonth, thisYear, custom }
 
@@ -76,26 +80,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
-  Future<void> _downloadPdf() async {
-    final range = _resolvedRange();
-    if (range.start.isAfter(range.end)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("reports_invalid_range"))),
-      );
-      return;
-    }
-
-    final txs = ref.read(userTransactionItemsProvider).valueOrNull ?? [];
-    final filtered = filterTxnsInRange(txs, range.start, range.end);
-
-    final prof = ref.read(userProfileProvider).valueOrNull;
-    final auth = ref.read(currentUserProvider);
-    final accountLabel = (prof != null && prof.name.trim().isNotEmpty)
-        ? prof.name.trim()
-        : (auth?.email ?? "");
-
-    final labels = ReportPdfLabels(
+  ReportPdfLabels _labels(BuildContext context) {
+    return ReportPdfLabels(
       documentTitle: context.tr("reports_pdf_doc_title"),
       account: context.tr("reports_account"),
       period: context.tr("reports_period"),
@@ -111,22 +97,79 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       footer: context.tr("reports_pdf_footer"),
       transactionsHeading: context.tr("reports_pdf_transactions_heading"),
     );
+  }
+
+  Future<Uint8List?> _buildPdfBytes() async {
+    final range = _resolvedRange();
+    if (range.start.isAfter(range.end)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr("reports_invalid_range"))),
+        );
+      }
+      return null;
+    }
+
+    final txs = ref.read(userTransactionItemsProvider).valueOrNull ?? [];
+    final filtered = filterTxnsInRange(txs, range.start, range.end);
+
+    final prof = ref.read(userProfileProvider).valueOrNull;
+    final auth = ref.read(currentUserProvider);
+    final accountLabel = (prof != null && prof.name.trim().isNotEmpty)
+        ? prof.name.trim()
+        : (auth?.email ?? "");
 
     final ps = DateTime(range.start.year, range.start.month, range.start.day);
     final pe = DateTime(range.end.year, range.end.month, range.end.day);
 
     try {
-      final bytes = await buildInvestorReportPdf(
+      return await buildInvestorReportPdf(
         accountLabel: accountLabel,
         periodStart: ps,
         periodEndInclusive: pe,
         transactions: filtered,
-        labels: labels,
+        labels: _labels(context),
       );
-      await Printing.layoutPdf(
-        onLayout: (_) async => bytes,
-        name:
-            "wakalat-report-${DateFormat('yyyy-MM-dd').format(ps)}-${DateFormat('yyyy-MM-dd').format(pe)}.pdf",
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr("reports_pdf_failed"))),
+        );
+      }
+      return null;
+    }
+  }
+
+  String _pdfFileName() {
+    final range = _resolvedRange();
+    final ps = DateTime(range.start.year, range.start.month, range.start.day);
+    final pe = DateTime(range.end.year, range.end.month, range.end.day);
+    return "wakalat-report-${DateFormat("yyyy-MM-dd").format(ps)}-${DateFormat("yyyy-MM-dd").format(pe)}.pdf";
+  }
+
+  Future<void> _viewReport() async {
+    final bytes = await _buildPdfBytes();
+    if (bytes == null || !mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => ReportPdfPreviewScreen(
+          bytes: bytes,
+          fileName: _pdfFileName(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadReport() async {
+    final bytes = await _buildPdfBytes();
+    if (bytes == null || !mounted) return;
+    try {
+      final base = _pdfFileName().replaceAll(".pdf", "");
+      await FileSaver.instance.saveFile(
+        name: base,
+        bytes: bytes,
+        fileExtension: "pdf",
+        mimeType: MimeType.pdf,
       );
     } catch (_) {
       if (mounted) {
@@ -135,6 +178,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         );
       }
     }
+  }
+
+  Future<void> _printReport() async {
+    final bytes = await _buildPdfBytes();
+    if (bytes == null || !mounted) return;
+    await Printing.layoutPdf(
+      onLayout: (_) async => bytes,
+      name: _pdfFileName(),
+    );
   }
 
   @override
@@ -237,10 +289,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
-                FilledButton.icon(
-                  onPressed: _downloadPdf,
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: Text(context.tr("reports_download_pdf")),
+                Text(
+                  context.tr("reports_actions_hint"),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _viewReport,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: Text(context.tr("reports_action_view")),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _downloadReport,
+                      icon: const Icon(Icons.download_outlined),
+                      label: Text(context.tr("reports_download_action")),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _printReport,
+                      icon: const Icon(Icons.print_outlined),
+                      label: Text(context.tr("reports_print")),
+                    ),
+                  ],
                 ),
               ],
             ),

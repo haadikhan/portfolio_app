@@ -30,7 +30,11 @@ class AdminDashboardScreen extends StatelessWidget {
                 onTap: () => context.push("/admin/apply-return"),
               ),
               const _ActionCard(title: "Approve KYC"),
-              const _ActionCard(title: "Upload Reports"),
+              _ActionCard(
+                title: "Upload investor reports",
+                subtitle: "PDF statements visible in the investor app",
+                onTap: () => context.go("/upload-reports"),
+              ),
             ],
           ),
           const SizedBox(height: 16),
