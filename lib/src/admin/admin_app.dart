@@ -7,6 +7,11 @@ import "package:go_router/go_router.dart";
 import "../core/i18n/language_provider.dart";
 import "../core/theme/app_theme.dart";
 import "../core/theme/theme_provider.dart";
+import "admin_role_refresh.dart";
+import "crm/crm_dashboard_screen.dart";
+import "crm/crm_investor_detail_screen.dart";
+import "crm/crm_investor_list_screen.dart";
+import "crm/crm_team_screen.dart";
 import "screens/admin_dashboard_screen.dart";
 import "screens/admin_deposits_queue_screen.dart";
 import "screens/admin_investor_detail_screen.dart";
@@ -21,33 +26,76 @@ import "screens/admin_upload_reports_screen.dart";
 import "screens/admin_withdrawals_queue_screen.dart";
 import "widgets/admin_shell.dart";
 
-/// Drives [GoRouter] refresh when Firebase auth session changes.
-class _AuthRefresh extends ChangeNotifier {
-  _AuthRefresh() {
-    FirebaseAuth.instance.authStateChanges().listen((_) => notifyListeners());
+bool _crmMustRedirect(String loc) {
+  if (loc.startsWith("/crm/team")) return true;
+  if (loc.startsWith("/crm")) return false;
+  if (loc.startsWith("/notifications")) return false;
+  if (loc == "/login") return false;
+  return true;
+}
+
+class _RoleReadyGate extends StatelessWidget {
+  const _RoleReadyGate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: adminRoleRefresh,
+      builder: (context, _) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && !adminRoleRefresh.ready) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return child;
+      },
+    );
   }
 }
 
-final _authRefresh = _AuthRefresh();
-
-/// Admin web app router (KYC review).
+/// Admin web app router (KYC review + CRM).
 final adminRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: "/login",
-    refreshListenable: _authRefresh,
+    refreshListenable: adminRoleRefresh,
     redirect: (context, state) {
       final user = FirebaseAuth.instance.currentUser;
       final loc = state.matchedLocation;
       final loggingIn = loc == "/login";
-      if (user == null && !loggingIn) {
+
+      if (user == null) {
+        if (!loggingIn) return "/login";
+        return null;
+      }
+
+      if (!adminRoleRefresh.ready) {
+        return null;
+      }
+
+      final role = (adminRoleRefresh.role ?? "").toLowerCase();
+      if (role != "admin" && role != "crm") {
         return "/login";
       }
+
+      if (loggingIn) {
+        return role == "crm" ? "/crm" : "/dashboard";
+      }
+
+      if (role == "crm" && _crmMustRedirect(loc)) {
+        return "/crm";
+      }
+
       return null;
     },
     routes: [
       GoRoute(path: "/login", builder: (_, __) => const AdminLoginScreen()),
       ShellRoute(
-        builder: (context, state, child) => AdminShell(child: child),
+        builder: (context, state, child) => _RoleReadyGate(
+          child: AdminShell(child: child),
+        ),
         routes: [
           GoRoute(
             path: "/dashboard",
@@ -95,6 +143,24 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => AdminKycDetailScreen(
               userId: state.pathParameters["userId"] ?? "",
             ),
+          ),
+          GoRoute(
+            path: "/crm",
+            builder: (_, __) => const CrmDashboardScreen(),
+          ),
+          GoRoute(
+            path: "/crm/investors",
+            builder: (_, __) => const CrmInvestorListScreen(),
+          ),
+          GoRoute(
+            path: "/crm/investors/:userId",
+            builder: (_, state) => CrmInvestorDetailScreen(
+              userId: state.pathParameters["userId"] ?? "",
+            ),
+          ),
+          GoRoute(
+            path: "/crm/team",
+            builder: (_, __) => const CrmTeamScreen(),
           ),
         ],
       ),

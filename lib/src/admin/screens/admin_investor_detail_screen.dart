@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
 import "../providers/admin_providers.dart";
 
@@ -23,25 +24,29 @@ class AdminInvestorDetailScreen extends ConsumerWidget {
           if (detail == null) {
             return const Center(child: Text("Investor not found."));
           }
-          return _InvestorDetailBody(detail: detail);
+          return _InvestorDetailBody(
+            detail: detail,
+          );
         },
       ),
     );
   }
 }
 
-class _InvestorDetailBody extends StatelessWidget {
+class _InvestorDetailBody extends ConsumerWidget {
   const _InvestorDetailBody({required this.detail});
 
   final AdminInvestorDetail detail;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = detail.summary;
     final wallet = detail.wallet;
     final tx = detail.transactions;
     final currency = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
     final dt = DateFormat.yMMMd().add_Hm();
+    final role = ref.watch(adminRoleProvider).valueOrNull ?? "";
+    final isAdmin = role.toLowerCase() == "admin";
 
     return SingleChildScrollView(
       child: Column(
@@ -98,6 +103,10 @@ class _InvestorDetailBody extends StatelessWidget {
               ),
             ],
           ),
+          if (isAdmin) ...[
+            const SizedBox(height: 24),
+            CrmAssignmentSection(investorUid: user.userId),
+          ],
           const SizedBox(height: 28),
           Text(
             "Transactions",

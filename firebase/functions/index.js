@@ -51,7 +51,12 @@ exports.onKycSubmittedForReview = onDocumentUpdated(
 );
 
 exports.onTransactionUpdated = onDocumentUpdated(
-  "transactions/{txId}",
+  {
+    document: "transactions/{txId}",
+    region: "us-central1",
+    memory: "256MiB",
+    cpu: 0.08,
+  },
   async (event) => {
     const after = event.data?.after?.data();
     const uid = after?.userId;

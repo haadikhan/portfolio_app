@@ -3,7 +3,7 @@
  * All mutations go through these callables + Admin SDK.
  */
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
@@ -40,6 +40,25 @@ async function assertKycApproved(uid) {
   if (kyc !== "approved") {
     throw new HttpsError("failed-precondition", "KYC must be approved.");
   }
+}
+
+function readRequestBodyBuffer(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+/** Prefer Cloud Functions rawBody when present (binary PDF). */
+async function getPdfBuffer(req) {
+  if (req.rawBody && req.rawBody.length) {
+    return Buffer.isBuffer(req.rawBody)
+      ? req.rawBody
+      : Buffer.from(req.rawBody);
+  }
+  return readRequestBodyBuffer(req);
 }
 
 function txId() {
@@ -642,7 +661,12 @@ exports.addProfitEntry = onCall({ region: "us-central1" }, async (request) => {
 
 /** Admin: adjustment entry (signed amount) */
 exports.addAdjustmentEntry = onCall(
-  { region: "us-central1" },
+  {
+    region: "us-central1",
+    // Lower CPU to stay under Cloud Run regional vCPU quota (Gen2 = Cloud Run).
+    memory: "256MiB",
+    cpu: 0.08,
+  },
   async (request) => {
     if (!request.auth?.uid)
       throw new HttpsError("unauthenticated", "Sign in required.");
@@ -707,7 +731,13 @@ exports.recalculateWalletForUser = onCall(
 
 /** Admin: approve a transaction (deposit or withdrawal) */
 exports.adminApproveTransaction = onCall(
-  { region: "us-central1" },
+  {
+    region: "us-central1",
+    // Lower CPU to stay under per-region Cloud Run CPU quota on deploy.
+    cpu: 0.5,
+    memory: "256MiB",
+    concurrency: 1,
+  },
   async (request) => {
     if (!request.auth?.uid)
       throw new HttpsError("unauthenticated", "Sign in required.");
@@ -1129,7 +1159,7 @@ exports.setStorageCors = onCall({ region: "us-central1" }, async (request) => {
   await bucket.setCorsConfiguration([
     {
       origin: ["*"],
-      method: ["GET", "HEAD"],
+      method: ["GET", "HEAD", "PUT", "OPTIONS"],
       maxAgeSeconds: 3600,
       responseHeader: [
         "Content-Type",
@@ -1137,6 +1167,8 @@ exports.setStorageCors = onCall({ region: "us-central1" }, async (request) => {
         "Content-Length",
         "User-Agent",
         "x-goog-resumable",
+        "x-goog-content-length-range",
+        "x-goog-hash",
       ],
     },
   ]);
@@ -1208,5 +1240,160 @@ exports.getStorageImageData = onCall(
       bytesBase64: buffer.toString("base64"),
       contentType: metadata.contentType || "image/jpeg",
     };
+  },
+);
+
+/**
+ * Admin: POST raw PDF bytes with Authorization: Bearer <Firebase ID token>.
+ * Uses Admin SDK file.save() — avoids getSignedUrl() which needs iam.serviceAccounts.signBlob
+ * (often missing on Cloud Functions SA and surfaces as HTTP 500).
+ */
+exports.uploadInvestorReportHttp = onRequest(
+  {
+    region: "us-central1",
+    cors: true,
+    memory: "512MiB",
+    // Default for 512MiB is 1 vCPU; cap to reduce regional CPU quota usage.
+    cpu: 0.5,
+    timeoutSeconds: 120,
+    invoker: "public",
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "POST only" });
+      return;
+    }
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({ error: "Sign in required." });
+        return;
+      }
+      const idToken = authHeader.slice(7);
+      let decoded;
+      try {
+        decoded = await admin.auth().verifyIdToken(idToken);
+      } catch (e) {
+        logger.warn("uploadInvestorReportHttp_bad_token", { err: String(e) });
+        res.status(401).json({ error: "Invalid session token." });
+        return;
+      }
+      await assertAdmin(decoded.uid);
+
+      const buffer = await getPdfBuffer(req);
+      if (buffer.length === 0) {
+        res.status(400).json({ error: "Empty PDF body." });
+        return;
+      }
+      if (buffer.length > 25 * 1024 * 1024) {
+        res.status(400).json({ error: "PDF must be 25 MB or smaller." });
+        return;
+      }
+
+      const bucket = admin.storage().bucket();
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+      const objectPath = `reports/${id}.pdf`;
+      const file = bucket.file(objectPath);
+      await file.save(buffer, {
+        metadata: { contentType: "application/pdf" },
+        resumable: false,
+      });
+
+      res.status(200).json({ ok: true, storagePath: objectPath });
+    } catch (e) {
+      logger.error("uploadInvestorReportHttp", {
+        err: String(e),
+        stack: e.stack,
+      });
+      if (e instanceof HttpsError) {
+        res.status(e.httpErrorCode?.status ?? 500).json({ error: e.message });
+        return;
+      }
+      res.status(500).json({ error: "Upload failed." });
+    }
+  },
+);
+
+/**
+ * Admin-only: create a Firebase Auth user and Firestore profile with role "crm".
+ * invoker: "public" — required for 2nd gen callables on Flutter Web so Cloud Run
+ * accepts OPTIONS/POST (browser preflight); auth is still enforced via request.auth.
+ */
+exports.createCrmUser = onCall(
+  { region: "us-central1", invoker: "public" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const email = (request.data?.email ?? "").trim();
+    const password = request.data?.password ?? "";
+    const displayName = (request.data?.displayName ?? "").trim();
+    if (!email) {
+      throw new HttpsError("invalid-argument", "email is required.");
+    }
+    if (password.length < 6) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Password must be at least 6 characters.",
+      );
+    }
+
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({
+        email,
+        password,
+        displayName: displayName || undefined,
+      });
+    } catch (e) {
+      const code = e.errorInfo?.code || e.code;
+      logger.error("createCrmUser_auth", { err: String(e), code });
+      if (code === "auth/email-already-exists") {
+        throw new HttpsError(
+          "already-exists",
+          "This email is already registered.",
+        );
+      }
+      if (code === "auth/invalid-email") {
+        throw new HttpsError("invalid-argument", "Invalid email address.");
+      }
+      if (code === "auth/weak-password") {
+        throw new HttpsError("invalid-argument", "Password is too weak.");
+      }
+      throw new HttpsError("internal", "Could not create account.");
+    }
+
+    const uid = userRecord.uid;
+    const name =
+      displayName || (email.includes("@") ? email.split("@")[0] : "CRM");
+
+    try {
+      await db()
+        .collection("users")
+        .doc(uid)
+        .set({
+          email,
+          name,
+          role: "crm",
+          kycStatus: "pending",
+          phone: "",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+      logger.error("createCrmUser_firestore", { err: String(e), uid });
+      try {
+        await admin.auth().deleteUser(uid);
+      } catch (delErr) {
+        logger.warn("createCrmUser_rollback_auth_failed", {
+          err: String(delErr),
+          uid,
+        });
+      }
+      throw new HttpsError("internal", "Could not save user profile.");
+    }
+
+    return { uid, email };
   },
 );

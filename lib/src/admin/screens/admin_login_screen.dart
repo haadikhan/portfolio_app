@@ -35,6 +35,8 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     if (!mounted) return;
     if (role == "admin") {
       context.go("/dashboard");
+    } else if (role == "crm") {
+      context.go("/crm");
     }
   }
 
@@ -52,14 +54,26 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         );
     if (!mounted) return;
     final s = ref.read(adminAuthControllerProvider);
-    s.whenOrNull(
-      error: (e, _) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      },
-      data: (_) => context.go("/dashboard"),
-    );
+    if (s.hasError) {
+      s.whenOrNull(
+        error: (e, _) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString())),
+          );
+        },
+      );
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await ref
+        .read(firebaseFirestoreProvider)
+        .collection("users")
+        .doc(user.uid)
+        .get();
+    final role = (doc.data()?["role"] as String? ?? "").toLowerCase();
+    if (!mounted) return;
+    context.go(role == "crm" ? "/crm" : "/dashboard");
   }
 
   @override

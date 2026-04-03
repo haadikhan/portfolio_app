@@ -10,14 +10,44 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Check admin via custom claim (set by Cloud Functions on login/role change).
-    // Falls back to checking the "role" claim directly.
-    // Note: firestore.get() is NOT used here because cross-service Firestore
-    // lookups are unreliable on the firebasestorage.app domain.
-    function isAdmin() {
+    // Prefer Auth custom claims when present.
+    function isAdminToken() {
       return isSignedIn() && (
         request.auth.token.admin == true ||
-        request.auth.token.role == "admin"
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "Admin"
+      );
+    }
+
+    // Firestore `users/{uid}.role == "admin"` (common when custom claims are not set).
+    // Avoid `.lower()` on a missing/non-string field (that denied the whole rule).
+    function isAdminFirestoreUserDoc() {
+      let path = /databases/(default)/documents/users/$(request.auth.uid);
+      return isSignedIn() &&
+        firestore.exists(path) &&
+        (
+          firestore.get(path).data.role == "admin" ||
+          firestore.get(path).data.role == "Admin"
+        );
+    }
+
+    function isAdmin() {
+      return isAdminToken() || isAdminFirestoreUserDoc();
+    }
+
+    function isCrmFirestoreUserDoc() {
+      let path = /databases/(default)/documents/users/$(request.auth.uid);
+      return isSignedIn() &&
+        firestore.exists(path) &&
+        firestore.get(path).data.role == "crm";
+    }
+
+    function crmManagesInvestorStorage(investorUid) {
+      let ap = /databases/(default)/documents/crm_assignments/$(investorUid);
+      return isAdmin() || (
+        isCrmFirestoreUserDoc() &&
+        firestore.exists(ap) &&
+        firestore.get(ap).data.assignedToUid == request.auth.uid
       );
     }
 
@@ -43,6 +73,13 @@ service firebase.storage {
       allow read: if isSignedIn();
       allow write: if isAdmin()
         && request.resource.size < 25 * 1024 * 1024;
+    }
+
+    match /crm_attachments/{investorUid}/{allPaths=**} {
+      allow read: if isSignedIn() && crmManagesInvestorStorage(investorUid);
+      allow write: if isSignedIn()
+        && crmManagesInvestorStorage(investorUid)
+        && request.resource.size < 10 * 1024 * 1024;
     }
   }
 }

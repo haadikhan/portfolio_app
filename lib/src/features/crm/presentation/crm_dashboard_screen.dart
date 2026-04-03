@@ -18,7 +18,7 @@ class CrmDashboardScreen extends StatelessWidget {
             subtitle: Text(context.tr("crm_assigned_sub")),
           ),
           ListTile(
-            title: Text(context.tr("crm_followups")),
+            title: Text(context.tr("crm_dashboard_pending_followups_title")),
             subtitle: Text(context.tr("crm_followups_sub")),
           ),
           ListTile(

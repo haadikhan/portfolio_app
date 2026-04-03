@@ -21,7 +21,7 @@ class AdminInvestorService {
     for (final doc in usersSnap.docs) {
       final summary = AdminInvestorSummary.fromFirestore(doc.id, doc.data());
       final role = summary.role.toLowerCase();
-      if (role == "admin" || role == "team") continue;
+      if (role == "admin" || role == "team" || role == "crm") continue;
       byId[summary.userId] = summary;
     }
 

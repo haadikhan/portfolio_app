@@ -1,12 +1,18 @@
+import "dart:convert";
+
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:file_picker/file_picker.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:firebase_core/firebase_core.dart";
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:http/http.dart" as http;
 import "package:intl/intl.dart";
 
 import "../../core/i18n/app_translations.dart";
+
+const int _kMaxReportPdfBytes = 25 * 1024 * 1024;
 
 /// Upload a PDF to Storage and create a [reports] Firestore row visible to investors (see [userReportsProvider]).
 class AdminUploadReportsScreen extends ConsumerStatefulWidget {
@@ -61,19 +67,61 @@ class _AdminUploadReportsScreenState
       );
       return;
     }
+    if (bytes.length > _kMaxReportPdfBytes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${context.tr("error_prefix")} PDF must be under 25 MB.",
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() => _uploading = true);
     try {
-      final authUid = FirebaseAuth.instance.currentUser?.uid;
-      if (authUid == null) throw Exception("not signed in");
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("not signed in");
+      final authUid = user.uid;
+      final token = await user.getIdToken(true);
 
-      final id = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = FirebaseStorage.instance.ref("reports/$id.pdf");
-      await ref.putData(
-        bytes,
-        SettableMetadata(contentType: "application/pdf"),
+      final projectId = Firebase.app().options.projectId;
+      if (projectId.isEmpty) {
+        throw Exception("Missing Firebase project id.");
+      }
+      final uploadUri = Uri.parse(
+        "https://us-central1-$projectId.cloudfunctions.net/uploadInvestorReportHttp",
       );
-      final url = await ref.getDownloadURL();
+
+      final res = await http.post(
+        uploadUri,
+        body: bytes,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/pdf",
+        },
+      );
+      if (res.statusCode != 200) {
+        String detail = res.body;
+        try {
+          final err = jsonDecode(res.body);
+          if (err is Map && err["error"] != null) {
+            detail = "${err["error"]}";
+          }
+        } catch (_) {}
+        throw Exception("Upload failed (HTTP ${res.statusCode}): $detail");
+      }
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) {
+        throw Exception("Invalid upload response.");
+      }
+      final storagePath = decoded["storagePath"] as String?;
+      if (storagePath == null || storagePath.isEmpty) {
+        throw Exception("Missing storagePath in response.");
+      }
+
+      final url =
+          await FirebaseStorage.instance.ref(storagePath).getDownloadURL();
 
       final titleText = _title.text.trim();
       final yearVal = int.tryParse(_year.text.trim()) ?? DateTime.now().year;
@@ -96,7 +144,7 @@ class _AdminUploadReportsScreenState
       );
       setState(() {
         _picked = null;
-          _uploading = false;
+        _uploading = false;
       });
     } catch (e) {
       if (mounted) {

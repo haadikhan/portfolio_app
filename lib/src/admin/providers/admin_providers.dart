@@ -31,7 +31,7 @@ final adminRoleProvider = StreamProvider<String?>((ref) {
         .collection("users")
         .doc(user.uid)
         .snapshots()
-        .map((d) => d.data()?["role"] as String?);
+        .map((d) => (d.data()?["role"] as String? ?? "").toLowerCase());
   });
 });
 
@@ -91,10 +91,10 @@ class AdminAuthController extends StateNotifier<AsyncValue<void>> {
       if (uid == null) throw Exception("Sign-in failed.");
       final doc = await _ref.read(firebaseFirestoreProvider).collection("users").doc(uid).get();
       final role = (doc.data()?["role"] as String? ?? "").toLowerCase();
-      if (role != "admin") {
+      if (role != "admin" && role != "crm") {
         await _auth.signOut();
         throw Exception(
-          "Access denied. This panel is restricted to administrators.",
+          "Access denied. This panel is for administrators and CRM staff only.",
         );
       }
     });

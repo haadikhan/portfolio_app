@@ -5,13 +5,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Role checks without .lower() — avoids runtime errors; supports common casings.
+    // exists() before get() so missing user docs do not throw inside hasRole.
     function hasRole(role) {
+      let p = /databases/$(database)/documents/users/$(request.auth.uid);
       return isSignedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+        && exists(p)
+        && (
+          (role == "admin"
+            && (get(p).data.role == "admin"
+              || get(p).data.role == "Admin"
+              || get(p).data.role == "ADMIN"))
+          || (role == "crm"
+            && (get(p).data.role == "crm"
+              || get(p).data.role == "CRM"
+              || get(p).data.role == "Crm"))
+        );
     }
 
     function isAdmin() {
       return hasRole("admin");
+    }
+
+    function isCrm() {
+      return hasRole("crm");
+    }
+
+    function crmManagesInvestor(investorUid) {
+      return isAdmin() || (
+        isCrm()
+        && exists(/databases/$(database)/documents/crm_assignments/$(investorUid))
+        && get(/databases/$(database)/documents/crm_assignments/$(investorUid)).data.assignedToUid == request.auth.uid
+      );
     }
 
     function isOwner(userId) {
@@ -51,7 +76,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      // Own profile: no hasRole()/get() chains — fixes staff login + role stream for admin & CRM.
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isAdmin() || crmManagesInvestor(userId);
       allow create: if isOwner(userId) && ownerUserCreateAllowed();
       allow update: if isOwner(userId) && ownerUserUpdateAllowed();
       allow update: if isOwner(userId) && ownerFcmTokensUpdateAllowed();
@@ -68,7 +95,7 @@ service cloud.firestore {
 
     // Primary KYC collection (Wakalat Invest mobile + admin web)
     match /kyc/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin() || crmManagesInvestor(userId);
       allow create: if isOwner(userId)
         && request.resource.data.status == "underReview";
       allow update: if isAdmin() || (
@@ -90,11 +117,12 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow read: if isAdmin();
+      allow read: if isCrm() && crmManagesInvestor(resource.data.userId);
       allow create, update, delete: if false;
     }
 
     match /wallets/{walletId} {
-      allow read: if isOwner(walletId) || isAdmin();
+      allow read: if isOwner(walletId) || isAdmin() || crmManagesInvestor(walletId);
       allow create, update, delete: if false;
     }
 
@@ -131,6 +159,56 @@ service cloud.firestore {
     match /audit_logs/{logId} {
       allow read: if hasRole("admin");
       allow create, update, delete: if false;
+    }
+
+    // --- Team CRM ---
+    match /crm_assignments/{investorUid} {
+      allow read: if isAdmin()
+        || (isCrm() && resource.data.assignedToUid == request.auth.uid);
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /crm_notes/{noteId} {
+      allow read: if isSignedIn()
+        && crmManagesInvestor(resource.data.investorUid);
+      allow create: if isSignedIn()
+        && crmManagesInvestor(request.resource.data.investorUid)
+        && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /crm_followups/{followupId} {
+      // CRM dashboard queries by ownerUid + status; rules must allow that shape or
+      // Firestore rejects the query (permission-denied) even when documents are valid.
+      allow read: if isSignedIn()
+        && (
+          (isCrm() && resource.data.ownerUid == request.auth.uid)
+          || crmManagesInvestor(resource.data.investorUid)
+        );
+      allow create: if isSignedIn()
+        && crmManagesInvestor(request.resource.data.investorUid)
+        && (
+          isAdmin()
+          || (isCrm() && request.resource.data.ownerUid == request.auth.uid)
+        );
+      allow update: if isAdmin()
+        || (
+          isCrm()
+          && resource.data.ownerUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["status", "completedAt", "rescheduledTo"])
+        );
+      allow delete: if false;
+    }
+
+    match /crm_communications/{commId} {
+      allow read: if isSignedIn()
+        && crmManagesInvestor(resource.data.investorUid);
+      allow create: if isSignedIn()
+        && crmManagesInvestor(request.resource.data.investorUid)
+        && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }
