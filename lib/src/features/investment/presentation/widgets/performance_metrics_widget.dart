@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 
+import "../../../../core/i18n/app_translations.dart";
 import "../../../../core/theme/app_colors.dart";
 import "../../../../models/portfolio_model.dart";
 
@@ -23,7 +24,7 @@ class PerformanceMetricsWidget extends StatelessWidget {
           children: [
             Expanded(
               child: _MetricCard(
-                label: "Total return",
+                label: context.tr("metric_total_return"),
                 value: "${_pct.format(totalReturn)}%",
                 valueColor: totalReturn >= 0 ? AppColors.success : AppColors.error,
                 icon: totalReturn >= 0
@@ -34,7 +35,7 @@ class PerformanceMetricsWidget extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _MetricCard(
-                label: "Last period",
+                label: context.tr("metric_last_period"),
                 value: "${_pct.format(lastPeriodPct)}%",
                 valueColor:
                     lastPeriodPct >= 0 ? AppColors.success : AppColors.error,
@@ -45,7 +46,7 @@ class PerformanceMetricsWidget extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _MetricCard(
-          label: "Net gain",
+          label: context.tr("metric_net_gain"),
           value: _money.format(netGain),
           valueColor: netGain >= 0 ? AppColors.success : AppColors.error,
           icon: netGain >= 0
@@ -74,13 +75,14 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: wide ? double.infinity : null,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -100,9 +102,9 @@ class _MetricCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.bodyMuted,
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

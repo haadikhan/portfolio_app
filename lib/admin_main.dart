@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "firebase_options.dart";
 import "src/admin/admin_app.dart";
+import "src/core/fcm/fcm_bootstrap.dart";
 
 /// Entrypoint for the Wakalat Invest admin web app (KYC review).
 ///
@@ -22,7 +23,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       child: initError == null
-          ? const WakalatAdminApp()
+          ? const FcmBootstrap(child: WakalatAdminApp())
           : MaterialApp(
               home: Scaffold(
                 body: Center(

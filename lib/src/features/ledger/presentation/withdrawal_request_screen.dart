@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/wallet_providers.dart";
 
@@ -27,7 +28,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid amount.")),
+        SnackBar(content: Text(context.tr("enter_valid_amount"))),
       );
       return;
     }
@@ -37,7 +38,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
       await ref.read(walletLedgerFunctionsProvider).createWithdrawalRequest(amount: amount);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Withdrawal request submitted.")),
+        SnackBar(content: Text(context.tr("withdrawal_submitted"))),
       );
       context.pop();
     } catch (e) {
@@ -55,36 +56,42 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     final walletAsync = ref.watch(userWalletStreamProvider);
 
     return AppScaffold(
-      title: "Request withdrawal",
+      title: context.tr("request_withdrawal_title"),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           walletAsync.when(
             loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text("Wallet: $e"),
+            error: (e, _) => Text("${context.tr("wallet_prefix")} $e"),
             data: (w) {
               final avail = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
               final res = (w?["reservedAmount"] as num?)?.toDouble() ?? 0;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Available: ${avail.toStringAsFixed(2)} PKR"),
-                  Text("Reserved: ${res.toStringAsFixed(2)} PKR"),
+                  Text(
+                    context.trParams("available_pkrf", {
+                      "amount": avail.toStringAsFixed(2),
+                    }),
+                  ),
+                  Text(
+                    context.trParams("reserved_pkrf", {
+                      "amount": res.toStringAsFixed(2),
+                    }),
+                  ),
                 ],
               );
             },
           ),
           const SizedBox(height: 16),
-          const Text(
-            "Funds are reserved while your request is pending. An admin will approve and mark settlement when paid out.",
-          ),
+          Text(context.tr("withdrawal_reserved_note")),
           const SizedBox(height: 16),
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: "Amount (PKR)",
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.tr("amount_pkr"),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 20),
@@ -96,7 +103,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
                     width: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text("Submit request"),
+                : Text(context.tr("submit_request")),
           ),
         ],
       ),

@@ -1,15 +1,15 @@
 import "package:fl_chart/fl_chart.dart";
 import "package:flutter/material.dart";
 
-import "../../../../core/theme/app_colors.dart";
+import "../../../../core/i18n/app_translations.dart";
 
-const _allocations = [
-  _Allocation("Stock Market", 40, Color(0xFF0F7A2C)),
-  _Allocation("Tech Products", 25, Color(0xFF2196F3)),
-  _Allocation("Debt Market", 25, Color(0xFFFF9800)),
-  _Allocation("Money Market", 5, Color(0xFF9C27B0)),
-  _Allocation("Asset Market", 5, Color(0xFFE91E63)),
-];
+List<_Allocation> _allocationsFor(BuildContext context) => [
+      _Allocation(context.tr("alloc_stock_market"), 40, const Color(0xFF0F7A2C)),
+      _Allocation(context.tr("alloc_tech"), 25, const Color(0xFF2196F3)),
+      _Allocation(context.tr("alloc_debt"), 25, const Color(0xFFFF9800)),
+      _Allocation(context.tr("alloc_money"), 5, const Color(0xFF9C27B0)),
+      _Allocation(context.tr("alloc_asset"), 5, const Color(0xFFE91E63)),
+    ];
 
 class _Allocation {
   const _Allocation(this.label, this.pct, this.color);
@@ -31,10 +31,12 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final allocations = _allocationsFor(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Pie chart
         SizedBox(
           height: 220,
           child: PieChart(
@@ -54,8 +56,8 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
                   });
                 },
               ),
-              sections: List.generate(_allocations.length, (i) {
-                final a = _allocations[i];
+              sections: List.generate(allocations.length, (i) {
+                final a = allocations[i];
                 final isTouched = i == _touched;
                 return PieChartSectionData(
                   value: a.pct,
@@ -73,31 +75,26 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
           ),
         ),
         const SizedBox(height: 16),
-
-        // Percentage bars
-        ..._allocations.map((a) => _AllocationBar(allocation: a)),
-
+        ...allocations.map((a) => _AllocationBar(allocation: a)),
         const SizedBox(height: 14),
-
-        // Disclaimer
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: scheme.outlineVariant),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.info_outline_rounded,
-                  size: 14, color: AppColors.bodyMuted),
-              SizedBox(width: 6),
+                  size: 14, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  "Allocation is indicative and for representation purposes only",
+                  context.tr("allocation_disclaimer"),
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.bodyMuted,
+                    color: scheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -116,6 +113,7 @@ class _AllocationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -137,9 +135,9 @@ class _AllocationBar extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     allocation.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.body,
+                      color: scheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -147,10 +145,10 @@ class _AllocationBar extends StatelessWidget {
               ),
               Text(
                 "${allocation.pct.toInt()}%",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.heading,
+                  color: scheme.onSurface,
                 ),
               ),
             ],
@@ -160,7 +158,7 @@ class _AllocationBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: allocation.pct / 100,
-              backgroundColor: AppColors.border,
+              backgroundColor: scheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation<Color>(allocation.color),
               minHeight: 6,
             ),

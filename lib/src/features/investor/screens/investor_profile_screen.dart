@@ -20,12 +20,12 @@ class InvestorProfileScreen extends ConsumerWidget {
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text("Error: $e",
+          child: Text("${context.tr("error_prefix")} $e",
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (profile) {
           if (profile == null) {
-            return const Center(child: Text("Profile not found."));
+            return Center(child: Text(context.tr("profile_not_found")));
           }
           return _ProfileBody(profile: profile);
         },
@@ -72,8 +72,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (!mounted) return;
     setState(() => _editing = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Profile updated successfully."),
+      SnackBar(
+        content: Text(context.tr("profile_updated")),
         backgroundColor: AppColors.success,
       ),
     );
@@ -90,7 +90,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Update bank details"),
+        title: Text(context.tr("update_bank_title")),
         content: SizedBox(
           width: 340,
           child: SingleChildScrollView(
@@ -111,10 +111,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       Icon(Icons.info_outline_rounded,
                           size: 16, color: AppColors.warning),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          "Bank detail changes require admin approval. Your request will be reviewed within 24 hours.",
-                          style: TextStyle(fontSize: 11, height: 1.4),
+                          context.tr("bank_approval_note"),
+                          style: const TextStyle(fontSize: 11, height: 1.4),
                         ),
                       ),
                     ],
@@ -122,13 +122,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 ),
                 const SizedBox(height: 16),
                 _DialogField(
-                    label: "Bank name", controller: bankCtrl),
+                    label: context.tr("bank_name"), controller: bankCtrl),
                 const SizedBox(height: 10),
                 _DialogField(
-                    label: "Account number", controller: acctCtrl),
+                    label: context.tr("account_number"), controller: acctCtrl),
                 const SizedBox(height: 10),
                 _DialogField(
-                    label: "Account title", controller: titleCtrl),
+                    label: context.tr("account_title"), controller: titleCtrl),
               ],
             ),
           ),
@@ -136,10 +136,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel")),
+              child: Text(context.tr("cancel"))),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Submit for review")),
+              child: Text(context.tr("submit_for_review_btn"))),
         ],
       ),
     );
@@ -158,9 +158,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-            "Your request has been submitted for admin review."),
+      SnackBar(
+        content: Text(context.tr("bank_request_submitted")),
         backgroundColor: AppColors.success,
       ),
     );
@@ -177,7 +176,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Update nominee details"),
+        title: Text(context.tr("update_nominee_title")),
         content: SizedBox(
           width: 340,
           child: SingleChildScrollView(
@@ -197,10 +196,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       Icon(Icons.info_outline_rounded,
                           size: 16, color: AppColors.warning),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          "Nominee detail changes require admin approval.",
-                          style: TextStyle(fontSize: 11),
+                          context.tr("nominee_approval_note"),
+                          style: const TextStyle(fontSize: 11),
                         ),
                       ),
                     ],
@@ -208,13 +207,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 ),
                 const SizedBox(height: 16),
                 _DialogField(
-                    label: "Nominee name", controller: nameCtrl),
+                    label: context.tr("nominee_name"), controller: nameCtrl),
                 const SizedBox(height: 10),
                 _DialogField(
-                    label: "Nominee CNIC", controller: cnicCtrl),
+                    label: context.tr("nominee_cnic"), controller: cnicCtrl),
                 const SizedBox(height: 10),
                 _DialogField(
-                    label: "Relation", controller: relCtrl),
+                    label: context.tr("relationship"), controller: relCtrl),
               ],
             ),
           ),
@@ -222,10 +221,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel")),
+              child: Text(context.tr("cancel"))),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Submit for review")),
+              child: Text(context.tr("submit_for_review_btn"))),
         ],
       ),
     );
@@ -244,9 +243,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-            "Your request has been submitted for admin review."),
+      SnackBar(
+        content: Text(context.tr("bank_request_submitted")),
         backgroundColor: AppColors.success,
       ),
     );
@@ -276,7 +274,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                     _nameCtrl.text = widget.profile.name;
                     _phoneCtrl.text = widget.profile.phone ?? "";
                   }),
-                  child: const Text("Cancel"),
+                  child: Text(context.tr("cancel")),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
@@ -289,7 +287,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_rounded, size: 16),
-                  label: const Text("Save"),
+                  label: Text(context.tr("save_btn")),
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary),
                 ),
@@ -297,7 +295,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _editing = true),
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text("Edit profile"),
+                  label: Text(context.tr("edit_profile_btn")),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
@@ -309,16 +307,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
           // ── Personal info card ──────────────────────────────────────
           _ProfileCard(
-            title: "Personal information",
+            title: context.tr("personal_information"),
             icon: Icons.person_outline_rounded,
             children: [
               _editing
                   ? _EditableField(
-                      label: "Full name",
+                      label: context.tr("full_name"),
                       controller: _nameCtrl,
                     )
                   : _ProfileFieldTile(
-                      label: "Full name",
+                      label: context.tr("full_name"),
                       value: widget.profile.name.isNotEmpty
                           ? widget.profile.name
                           : null,
@@ -326,17 +324,17 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               const Divider(height: 1),
               _editing
                   ? _EditableField(
-                      label: "Phone number",
+                      label: context.tr("profile_phone_number"),
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.phone,
                     )
                   : _ProfileFieldTile(
-                      label: "Phone number",
+                      label: context.tr("profile_phone_number"),
                       value: widget.profile.phone,
                     ),
               const Divider(height: 1),
               _ProfileFieldTile(
-                label: "CNIC",
+                label: context.tr("cnic_label"),
                 value: widget.profile.cnic,
                 locked: true,
               ),
@@ -346,12 +344,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
           // ── Bank details card ───────────────────────────────────────
           _ProfileCard(
-            title: "Bank details",
+            title: context.tr("bank_details_section"),
             icon: Icons.account_balance_outlined,
             trailingAction: TextButton.icon(
               onPressed: _openBankEditDialog,
               icon: const Icon(Icons.edit_rounded, size: 14),
-              label: const Text("Edit", style: TextStyle(fontSize: 12)),
+              label: Text(context.tr("edit_short"),
+                  style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   padding: EdgeInsets.zero,
@@ -360,15 +359,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             children: [
               _ProfileFieldTile(
-                  label: "Bank name",
+                  label: context.tr("bank_name"),
                   value: widget.profile.bankName),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: "Account number",
+                  label: context.tr("account_number"),
                   value: widget.profile.accountNumber),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: "Account title",
+                  label: context.tr("account_title"),
                   value: widget.profile.accountTitle),
             ],
           ),
@@ -376,12 +375,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
           // ── Nominee card ────────────────────────────────────────────
           _ProfileCard(
-            title: "Nominee",
+            title: context.tr("nominee_short"),
             icon: Icons.people_outline_rounded,
             trailingAction: TextButton.icon(
               onPressed: _openNomineeEditDialog,
               icon: const Icon(Icons.edit_rounded, size: 14),
-              label: const Text("Edit", style: TextStyle(fontSize: 12)),
+              label: Text(context.tr("edit_short"),
+                  style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   padding: EdgeInsets.zero,
@@ -390,15 +390,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             children: [
               _ProfileFieldTile(
-                  label: "Nominee name",
+                  label: context.tr("nominee_name"),
                   value: widget.profile.nomineeName),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: "Nominee CNIC",
+                  label: context.tr("nominee_cnic"),
                   value: widget.profile.nomineeCnic),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: "Relation",
+                  label: context.tr("relationship"),
                   value: widget.profile.nomineeRelation),
             ],
           ),
@@ -415,15 +415,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
+                const Icon(Icons.info_outline_rounded,
                     size: 15, color: AppColors.bodyMuted),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Changes to bank details and nominee require admin approval. You will be notified once reviewed.",
-                    style: TextStyle(
+                    context.tr("profile_changes_note"),
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.bodyMuted,
                       height: 1.4,
@@ -581,7 +581,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile.name.isNotEmpty ? profile.name : "Investor",
+                  profile.name.isNotEmpty ? profile.name : context.tr("investor_label"),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,

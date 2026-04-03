@@ -15,6 +15,7 @@ import "screens/admin_kyc_detail_screen.dart";
 import "screens/admin_kyc_list_screen.dart";
 import "screens/admin_login_screen.dart";
 import "screens/admin_broadcast_screen.dart";
+import "../features/notifications/presentation/notifications_screen.dart";
 import "screens/admin_returns_screen.dart";
 import "screens/admin_withdrawals_queue_screen.dart";
 import "widgets/admin_shell.dart";
@@ -69,6 +70,12 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const AdminReturnsScreen(),
           ),
           GoRoute(
+            path: "/notifications",
+            builder: (_, __) => const NotificationsScreen(
+              shell: NotificationShellKind.admin,
+            ),
+          ),
+          GoRoute(
             path: "/broadcast",
             builder: (_, __) => const AdminBroadcastScreen(),
           ),
@@ -113,6 +120,13 @@ class WakalatAdminApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        final code = Localizations.localeOf(context).languageCode;
+        return Directionality(
+          textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: router,
     );
   }

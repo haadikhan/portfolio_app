@@ -341,12 +341,14 @@ class _AdminApplyReturnScreenState
     if (profile == null || !profile.isAdmin) {
       return AppScaffold(
         title: "Apply Returns",
+        showNotificationAction: false,
         body: const Center(child: Text("Admin access required.")),
       );
     }
 
     return AppScaffold(
       title: "Apply Monthly Return",
+      showNotificationAction: false,
       body: Column(
         children: [
           // Mode toggle

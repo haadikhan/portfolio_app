@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 
+import "../../../../core/i18n/app_translations.dart";
 import "../../../../core/theme/app_colors.dart";
 import "../../../../models/return_history_model.dart";
 
@@ -14,18 +15,19 @@ class ReturnHistoryListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (history.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: scheme.outlineVariant),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            "No return history yet.",
-            style: TextStyle(color: AppColors.bodyMuted, fontSize: 13),
+            context.tr("no_return_history_yet"),
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
           ),
         ),
       );
@@ -43,6 +45,7 @@ class _ReturnCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final isPositive = record.returnPct >= 0;
     final color = isPositive ? AppColors.success : AppColors.error;
 
@@ -50,13 +53,12 @@ class _ReturnCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
-          // Month badge
           Container(
             width: 46,
             height: 46,
@@ -86,33 +88,29 @@ class _ReturnCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-
-          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _dateFmt.format(record.appliedAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.heading,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Profit: ${_money.format(record.profitAmount)}",
-                  style: const TextStyle(
+                  "${context.tr("profit_amount_prefix")} ${_money.format(record.profitAmount)}",
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.bodyMuted,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-
-          // Return pct
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

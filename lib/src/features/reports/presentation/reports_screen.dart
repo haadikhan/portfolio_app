@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 
 class ReportsScreen extends StatelessWidget {
@@ -8,29 +9,29 @@ class ReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: "Reports Center",
+      title: context.tr("reports_center_title"),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const ListTile(
-            title: Text("Monthly Statement - Jan 2026"),
-            subtitle: Text("Includes opening/closing balance and disclaimer."),
-            trailing: Icon(Icons.download),
+          ListTile(
+            title: Text(context.tr("reports_monthly_title")),
+            subtitle: Text(context.tr("reports_monthly_subtitle")),
+            trailing: const Icon(Icons.download),
           ),
-          const ListTile(
-            title: Text("Portfolio Summary"),
-            subtitle: Text("Total investment, current value, return %."),
-            trailing: Icon(Icons.picture_as_pdf),
+          ListTile(
+            title: Text(context.tr("reports_portfolio_title")),
+            subtitle: Text(context.tr("reports_portfolio_subtitle")),
+            trailing: const Icon(Icons.picture_as_pdf),
           ),
-          const ListTile(
-            title: Text("Transaction Report"),
-            subtitle: Text("Full ledger visibility for audit/disputes."),
-            trailing: Icon(Icons.list_alt),
+          ListTile(
+            title: Text(context.tr("reports_tx_title")),
+            subtitle: Text(context.tr("reports_tx_subtitle")),
+            trailing: const Icon(Icons.list_alt),
           ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () {},
-            child: const Text("Trigger Monthly Auto-Generation (Stub)"),
+            child: Text(context.tr("reports_stub_button")),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:google_fonts/google_fonts.dart";
 
 import "app_colors.dart";
 import "app_text_theme.dart";
@@ -8,7 +9,6 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.backgroundTop,
-      fontFamily: useUrduFont ? "NotoNastaliqUrdu" : null,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.accent,
@@ -22,7 +22,7 @@ class AppTheme {
       textTheme: AppTextTheme.textTheme,
     );
 
-    return base.copyWith(
+    final themed = base.copyWith(
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.heading,
@@ -79,6 +79,12 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.focus, width: 1.5),
         ),
       ),
+    );
+    if (!useUrduFont) return themed;
+    return themed.copyWith(
+      textTheme: GoogleFonts.notoNastaliqUrduTextTheme(themed.textTheme),
+      primaryTextTheme:
+          GoogleFonts.notoNastaliqUrduTextTheme(themed.primaryTextTheme),
     );
   }
 
@@ -157,9 +163,9 @@ class AppTheme {
     );
     if (!useUrduFont) return themed;
     return themed.copyWith(
-      textTheme: themed.textTheme.apply(fontFamily: "NotoNastaliqUrdu"),
+      textTheme: GoogleFonts.notoNastaliqUrduTextTheme(themed.textTheme),
       primaryTextTheme:
-          themed.primaryTextTheme.apply(fontFamily: "NotoNastaliqUrdu"),
+          GoogleFonts.notoNastaliqUrduTextTheme(themed.primaryTextTheme),
     );
   }
 }

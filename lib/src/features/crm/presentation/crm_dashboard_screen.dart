@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 
 class CrmDashboardScreen extends StatelessWidget {
@@ -8,25 +9,25 @@ class CrmDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: "Team CRM",
+      title: context.tr("crm_title"),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
+        children: [
           ListTile(
-            title: Text("Assigned Investors"),
-            subtitle: Text("12 active assignments"),
+            title: Text(context.tr("crm_assigned")),
+            subtitle: Text(context.tr("crm_assigned_sub")),
           ),
           ListTile(
-            title: Text("Pending Follow-ups"),
-            subtitle: Text("4 due today"),
+            title: Text(context.tr("crm_followups")),
+            subtitle: Text(context.tr("crm_followups_sub")),
           ),
           ListTile(
-            title: Text("Recent Communication Logs"),
-            subtitle: Text("Call with Ali - discussed withdrawal timeline"),
+            title: Text(context.tr("crm_comm_logs")),
+            subtitle: Text(context.tr("crm_comm_logs_sub")),
           ),
           ListTile(
-            title: Text("Notes"),
-            subtitle: Text("Investor prefers monthly update calls"),
+            title: Text(context.tr("crm_notes")),
+            subtitle: Text(context.tr("crm_notes_sub")),
           ),
         ],
       ),

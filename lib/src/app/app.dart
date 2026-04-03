@@ -122,6 +122,13 @@ class WakalatInvestApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        final code = Localizations.localeOf(context).languageCode;
+        return Directionality(
+          textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: router,
     );
   }

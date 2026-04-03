@@ -10,6 +10,7 @@ class AdminDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       title: "Admin Dashboard",
+      showNotificationAction: false,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

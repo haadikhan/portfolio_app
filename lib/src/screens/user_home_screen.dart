@@ -3,7 +3,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../core/i18n/app_translations.dart";
 import "../core/theme/app_colors.dart";
+import "../core/widgets/app_bar_actions.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
 import "../providers/wallet_providers.dart";
@@ -16,15 +18,24 @@ class UserHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return profileAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text("$e"))),
+      loading: () => Scaffold(
+        backgroundColor: scheme.surface,
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: scheme.surface,
+        body: Center(
+          child: Text("${context.tr("error_prefix")} $e"),
+        ),
+      ),
       data: (profile) {
         if (profile == null) {
-          return const Scaffold(
-            body: Center(child: Text("Profile not found.")),
+          return Scaffold(
+            backgroundColor: scheme.surface,
+            body: Center(child: Text(context.tr("profile_not_found"))),
           );
         }
         return _DashboardView(profile: profile);
@@ -40,9 +51,10 @@ class _DashboardView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final walletAsync = ref.watch(userWalletStreamProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundTop,
+      backgroundColor: scheme.surface,
       drawer: _AppDrawer(profile: profile),
       body: CustomScrollView(
         slivers: [
@@ -51,53 +63,46 @@ class _DashboardView extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // KYC banner
                 _KycBanner(profile: profile),
-
-                // Wallet hero card
                 const SizedBox(height: 20),
                 walletAsync.when(
                   loading: () => const _WalletCardSkeleton(),
                   error: (e, _) => _WalletCard(wallet: null),
                   data: (w) => _WalletCard(wallet: w),
                 ),
-
-                // Quick actions
                 const SizedBox(height: 24),
-                _SectionLabel(label: "Quick actions"),
+                _SectionLabel(label: context.tr("quick_actions")),
                 const SizedBox(height: 12),
                 _QuickActions(profile: profile),
-
-                // Navigation tiles
                 const SizedBox(height: 28),
-                _SectionLabel(label: "My account"),
+                _SectionLabel(label: context.tr("my_account")),
                 const SizedBox(height: 12),
                 _NavTile(
                   icon: Icons.account_balance_wallet_outlined,
-                  label: "Wallet & ledger",
-                  subtitle: "Balances, history, deposits & withdrawals",
+                  label: context.tr("nav_wallet_ledger"),
+                  subtitle: context.tr("nav_wallet_ledger_subtitle"),
                   onTap: () => context.push("/wallet-ledger"),
                 ),
                 const SizedBox(height: 10),
                 _NavTile(
                   icon: Icons.shield_outlined,
-                  label: "KYC verification",
-                  subtitle: _kycSubtitle(profile.kycStatus),
-                  badge: _kycBadge(profile.kycStatus),
+                  label: context.tr("nav_kyc"),
+                  subtitle: _kycSubtitle(context, profile.kycStatus),
+                  badge: _kycBadge(context, profile.kycStatus),
                   onTap: () => context.push("/kyc"),
                 ),
                 const SizedBox(height: 10),
                 _NavTile(
                   icon: Icons.bar_chart_rounded,
-                  label: "Reports",
-                  subtitle: "Monthly statements & performance",
+                  label: context.tr("nav_reports"),
+                  subtitle: context.tr("nav_reports_subtitle"),
                   onTap: () => context.push("/reports"),
                 ),
                 const SizedBox(height: 10),
                 _NavTile(
                   icon: Icons.notifications_outlined,
-                  label: "Notifications",
-                  subtitle: "Alerts and updates",
+                  label: context.tr("notifications"),
+                  subtitle: context.tr("notifications_subtitle"),
                   onTap: () => context.push("/notifications"),
                 ),
                 const SizedBox(height: 32),
@@ -109,41 +114,47 @@ class _DashboardView extends ConsumerWidget {
     );
   }
 
-  String _kycSubtitle(KycLifecycleStatus s) => switch (s) {
-    KycLifecycleStatus.approved => "Verified — full access enabled",
-    KycLifecycleStatus.underReview => "Under review by our team",
-    KycLifecycleStatus.rejected => "Action required — re-submit documents",
-    KycLifecycleStatus.pending => "Complete identity verification",
-  };
+  String _kycSubtitle(BuildContext context, KycLifecycleStatus s) =>
+      switch (s) {
+        KycLifecycleStatus.approved => context.tr("kyc_subtitle_approved"),
+        KycLifecycleStatus.underReview =>
+          context.tr("kyc_subtitle_under_review"),
+        KycLifecycleStatus.rejected => context.tr("kyc_subtitle_rejected"),
+        KycLifecycleStatus.pending => context.tr("kyc_subtitle_pending"),
+      };
 
-  _KycBadgeData? _kycBadge(KycLifecycleStatus s) => switch (s) {
-    KycLifecycleStatus.approved => _KycBadgeData(
-      label: "Verified",
-      color: AppColors.success,
-    ),
-    KycLifecycleStatus.underReview => _KycBadgeData(
-      label: "In review",
-      color: Colors.blue.shade700,
-    ),
-    KycLifecycleStatus.rejected => _KycBadgeData(
-      label: "Rejected",
-      color: AppColors.error,
-    ),
-    KycLifecycleStatus.pending => _KycBadgeData(
-      label: "Pending",
-      color: AppColors.warning,
-    ),
-  };
+  _KycBadgeData? _kycBadge(BuildContext context, KycLifecycleStatus s) =>
+      switch (s) {
+        KycLifecycleStatus.approved => _KycBadgeData(
+          label: context.tr("kyc_badge_verified"),
+          color: AppColors.success,
+        ),
+        KycLifecycleStatus.underReview => _KycBadgeData(
+          label: context.tr("kyc_badge_in_review"),
+          color: Colors.blue.shade700,
+        ),
+        KycLifecycleStatus.rejected => _KycBadgeData(
+          label: context.tr("kyc_badge_rejected"),
+          color: AppColors.error,
+        ),
+        KycLifecycleStatus.pending => _KycBadgeData(
+          label: context.tr("kyc_badge_pending"),
+          color: AppColors.warning,
+        ),
+      };
 }
 
 // ─── App bar ────────────────────────────────────────────────────────────────
 
-class _DashboardAppBar extends StatelessWidget {
+class _DashboardAppBar extends ConsumerWidget {
   const _DashboardAppBar({required this.profile});
   final AppUser profile;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final onSurface = scheme.onSurface;
+    final muted = scheme.onSurfaceVariant;
     final initials = profile.name.isNotEmpty
         ? profile.name
               .trim()
@@ -156,13 +167,13 @@ class _DashboardAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
-      backgroundColor: AppColors.backgroundTop,
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0.5,
       elevation: 0,
       leading: Builder(
         builder: (ctx) => IconButton(
-          icon: const Icon(Icons.menu_rounded, color: AppColors.heading),
+          icon: Icon(Icons.menu_rounded, color: onSurface),
           onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
@@ -173,18 +184,20 @@ class _DashboardAppBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Good day,",
-                style: const TextStyle(
+                context.tr("good_day"),
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.bodyMuted,
+                  color: muted,
                   fontWeight: FontWeight.w400,
                 ),
               ),
               Text(
-                profile.name.isNotEmpty ? profile.name : "Investor",
-                style: const TextStyle(
+                profile.name.isNotEmpty
+                    ? profile.name
+                    : context.tr("investor_label"),
+                style: TextStyle(
                   fontSize: 17,
-                  color: AppColors.heading,
+                  color: onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -195,7 +208,7 @@ class _DashboardAppBar extends StatelessWidget {
       actions: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: AppColors.primary,
+          backgroundColor: scheme.primary,
           child: Text(
             initials,
             style: const TextStyle(
@@ -205,7 +218,8 @@ class _DashboardAppBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        const AppBarPreferenceActions(),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -219,6 +233,7 @@ class _AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final initials = profile.name.isNotEmpty
         ? profile.name
               .trim()
@@ -229,11 +244,10 @@ class _AppDrawer extends ConsumerWidget {
         : "?";
 
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: scheme.surface,
       child: SafeArea(
         child: Column(
           children: [
-            // Profile header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
@@ -261,7 +275,9 @@ class _AppDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    profile.name.isNotEmpty ? profile.name : "Investor",
+                    profile.name.isNotEmpty
+                        ? profile.name
+                        : context.tr("investor_label"),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -278,20 +294,17 @@ class _AppDrawer extends ConsumerWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Nav items
             _DrawerItem(
               icon: Icons.dashboard_outlined,
-              label: "Dashboard",
+              label: context.tr("drawer_dashboard"),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             _DrawerItem(
               icon: Icons.pie_chart,
-              label: "My portfolio",
+              label: context.tr("drawer_portfolio"),
               onTap: () {
                 Navigator.pop(context);
                 context.push("/portfolio");
@@ -299,7 +312,7 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _DrawerItem(
               icon: Icons.account_balance_wallet_outlined,
-              label: "Wallet & ledger",
+              label: context.tr("drawer_wallet"),
               onTap: () {
                 Navigator.pop(context);
                 context.push("/wallet-ledger");
@@ -307,7 +320,7 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _DrawerItem(
               icon: Icons.shield_outlined,
-              label: "KYC verification",
+              label: context.tr("drawer_kyc"),
               onTap: () {
                 Navigator.pop(context);
                 context.push("/kyc");
@@ -315,7 +328,7 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _DrawerItem(
               icon: Icons.bar_chart_rounded,
-              label: "Reports",
+              label: context.tr("drawer_reports"),
               onTap: () {
                 Navigator.pop(context);
                 context.push("/reports");
@@ -323,18 +336,17 @@ class _AppDrawer extends ConsumerWidget {
             ),
             _DrawerItem(
               icon: Icons.notifications_outlined,
-              label: "Notifications",
+              label: context.tr("drawer_notifications"),
               onTap: () {
                 Navigator.pop(context);
                 context.push("/notifications");
               },
             ),
-
             const Spacer(),
             const Divider(height: 1),
             _DrawerItem(
               icon: Icons.logout_rounded,
-              label: "Logout",
+              label: context.tr("drawer_logout"),
               iconColor: AppColors.error,
               labelColor: AppColors.error,
               onTap: () async {
@@ -367,12 +379,13 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.primary, size: 22),
+      leading: Icon(icon, color: iconColor ?? scheme.primary, size: 22),
       title: Text(
         label,
         style: TextStyle(
-          color: labelColor ?? AppColors.body,
+          color: labelColor ?? scheme.onSurface,
           fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
@@ -390,11 +403,12 @@ class _KycChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (status) {
-      KycLifecycleStatus.approved => ("KYC Verified", AppColors.success),
-      KycLifecycleStatus.underReview => ("Under Review", Colors.blue.shade600),
-      KycLifecycleStatus.rejected => ("KYC Rejected", AppColors.error),
-      KycLifecycleStatus.pending => ("KYC Pending", AppColors.warning),
+    final (labelKey, color) = switch (status) {
+      KycLifecycleStatus.approved => ("kyc_chip_verified", AppColors.success),
+      KycLifecycleStatus.underReview =>
+        ("kyc_chip_under_review", Colors.blue.shade600),
+      KycLifecycleStatus.rejected => ("kyc_chip_rejected", AppColors.error),
+      KycLifecycleStatus.pending => ("kyc_chip_pending", AppColors.warning),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -409,7 +423,7 @@ class _KycChip extends StatelessWidget {
           Icon(Icons.circle, size: 7, color: color),
           const SizedBox(width: 5),
           Text(
-            label,
+            context.tr(labelKey),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
@@ -434,33 +448,42 @@ class _KycBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final (
       Color bg,
       Color fg,
       IconData icon,
-      String title,
-      String subtitle,
+      String titleKey,
+      String subtitleKey,
     ) = switch (profile.kycStatus) {
       KycLifecycleStatus.pending => (
-        const Color(0xFFFFF8E1),
+        isDark
+            ? scheme.secondaryContainer.withValues(alpha: 0.35)
+            : const Color(0xFFFFF8E1),
         AppColors.warning,
         Icons.info_outline_rounded,
-        "Complete your KYC",
-        "Verify your identity to unlock deposits, withdrawals and full access.",
+        "kyc_banner_pending_title",
+        "kyc_banner_pending_subtitle",
       ),
       KycLifecycleStatus.underReview => (
-        const Color(0xFFE3F2FD),
+        isDark
+            ? scheme.primaryContainer.withValues(alpha: 0.4)
+            : const Color(0xFFE3F2FD),
         Colors.blue.shade700,
         Icons.hourglass_top_rounded,
-        "Verification in progress",
-        "Your documents are under review. We'll notify you once done.",
+        "kyc_banner_review_title",
+        "kyc_banner_review_subtitle",
       ),
       KycLifecycleStatus.rejected => (
-        const Color(0xFFFFEBEE),
+        isDark
+            ? scheme.errorContainer.withValues(alpha: 0.45)
+            : const Color(0xFFFFEBEE),
         AppColors.error,
         Icons.warning_amber_rounded,
-        "Action required",
-        "Your KYC was not approved. Please review and re-submit.",
+        "kyc_banner_rejected_title",
+        "kyc_banner_rejected_subtitle",
       ),
       KycLifecycleStatus.approved => (
         Colors.transparent,
@@ -489,7 +512,7 @@ class _KycBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  context.tr(titleKey),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: fg,
@@ -498,7 +521,7 @@ class _KycBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  context.tr(subtitleKey),
                   style: TextStyle(
                     color: fg.withValues(alpha: 0.85),
                     fontSize: 12,
@@ -510,8 +533,8 @@ class _KycBanner extends StatelessWidget {
                     onTap: () => context.push("/kyc"),
                     child: Text(
                       profile.kycStatus == KycLifecycleStatus.rejected
-                          ? "Re-submit KYC →"
-                          : "Start verification →",
+                          ? context.tr("kyc_cta_resubmit")
+                          : context.tr("kyc_cta_start"),
                       style: TextStyle(
                         color: fg,
                         fontSize: 12,
@@ -542,6 +565,7 @@ class _WalletCard extends StatelessWidget {
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
     final tp = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0;
+    final dash = context.tr("em_dash");
 
     return Container(
       decoration: BoxDecoration(
@@ -567,9 +591,9 @@ class _WalletCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Current balance",
-                  style: TextStyle(
+                Text(
+                  context.tr("current_balance"),
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -584,9 +608,9 @@ class _WalletCard extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    "Live",
-                    style: TextStyle(
+                  child: Text(
+                    context.tr("live_badge"),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -597,7 +621,7 @@ class _WalletCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              wallet == null ? "—" : _money.format(current),
+              wallet == null ? dash : _money.format(current),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -610,8 +634,8 @@ class _WalletCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _WalletStat(
-                    label: "Available",
-                    value: wallet == null ? "—" : _money.format(avail),
+                    label: context.tr("available"),
+                    value: wallet == null ? dash : _money.format(avail),
                   ),
                 ),
                 Container(
@@ -621,8 +645,8 @@ class _WalletCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: _WalletStat(
-                    label: "Reserved",
-                    value: wallet == null ? "—" : _money.format(reserved),
+                    label: context.tr("reserved"),
+                    value: wallet == null ? dash : _money.format(reserved),
                     align: TextAlign.center,
                   ),
                 ),
@@ -633,8 +657,8 @@ class _WalletCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: _WalletStat(
-                    label: "Profit",
-                    value: wallet == null ? "—" : _money.format(tp),
+                    label: context.tr("profit_label"),
+                    value: wallet == null ? dash : _money.format(tp),
                     align: TextAlign.right,
                   ),
                 ),
@@ -651,9 +675,12 @@ class _WalletCard extends StatelessWidget {
                   color: Colors.white70,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  "Total deposited: ${wallet == null ? "—" : _money.format(td)}",
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                Expanded(
+                  child: Text(
+                    "${context.tr("total_deposited_prefix")}: "
+                    "${wallet == null ? dash : _money.format(td)}",
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -738,7 +765,7 @@ class _QuickActions extends StatelessWidget {
         Expanded(
           child: _ActionButton(
             icon: Icons.add_rounded,
-            label: "Deposit",
+            label: context.tr("deposit"),
             enabled: approved,
             onTap: () => context.push("/wallet-ledger/deposit"),
           ),
@@ -747,7 +774,7 @@ class _QuickActions extends StatelessWidget {
         Expanded(
           child: _ActionButton(
             icon: Icons.arrow_upward_rounded,
-            label: "Withdraw",
+            label: context.tr("withdraw"),
             enabled: approved,
             onTap: () => context.push("/wallet-ledger/withdraw"),
           ),
@@ -756,7 +783,7 @@ class _QuickActions extends StatelessWidget {
         Expanded(
           child: _ActionButton(
             icon: Icons.history_rounded,
-            label: "History",
+            label: context.tr("history"),
             onTap: () => context.push("/wallet-ledger"),
           ),
         ),
@@ -764,7 +791,7 @@ class _QuickActions extends StatelessWidget {
         Expanded(
           child: _ActionButton(
             icon: Icons.description_outlined,
-            label: "Reports",
+            label: context.tr("reports_quick"),
             onTap: () => context.push("/reports"),
           ),
         ),
@@ -787,33 +814,31 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final surface = enabled ? scheme.surface : scheme.surfaceContainerHighest;
+    final border = scheme.outline.withValues(alpha: enabled ? 1 : 0.5);
+    final iconColor = enabled ? scheme.primary : scheme.onSurfaceVariant;
+    final textColor = enabled ? scheme.onSurface : scheme.onSurfaceVariant;
+
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: enabled ? AppColors.surface : AppColors.surfaceMuted,
+          color: surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: enabled
-                ? AppColors.border
-                : AppColors.border.withValues(alpha: 0.5),
-          ),
+          border: Border.all(color: border),
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 22,
-              color: enabled ? AppColors.primary : AppColors.bodyMuted,
-            ),
+            Icon(icon, size: 22, color: iconColor),
             const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: enabled ? AppColors.body : AppColors.bodyMuted,
+                color: textColor,
               ),
             ),
           ],
@@ -831,12 +856,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: AppColors.bodyMuted,
+        color: scheme.onSurfaceVariant,
         letterSpacing: 0.4,
       ),
     );
@@ -867,14 +893,15 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: scheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -882,10 +909,10 @@ class _NavTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: scheme.primaryContainer.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, color: scheme.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -896,10 +923,10 @@ class _NavTile extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.heading,
+                          color: scheme.onSurface,
                         ),
                       ),
                       if (badge != null) ...[
@@ -928,17 +955,17 @@ class _NavTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.bodyMuted,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.bodyMuted,
+              color: scheme.onSurfaceVariant,
               size: 20,
             ),
           ],

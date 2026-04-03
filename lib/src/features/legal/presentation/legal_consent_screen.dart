@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 
@@ -30,21 +31,21 @@ class _LegalConsentScreenState extends ConsumerState<LegalConsentScreen> {
   Widget build(BuildContext context) {
     final busy = ref.watch(authControllerProvider).isLoading;
     return AppScaffold(
-      title: "Legal & Disclaimer",
+      title: context.tr("legal_title"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("This is a private investment tracking platform."),
-            const Text("Returns are not guaranteed."),
-            const Text("Past performance does not guarantee future results."),
-            const Text("We follow compliance best practices for KYC and consent."),
+            Text(context.tr("legal_para_1")),
+            Text(context.tr("legal_para_2")),
+            Text(context.tr("legal_para_3")),
+            Text(context.tr("legal_para_4")),
             const SizedBox(height: 16),
             CheckboxListTile(
               value: accepted,
               onChanged: (v) => setState(() => accepted = v ?? false),
-              title: const Text("I understand and accept the disclaimer."),
+              title: Text(context.tr("legal_accept")),
             ),
             FilledButton(
               onPressed: (!accepted || busy) ? null : _continue,
@@ -54,7 +55,7 @@ class _LegalConsentScreenState extends ConsumerState<LegalConsentScreen> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text("Continue"),
+                  : Text(context.tr("continue_btn")),
             ),
           ],
         ),

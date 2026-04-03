@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/transaction_history_providers.dart";
@@ -23,13 +24,6 @@ class _TransactionHistoryScreenState
   late TabController _tabController;
   String _statusFilter = "all";
 
-  final _tabs = const [
-    Tab(text: "All"),
-    Tab(text: "Deposits"),
-    Tab(text: "Withdrawals"),
-    Tab(text: "Profit"),
-  ];
-
   final _typeFilters = ["all", "deposit", "withdrawal", "profit_entry"];
 
   @override
@@ -47,7 +41,6 @@ class _TransactionHistoryScreenState
   List<TxnItem> _filter(List<TxnItem> all, int tabIndex) {
     List<TxnItem> result = all;
 
-    // Type filter
     final typeFilter = _typeFilters[tabIndex];
     if (typeFilter != "all") {
       result = result
@@ -57,7 +50,6 @@ class _TransactionHistoryScreenState
           .toList();
     }
 
-    // Status filter
     if (_statusFilter != "all") {
       result = result.where((t) => t.status == _statusFilter).toList();
     }
@@ -68,41 +60,48 @@ class _TransactionHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final txnsAsync = ref.watch(userTransactionItemsProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    final tabs = [
+      Tab(text: context.tr("tab_all")),
+      Tab(text: context.tr("tab_deposits")),
+      Tab(text: context.tr("tab_withdrawals")),
+      Tab(text: context.tr("tab_profit")),
+    ];
 
     return AppScaffold(
-      title: "Transaction history",
+      title: context.tr("txn_history_title"),
       body: Column(
         children: [
-          // ── Status filter chips ──────────────────────────────────────
           Container(
-            color: AppColors.backgroundTop,
+            color: scheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
                   _StatusChip(
-                    label: "All",
+                    label: context.tr("tab_all"),
                     active: _statusFilter == "all",
                     onTap: () => setState(() => _statusFilter = "all"),
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: "Pending",
+                    label: context.tr("filter_pending"),
                     active: _statusFilter == "pending",
                     color: AppColors.warning,
                     onTap: () => setState(() => _statusFilter = "pending"),
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: "Approved",
+                    label: context.tr("filter_approved"),
                     active: _statusFilter == "approved",
                     color: AppColors.success,
                     onTap: () => setState(() => _statusFilter = "approved"),
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: "Rejected",
+                    label: context.tr("filter_rejected"),
                     active: _statusFilter == "rejected",
                     color: AppColors.error,
                     onTap: () => setState(() => _statusFilter = "rejected"),
@@ -111,37 +110,36 @@ class _TransactionHistoryScreenState
               ),
             ),
           ),
-
-          // ── Type tab bar ─────────────────────────────────────────────
           Container(
-            color: AppColors.surface,
+            color: scheme.surface,
             child: TabBar(
               controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.bodyMuted,
-              indicatorColor: AppColors.primary,
+              labelColor: scheme.primary,
+              unselectedLabelColor: scheme.onSurfaceVariant,
+              indicatorColor: scheme.primary,
               labelStyle: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
               unselectedLabelStyle: const TextStyle(fontSize: 12),
-              tabs: _tabs,
+              tabs: tabs,
             ),
           ),
-
-          // ── List ─────────────────────────────────────────────────────
           Expanded(
             child: txnsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) =>
-                  Center(child: Text("Error: $e", style: const TextStyle(color: AppColors.error))),
+              error: (e, _) => Center(
+                child: Text(
+                  "${context.tr("error_prefix")} $e",
+                  style: TextStyle(color: scheme.error),
+                ),
+              ),
               data: (all) => TabBarView(
                 controller: _tabController,
                 children: List.generate(4, (i) {
                   final items = _filter(all, i);
                   if (items.isEmpty) {
-                    return _EmptyState(
-                        tabIndex: i, statusFilter: _statusFilter);
+                    return _EmptyState(statusFilter: _statusFilter);
                   }
                   return RefreshIndicator(
                     onRefresh: () async =>
@@ -164,14 +162,13 @@ class _TransactionHistoryScreenState
   }
 }
 
-// ── Transaction row item ──────────────────────────────────────────────────────
-
 class TransactionRowItem extends StatelessWidget {
   const TransactionRowItem({super.key, required this.txn});
   final TxnItem txn;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final isDeposit = txn.type == "deposit";
     final isProfit =
         txn.type == "profit_entry" || txn.type == "profit";
@@ -179,18 +176,18 @@ class TransactionRowItem extends StatelessWidget {
 
     final (Color iconBg, Color iconFg, IconData icon) = isDeposit
         ? (
-            const Color(0xFFE8F5E9),
+            scheme.primaryContainer.withValues(alpha: 0.5),
             AppColors.success,
             Icons.arrow_downward_rounded
           )
         : isWithdrawal
             ? (
-                const Color(0xFFFFEBEE),
+                scheme.errorContainer.withValues(alpha: 0.45),
                 AppColors.error,
                 Icons.arrow_upward_rounded
               )
             : (
-                const Color(0xFFE3F2FD),
+                scheme.primaryContainer.withValues(alpha: 0.4),
                 Colors.blue.shade700,
                 Icons.trending_up_rounded
               );
@@ -199,21 +196,20 @@ class TransactionRowItem extends StatelessWidget {
     final amountSign = isDeposit || isProfit ? "+" : "-";
 
     final typeLabel = isDeposit
-        ? "Deposit"
+        ? context.tr("txn_type_deposit")
         : isWithdrawal
-            ? "Withdrawal"
-            : "Profit entry";
+            ? context.tr("txn_type_withdrawal")
+            : context.tr("txn_type_profit");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
-          // ── Icon ─────────────────────────────────────────────────
           Container(
             width: 40,
             height: 40,
@@ -224,26 +220,24 @@ class TransactionRowItem extends StatelessWidget {
             child: Icon(icon, color: iconFg, size: 18),
           ),
           const SizedBox(width: 12),
-
-          // ── Info ─────────────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   typeLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.heading,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _dateFmt.format(txn.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.bodyMuted,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 if (txn.paymentMethod != null &&
@@ -251,15 +245,15 @@ class TransactionRowItem extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     txn.paymentMethod!,
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.bodyMuted),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ],
             ),
           ),
-
-          // ── Amount + badge ───────────────────────────────────────
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -281,18 +275,26 @@ class TransactionRowItem extends StatelessWidget {
   }
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────────
-
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
   final String status;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final (Color bg, Color fg) = switch (status) {
-      "approved" => (const Color(0xFFE8F5E9), AppColors.success),
-      "rejected" => (const Color(0xFFFFEBEE), AppColors.error),
-      _ => (const Color(0xFFFFF8E1), AppColors.warning),
+      "approved" => (
+          scheme.primaryContainer.withValues(alpha: 0.5),
+          AppColors.success
+        ),
+      "rejected" => (
+          scheme.errorContainer.withValues(alpha: 0.45),
+          AppColors.error
+        ),
+      _ => (
+          scheme.secondaryContainer.withValues(alpha: 0.35),
+          AppColors.warning
+        ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -312,8 +314,6 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-// ── Status chip (filter) ──────────────────────────────────────────────────────
-
 class _StatusChip extends StatelessWidget {
   const _StatusChip({
     required this.label,
@@ -328,17 +328,18 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.primary;
+    final scheme = Theme.of(context).colorScheme;
+    final c = color ?? scheme.primary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? c.withValues(alpha: 0.12) : AppColors.surface,
+          color: active ? c.withValues(alpha: 0.12) : scheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: active ? c : AppColors.border,
+            color: active ? c : scheme.outlineVariant,
             width: active ? 1.5 : 1,
           ),
         ),
@@ -347,7 +348,7 @@ class _StatusChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: active ? c : AppColors.bodyMuted,
+            color: active ? c : scheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -355,33 +356,29 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.tabIndex, required this.statusFilter});
-  final int tabIndex;
+  const _EmptyState({required this.statusFilter});
   final String statusFilter;
 
   @override
   Widget build(BuildContext context) {
-    final typeLabels = ["transactions", "deposits", "withdrawals", "profit entries"];
-    final type = typeLabels[tabIndex];
+    final scheme = Theme.of(context).colorScheme;
     final msg = statusFilter == "all"
-        ? "No $type yet"
-        : "No $statusFilter $type";
+        ? context.tr("txn_empty_generic")
+        : context.tr("txn_empty_filtered");
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.receipt_long_outlined,
-              size: 48, color: AppColors.bodyMuted),
+          Icon(Icons.receipt_long_outlined,
+              size: 48, color: scheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(
             msg,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.bodyMuted,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

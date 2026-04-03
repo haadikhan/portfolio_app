@@ -10,6 +10,7 @@ class AppScaffold extends StatelessWidget {
     required this.body,
     this.actions = const [],
     this.fallbackRoute = "/investor",
+    this.showNotificationAction = true,
   });
 
   final String title;
@@ -19,6 +20,9 @@ class AppScaffold extends StatelessWidget {
   /// Route to go to when the back button is tapped and there is no
   /// previous entry in the navigation stack (e.g. navigated with go()).
   final String fallbackRoute;
+
+  /// Investor notifications shortcut in the app bar; set false for admin-only screens.
+  final bool showNotificationAction;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +52,7 @@ class AppScaffold extends StatelessWidget {
         title: Text(title, style: titleStyle),
         actions: [
           ...actions,
-          const AppBarPreferenceActions(),
+          AppBarPreferenceActions(showNotificationAction: showNotificationAction),
           const SizedBox(width: 4),
         ],
       ),

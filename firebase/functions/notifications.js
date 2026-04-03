@@ -76,6 +76,56 @@ async function sendPushToUser(userId, n) {
   }
 }
 
+/**
+ * Writes one inbox row under users/{userId}/notifications and best-effort push.
+ * @param {string} userId
+ * @param {{ title: string, body: string, type?: string, category?: string, action?: string, refId?: string|null, amount?: number|null, currency?: string }} payload
+ * @returns {Promise<string>} notification doc id
+ */
+async function createUserNotification(userId, payload) {
+  const id = crypto.randomBytes(16).toString("hex");
+  const ref = db()
+    .collection("users")
+    .doc(userId)
+    .collection("notifications")
+    .doc(id);
+  const doc = {
+    title: String(payload.title || "").slice(0, 200),
+    body: String(payload.body || "").slice(0, 2000),
+    type: String(payload.type || "system"),
+    category: String(payload.category || "system"),
+    read: false,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    action: String(payload.action || "none"),
+    refId: payload.refId != null ? String(payload.refId) : null,
+    amount: payload.amount != null ? Number(payload.amount) : null,
+    currency: String(payload.currency || "PKR"),
+  };
+  await ref.set(doc);
+  await sendPushToUser(userId, {
+    id,
+    title: doc.title,
+    body: doc.body,
+    type: doc.type,
+    category: doc.category,
+    action: doc.action,
+    refId: doc.refId || "",
+  });
+  return id;
+}
+
+/** Notify every user doc with role "admin" (same inbox model). */
+async function notifyAllAdmins(payload) {
+  const snap = await db().collection("users").where("role", "==", "admin").get();
+  for (const d of snap.docs) {
+    try {
+      await createUserNotification(d.id, payload);
+    } catch (e) {
+      logger.warn("notifyAllAdmins_user_failed", { uid: d.id, error: String(e) });
+    }
+  }
+}
+
 // invoker: "public" — Cloud Run must allow unauthenticated HTTP so browsers can
 // complete CORS preflight; auth is still enforced via Firebase ID token in the callable body.
 exports.broadcastAnnouncement = onCall(
@@ -169,3 +219,6 @@ exports.broadcastAnnouncement = onCall(
   }
   }
 );
+
+exports.createUserNotification = createUserNotification;
+exports.notifyAllAdmins = notifyAllAdmins;

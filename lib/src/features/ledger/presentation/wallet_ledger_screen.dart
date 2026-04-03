@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/wallet_providers.dart";
 
@@ -12,11 +13,11 @@ final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 class WalletLedgerScreen extends ConsumerWidget {
   const WalletLedgerScreen({super.key});
 
-  static String _ts(dynamic v) {
+  static String _ts(BuildContext context, dynamic v) {
     if (v is Timestamp) {
       return DateFormat.yMMMd().add_jm().format(v.toDate());
     }
-    return "—";
+    return context.tr("em_dash");
   }
 
   @override
@@ -25,7 +26,7 @@ class WalletLedgerScreen extends ConsumerWidget {
     final txsAsync = ref.watch(userTransactionsStreamProvider);
 
     return AppScaffold(
-      title: "Wallet & Ledger",
+      title: context.tr("wallet_ledger_title"),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(userWalletStreamProvider);
@@ -36,15 +37,13 @@ class WalletLedgerScreen extends ConsumerWidget {
           children: [
             walletAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text("Wallet error: $e"),
+              error: (e, _) => Text("${context.tr("wallet_error")} $e"),
               data: (w) {
                 if (w == null) {
-                  return const Card(
+                  return Card(
                     child: ListTile(
-                      title: Text("No wallet data yet"),
-                      subtitle: Text(
-                        "Submit a deposit after KYC approval, or wait for sync.",
-                      ),
+                      title: Text(context.tr("no_wallet_data")),
+                      subtitle: Text(context.tr("no_wallet_subtitle")),
                     ),
                   );
                 }
@@ -59,7 +58,7 @@ class WalletLedgerScreen extends ConsumerWidget {
                   children: [
                     Card(
                       child: ListTile(
-                        title: const Text("Current balance"),
+                        title: Text(context.tr("current_balance")),
                         subtitle: Text(
                           _money.format(current),
                           style: Theme.of(context).textTheme.titleLarge,
@@ -68,24 +67,24 @@ class WalletLedgerScreen extends ConsumerWidget {
                     ),
                     Card(
                       child: ListTile(
-                        title: const Text("Available"),
+                        title: Text(context.tr("available")),
                         subtitle: Text(_money.format(avail)),
                       ),
                     ),
                     Card(
                       child: ListTile(
-                        title: const Text("Reserved (withdrawals)"),
+                        title: Text(context.tr("reserved_withdrawals")),
                         subtitle: Text(_money.format(reserved)),
                       ),
                     ),
                     Card(
                       child: ListTile(
-                        title: const Text("Totals"),
+                        title: Text(context.tr("totals")),
                         subtitle: Text(
-                          "Deposited: ${_money.format(td)}\n"
-                          "Withdrawn: ${_money.format(tw)}\n"
-                          "Profit: ${_money.format(tp)}\n"
-                          "Adjustments: ${_money.format(ta)}",
+                          "${context.tr("totals_line_deposited")} ${_money.format(td)}\n"
+                          "${context.tr("totals_line_withdrawn")} ${_money.format(tw)}\n"
+                          "${context.tr("totals_line_profit")} ${_money.format(tp)}\n"
+                          "${context.tr("totals_line_adjustments")} ${_money.format(ta)}",
                         ),
                       ),
                     ),
@@ -99,21 +98,21 @@ class WalletLedgerScreen extends ConsumerWidget {
                 Expanded(
                   child: FilledButton.tonal(
                     onPressed: () => context.push("/wallet-ledger/deposit"),
-                    child: const Text("Deposit request"),
+                    child: Text(context.tr("deposit_request")),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.tonal(
                     onPressed: () => context.push("/wallet-ledger/withdraw"),
-                    child: const Text("Withdrawal"),
+                    child: Text(context.tr("withdrawal_request_btn")),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
             Text(
-              "Transaction history",
+              context.tr("transaction_history"),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -122,10 +121,10 @@ class WalletLedgerScreen extends ConsumerWidget {
                 padding: EdgeInsets.all(24),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (e, _) => Text("History error: $e"),
+              error: (e, _) => Text("${context.tr("history_error")} $e"),
               data: (snap) {
                 if (snap == null || snap.docs.isEmpty) {
-                  return const Text("No transactions yet.");
+                  return Text(context.tr("no_transactions_yet"));
                 }
                 return Column(
                   children: snap.docs.map((d) {
@@ -139,7 +138,7 @@ class WalletLedgerScreen extends ConsumerWidget {
                           "${type.toUpperCase()} · ${_money.format(amt)}",
                         ),
                         subtitle: Text(
-                          "${d.id}\n$status · ${_ts(m["createdAt"])}",
+                          "${d.id}\n$status · ${_ts(context, m["createdAt"])}",
                         ),
                         isThreeLine: true,
                       ),

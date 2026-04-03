@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../core/i18n/app_translations.dart";
 import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
 import "../core/widgets/design_system_widgets.dart";
@@ -47,17 +48,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
+          colors: isDark
+              ? const [Color(0xFF121212), Color(0xFF1E1E1E)]
+              : const [AppColors.backgroundTop, AppColors.backgroundBottom],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text("Sign In")),
+        appBar: AppBar(title: Text(context.tr("sign_in"))),
         body: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -77,28 +81,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                       Text(
-                        "Welcome back",
+                        context.tr("welcome_back"),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Sign in to continue to your secure dashboard.",
+                        context.tr("sign_in_subtitle"),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 18),
                       TextFormField(
                         controller: _emailController,
-                        decoration: const InputDecoration(labelText: "Email"),
+                        decoration: InputDecoration(labelText: context.tr("email")),
                         validator: (v) =>
-                            (v == null || !v.contains("@")) ? "Enter valid email" : null,
+                            (v == null || !v.contains("@"))
+                                ? context.tr("enter_valid_email")
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: "Password"),
+                        decoration:
+                            InputDecoration(labelText: context.tr("password")),
                         validator: (v) =>
-                            (v == null || v.length < 6) ? "Minimum 6 characters" : null,
+                            (v == null || v.length < 6)
+                                ? context.tr("password_min_chars")
+                                : null,
                       ),
                       const SizedBox(height: 18),
                       SizedBox(
@@ -111,7 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   width: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text("Login"),
+                              : Text(context.tr("login_btn")),
                         ),
                       ),
                       if (authState.hasError) ...[
@@ -124,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 8),
                           TextButton(
                             onPressed: () => context.go("/signup"),
-                            child: const Text("Create new account"),
+                            child: Text(context.tr("create_new_account")),
                           ),
                         ],
                       ),

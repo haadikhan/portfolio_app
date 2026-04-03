@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../core/i18n/app_translations.dart";
 import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
 import "../core/widgets/design_system_widgets.dart";
@@ -50,17 +51,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
+          colors: isDark
+              ? const [Color(0xFF121212), Color(0xFF1E1E1E)]
+              : const [AppColors.backgroundTop, AppColors.backgroundBottom],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text("Create Account")),
+        appBar: AppBar(title: Text(context.tr("create_account_title"))),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
@@ -75,35 +79,42 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Create your account",
+                        context.tr("create_your_account"),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Use your details to set up a secure profile.",
+                        context.tr("signup_subtitle"),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 18),
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(labelText: "Name"),
+                        decoration: InputDecoration(labelText: context.tr("name")),
                         validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? "Enter your name" : null,
+                            (v == null || v.trim().isEmpty)
+                                ? context.tr("enter_your_name")
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _emailController,
-                        decoration: const InputDecoration(labelText: "Email"),
+                        decoration: InputDecoration(labelText: context.tr("email")),
                         validator: (v) =>
-                            (v == null || !v.contains("@")) ? "Enter valid email" : null,
+                            (v == null || !v.contains("@"))
+                                ? context.tr("enter_valid_email")
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: "Password"),
+                        decoration:
+                            InputDecoration(labelText: context.tr("password")),
                         validator: (v) =>
-                            (v == null || v.length < 6) ? "Minimum 6 characters" : null,
+                            (v == null || v.length < 6)
+                                ? context.tr("password_min_chars")
+                                : null,
                       ),
                       const SizedBox(height: 18),
                       SizedBox(
@@ -116,7 +127,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                   width: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text("Sign Up"),
+                              : Text(context.tr("sign_up_btn")),
                         ),
                       ),
                       if (authState.hasError) ...[
@@ -129,7 +140,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: () => context.go("/login"),
-                        child: const Text("Already have an account? Login"),
+                        child: Text(context.tr("already_have_login")),
                       ),
                     ],
                   ),

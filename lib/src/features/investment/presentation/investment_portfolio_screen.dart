@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/portfolio_model.dart";
@@ -22,7 +23,7 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
     final historyAsync = ref.watch(myReturnHistoryProvider);
 
     return AppScaffold(
-      title: "My Portfolio",
+      title: context.tr("my_portfolio_title"),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myPortfolioProvider);
@@ -35,16 +36,21 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Section 1: Allocation ──────────────────────────────────
-              _SectionHeader(label: "Asset allocation"),
+              _SectionHeader(label: context.tr("asset_allocation")),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const AllocationPieChartWidget(),
+              Builder(
+                builder: (context) {
+                  final scheme = Theme.of(context).colorScheme;
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: const AllocationPieChartWidget(),
+                  );
+                },
               ),
 
               // ── Section 2 & 3: Portfolio value + Metrics ───────────────
@@ -64,7 +70,7 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
 
                       // Performance metrics
-                      _SectionHeader(label: "Performance"),
+                      _SectionHeader(label: context.tr("performance")),
                       const SizedBox(height: 12),
                       PerformanceMetricsWidget(portfolio: portfolio),
                     ],
@@ -74,7 +80,7 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
 
               // ── Section 4: Return history ──────────────────────────────
               const SizedBox(height: 24),
-              _SectionHeader(label: "Return history"),
+              _SectionHeader(label: context.tr("return_history")),
               const SizedBox(height: 12),
               historyAsync.when(
                 loading: () => const Center(
@@ -124,9 +130,9 @@ class _PortfolioValueCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Current portfolio value",
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+          Text(
+            context.tr("current_portfolio_value"),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 6),
           Text(
@@ -147,9 +153,9 @@ class _PortfolioValueCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Total invested",
-                    style: TextStyle(color: Colors.white60, fontSize: 11),
+                  Text(
+                    context.tr("total_invested"),
+                    style: const TextStyle(color: Colors.white60, fontSize: 11),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -165,9 +171,9 @@ class _PortfolioValueCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    "Last updated",
-                    style: TextStyle(color: Colors.white60, fontSize: 11),
+                  Text(
+                    context.tr("last_updated"),
+                    style: const TextStyle(color: Colors.white60, fontSize: 11),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -194,31 +200,32 @@ class _SetupPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outlineVariant),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(Icons.hourglass_top_rounded,
-              size: 40, color: AppColors.bodyMuted),
-          SizedBox(height: 12),
+              size: 40, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
           Text(
-            "Your portfolio is being set up.",
+            context.tr("portfolio_setup_title"),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppColors.heading,
+              color: scheme.onSurface,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            "Please check back soon. Once your deposit is processed and your account is set up by our team, your portfolio details will appear here.",
+            context.tr("portfolio_setup_body"),
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -234,12 +241,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: AppColors.bodyMuted,
+        color: scheme.onSurfaceVariant,
         letterSpacing: 0.4,
       ),
     );
@@ -251,10 +259,11 @@ class _PortfolioSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 160,
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Center(child: CircularProgressIndicator()),
@@ -268,16 +277,17 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: scheme.errorContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.3)),
       ),
       child: Text(
         message,
-        style: const TextStyle(color: AppColors.error, fontSize: 12),
+        style: TextStyle(color: scheme.error, fontSize: 12),
       ),
     );
   }

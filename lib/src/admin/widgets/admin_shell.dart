@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 
 import "../../core/i18n/app_translations.dart";
 import "../../core/widgets/app_bar_actions.dart";
+import "../../features/notifications/providers/notification_providers.dart";
 import "../providers/admin_providers.dart";
 
 /// Ordered routes for [NavigationRail] and [Drawer] (must stay in sync).
@@ -14,6 +15,7 @@ const _kAdminShellRoutes = <String>[
   "/withdrawals",
   "/investors",
   "/returns",
+  "/notifications",
   "/broadcast",
 ];
 
@@ -122,11 +124,20 @@ class AdminShell extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: Icon(
-                      Icons.notifications_rounded,
+                      Icons.inbox_outlined,
                       color: scheme.primary,
                     ),
-                    title: const Text("Notifications"),
-                    subtitle: const Text("Broadcast to all investors"),
+                    title: Text(context.tr("notifications")),
+                    subtitle: Text(context.tr("notifications_subtitle")),
+                    selected: loc.startsWith("/notifications"),
+                    onTap: () => _go(context, "/notifications"),
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.campaign_outlined,
+                      color: scheme.primary,
+                    ),
+                    title: Text(context.tr("broadcast_to_investors")),
                     selected: loc.startsWith("/broadcast"),
                     onTap: () => _go(context, "/broadcast"),
                   ),
@@ -138,21 +149,63 @@ class AdminShell extends ConsumerWidget {
             title: const Text("Wakalat Invest — Admin"),
             // Bell first so it stays visible when the bar overflows on narrow widths.
             actions: [
-              IconButton(
-                tooltip: "Notifications — broadcast",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 48,
-                  minHeight: 48,
-                ),
-                icon: Icon(
-                  Icons.notifications_rounded,
-                  size: 26,
-                  color: scheme.primary,
-                ),
-                onPressed: () => context.go("/broadcast"),
+              Consumer(
+                builder: (context, ref, _) {
+                  final unread = ref.watch(unreadNotificationCountProvider);
+                  return unread.when(
+                    data: (count) {
+                      final btn = IconButton(
+                        tooltip: context.tr("notifications"),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        icon: Icon(
+                          Icons.notifications_outlined,
+                          size: 26,
+                          color: scheme.primary,
+                        ),
+                        onPressed: () => context.go("/notifications"),
+                      );
+                      if (count <= 0) return btn;
+                      return Badge(
+                        label: Text(count > 99 ? "99+" : "$count"),
+                        child: btn,
+                      );
+                    },
+                    loading: () => IconButton(
+                      tooltip: context.tr("notifications"),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        size: 26,
+                        color: scheme.primary,
+                      ),
+                      onPressed: () => context.go("/notifications"),
+                    ),
+                    error: (_, __) => IconButton(
+                      tooltip: context.tr("notifications"),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        size: 26,
+                        color: scheme.primary,
+                      ),
+                      onPressed: () => context.go("/notifications"),
+                    ),
+                  );
+                },
               ),
-              const AppBarPreferenceActions(),
+              const AppBarPreferenceActions(showNotificationAction: false),
               TextButton(
                 onPressed: () async {
                   await ref
@@ -214,9 +267,14 @@ class AdminShell extends ConsumerWidget {
                         label: Text(context.tr("returns")),
                       ),
                       NavigationRailDestination(
-                        icon: const Icon(Icons.notifications_outlined),
-                        selectedIcon: const Icon(Icons.notifications_rounded),
-                        label: const Text("Notifications"),
+                        icon: const Icon(Icons.inbox_outlined),
+                        selectedIcon: const Icon(Icons.inbox),
+                        label: Text(context.tr("notifications")),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.campaign_outlined),
+                        selectedIcon: const Icon(Icons.campaign),
+                        label: Text(context.tr("broadcast_to_investors")),
                       ),
                     ],
                   ),
@@ -235,7 +293,8 @@ class AdminShell extends ConsumerWidget {
   }
 
   int _indexFor(String loc) {
-    if (loc.startsWith("/broadcast")) return 6;
+    if (loc.startsWith("/broadcast")) return 7;
+    if (loc.startsWith("/notifications")) return 6;
     if (loc.startsWith("/investors")) return 4;
     if (loc.startsWith("/kyc")) return 1;
     if (loc.startsWith("/deposits")) return 2;

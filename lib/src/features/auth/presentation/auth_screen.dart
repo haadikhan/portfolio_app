@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 
 class AuthScreen extends StatelessWidget {
@@ -9,23 +10,25 @@ class AuthScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: "OTP Registration",
+      title: context.tr("otp_registration_title"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Phone Number"),
-            const TextField(
-              decoration: InputDecoration(hintText: "+92 300 0000000"),
+            Text(context.tr("phone_number")),
+            TextField(
+              decoration: InputDecoration(hintText: context.tr("phone_hint")),
             ),
             const SizedBox(height: 12),
-            const Text("OTP"),
-            const TextField(decoration: InputDecoration(hintText: "123456")),
+            Text(context.tr("otp_label")),
+            TextField(
+              decoration: InputDecoration(hintText: context.tr("otp_hint")),
+            ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go("/kyc"),
-              child: const Text("Verify OTP"),
+              child: Text(context.tr("verify_otp")),
             ),
           ],
         ),

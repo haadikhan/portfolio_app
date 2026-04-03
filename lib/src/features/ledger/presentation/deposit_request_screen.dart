@@ -6,17 +6,18 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/wallet_providers.dart";
 
-const _paymentMethods = [
-  ("bank_transfer", "Bank Transfer"),
-  ("easypaisa", "EasyPaisa"),
-  ("jazzcash", "JazzCash"),
-  ("raast", "Raast"),
-  ("other", "Other"),
+const _paymentMethodKeys = <(String, String)>[
+  ("bank_transfer", "method_bank_transfer"),
+  ("easypaisa", "method_easypaisa"),
+  ("jazzcash", "method_jazzcash"),
+  ("raast", "method_raast"),
+  ("other", "method_other"),
 ];
 
 class DepositRequestScreen extends ConsumerStatefulWidget {
@@ -56,7 +57,6 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
 
     setState(() => _busy = true);
     try {
-      // Upload proof if one was picked — use the already-picked file, never re-open gallery
       String? proofUrl;
       if (_proofFile != null) {
         final path =
@@ -75,8 +75,8 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Deposit request submitted. Awaiting admin approval."),
+        SnackBar(
+          content: Text(context.tr("deposit_submitted_snack")),
           backgroundColor: AppColors.success,
         ),
       );
@@ -84,30 +84,33 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyError(e.toString()))),
+        SnackBar(content: Text(_friendlyError(context, e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  String _friendlyError(String raw) {
+  String _friendlyError(BuildContext context, String raw) {
     if (raw.contains("not-found") || raw.contains("NOT_FOUND")) {
-      return "Service temporarily unavailable. Please try again later.";
+      return context.tr("err_service_unavailable");
     }
     if (raw.contains("KYC must be approved")) {
-      return "Your KYC must be approved before making a deposit.";
+      return context.tr("err_kyc_required_deposit");
     }
     if (raw.contains("unauthenticated")) {
-      return "Session expired. Please log in again.";
+      return context.tr("err_session_expired");
     }
     return raw.replaceAll("Exception: ", "");
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AppScaffold(
-      title: "Request deposit",
+      title: context.tr("request_deposit_title"),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -115,13 +118,16 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Info banner
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: isDark
+                      ? scheme.primaryContainer.withValues(alpha: 0.35)
+                      : const Color(0xFFE3F2FD),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(
+                    color: isDark ? scheme.outline : Colors.blue.shade200,
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,54 +137,55 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "Transfer funds to our account, then submit this form with your payment proof. An admin will verify and credit your balance.",
+                        context.tr("deposit_info_banner"),
                         style: TextStyle(
-                            fontSize: 12, color: Colors.blue.shade800),
+                          fontSize: 12,
+                          color: isDark
+                              ? scheme.onSurface
+                              : Colors.blue.shade800,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Amount
-              _SectionLabel(label: "Amount"),
+              _SectionLabel(label: context.tr("amount_label")),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _amountController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: "Amount (PKR)",
-                  prefixIcon: Icon(Icons.attach_money_rounded),
-                  hintText: "e.g. 50000",
+                decoration: InputDecoration(
+                  labelText: context.tr("amount_pkr"),
+                  prefixIcon: const Icon(Icons.attach_money_rounded),
+                  hintText: context.tr("amount_hint_example"),
                 ),
                 validator: (v) {
                   final n = double.tryParse(v?.trim() ?? "");
-                  if (n == null || n <= 0) return "Enter a valid amount";
-                  if (n < 100) return "Minimum deposit is PKR 100";
+                  if (n == null || n <= 0) return context.tr("err_amount_valid");
+                  if (n < 100) return context.tr("err_min_deposit");
                   return null;
                 },
               ),
-
-              // Payment method
               const SizedBox(height: 20),
-              _SectionLabel(label: "Payment method"),
+              _SectionLabel(label: context.tr("payment_method")),
               const SizedBox(height: 8),
-              ...(_paymentMethods.map((m) => _MethodTile(
+              ...(_paymentMethodKeys.map((m) => _MethodTile(
                     value: m.$1,
-                    label: m.$2,
+                    label: context.tr(m.$2),
                     selected: _selectedMethod == m.$1,
                     onTap: () => setState(() => _selectedMethod = m.$1),
                   ))),
-
-              // Proof image
               const SizedBox(height: 20),
-              _SectionLabel(label: "Payment proof"),
+              _SectionLabel(label: context.tr("payment_proof")),
               const SizedBox(height: 4),
-              const Text(
-                "Attach a screenshot of your transfer receipt (recommended).",
-                style: TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+              Text(
+                context.tr("payment_proof_help"),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 10),
               _ProofPicker(
@@ -187,8 +194,6 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                 onPick: _pickProof,
                 onRemove: () => setState(() => _proofFile = null),
               ),
-
-              // Submit
               const SizedBox(height: 28),
               SizedBox(
                 height: 50,
@@ -203,7 +208,9 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                         )
                       : const Icon(Icons.send_rounded, size: 18),
                   label: Text(
-                    _busy ? "Submitting…" : "Submit deposit request",
+                    _busy
+                        ? context.tr("submitting")
+                        : context.tr("submit_deposit_request_btn"),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -217,27 +224,24 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
   }
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
-
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});
   final String label;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: AppColors.bodyMuted,
+        color: scheme.onSurfaceVariant,
         letterSpacing: 0.4,
       ),
     );
   }
 }
-
-// ─── Payment method tile ──────────────────────────────────────────────────────
 
 class _MethodTile extends StatelessWidget {
   const _MethodTile({
@@ -253,16 +257,19 @@ class _MethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.secondary : AppColors.surface,
+          color: selected
+              ? scheme.primaryContainer.withValues(alpha: 0.4)
+              : scheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? scheme.primary : scheme.outlineVariant,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -272,7 +279,7 @@ class _MethodTile extends StatelessWidget {
               selected
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_off_rounded,
-              color: selected ? AppColors.primary : AppColors.bodyMuted,
+              color: selected ? scheme.primary : scheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -282,7 +289,7 @@ class _MethodTile extends StatelessWidget {
                 fontSize: 14,
                 fontWeight:
                     selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? AppColors.heading : AppColors.body,
+                color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -291,8 +298,6 @@ class _MethodTile extends StatelessWidget {
     );
   }
 }
-
-// ─── Proof image picker ───────────────────────────────────────────────────────
 
 class _ProofPicker extends StatelessWidget {
   const _ProofPicker({
@@ -308,8 +313,8 @@ class _ProofPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (file != null) {
-      // Show preview with remove option — tapping does NOT re-open gallery
       return Stack(
         children: [
           ClipRRect(
@@ -348,15 +353,15 @@ class _ProofPicker extends StatelessWidget {
                 color: AppColors.success.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle_outline_rounded,
+                  const Icon(Icons.check_circle_outline_rounded,
                       color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text("Proof attached",
+                  const SizedBox(width: 4),
+                  Text(context.tr("proof_attached"),
                       style:
-                          TextStyle(color: Colors.white, fontSize: 11)),
+                          const TextStyle(color: Colors.white, fontSize: 11)),
                 ],
               ),
             ),
@@ -365,27 +370,24 @@ class _ProofPicker extends StatelessWidget {
       );
     }
 
-    // No file yet — show pick button
     return GestureDetector(
       onTap: busy ? null : onPick,
       child: Container(
         height: 100,
         decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
+          color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: AppColors.border, style: BorderStyle.solid),
+          border: Border.all(color: scheme.outlineVariant),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add_photo_alternate_outlined,
-                color: AppColors.primary, size: 30),
-            SizedBox(height: 6),
+                color: scheme.primary, size: 30),
+            const SizedBox(height: 6),
             Text(
-              "Tap to attach proof (optional)",
-              style:
-                  TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+              context.tr("tap_attach_proof"),
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
             ),
           ],
         ),

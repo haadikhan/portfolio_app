@@ -6,6 +6,7 @@ import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
 import "package:firebase_storage/firebase_storage.dart";
 
+import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/app_user.dart";
@@ -98,17 +99,14 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "KYC submitted successfully. We'll review within 24 hours.",
-          ),
-        ),
+        SnackBar(content: Text(context.tr("kyc_submit_success"))),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
+      ).showSnackBar(SnackBar(
+          content: Text("${context.tr("kyc_submit_failed")} $e")));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -122,10 +120,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     final busy = ref.watch(authControllerProvider).isLoading || _uploading;
 
     return AppScaffold(
-      title: "KYC Verification",
+      title: context.tr("kyc_verification_title"),
       body: kycAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("Error: $e")),
+        error: (e, _) =>
+            Center(child: Text("${context.tr("error_prefix")} $e")),
         data: (kyc) {
           final profile = profileAsync.valueOrNull;
           _seedFromRecord(kyc, profile);
@@ -146,35 +145,35 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 const SizedBox(height: 20),
 
                 // ── Read-only profile info ──────────────────────────────
-                _SectionHeader(label: "Your profile"),
+                _SectionHeader(label: context.tr("your_profile")),
                 const SizedBox(height: 10),
                 _ReadOnlyField(
                   icon: Icons.person_outline_rounded,
-                  label: "Full name",
-                  value: profile?.name ?? "—",
+                  label: context.tr("full_name"),
+                  value: profile?.name ?? context.tr("em_dash"),
                 ),
                 const SizedBox(height: 10),
                 _ReadOnlyField(
                   icon: Icons.email_outlined,
-                  label: "Email address",
-                  value: profile?.email ?? "—",
+                  label: context.tr("email_address"),
+                  value: profile?.email ?? context.tr("em_dash"),
                 ),
 
                 // ── Identity fields ─────────────────────────────────────
                 const SizedBox(height: 22),
-                _SectionHeader(label: "Identity details"),
+                _SectionHeader(label: context.tr("identity_details")),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _cnic,
                   enabled: !locked,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: "CNIC Number",
-                    hintText: "e.g. 3520112345678",
-                    prefixIcon: Icon(Icons.credit_card_outlined),
+                  decoration: InputDecoration(
+                    labelText: context.tr("cnic_number"),
+                    hintText: context.tr("cnic_hint"),
+                    prefixIcon: const Icon(Icons.credit_card_outlined),
                   ),
                   validator: (v) => (v == null || v.trim().length < 8)
-                      ? "Enter a valid CNIC number"
+                      ? context.tr("cnic_invalid")
                       : null,
                 ),
                 const SizedBox(height: 10),
@@ -182,30 +181,30 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   controller: _phone,
                   enabled: !locked,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: "Mobile number",
-                    hintText: "e.g. 03001234567",
-                    prefixIcon: Icon(Icons.phone_outlined),
+                  decoration: InputDecoration(
+                    labelText: context.tr("mobile_number"),
+                    hintText: context.tr("mobile_hint"),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
                   validator: (v) => (v == null || v.trim().length < 10)
-                      ? "Enter a valid mobile number"
+                      ? context.tr("mobile_invalid")
                       : null,
                 ),
 
                 // ── Document images ─────────────────────────────────────
                 const SizedBox(height: 22),
-                _SectionHeader(label: "Document images"),
+                _SectionHeader(label: context.tr("document_images")),
                 const SizedBox(height: 4),
                 Text(
-                  "Upload clear, well-lit photos. Blurry images will be rejected.",
-                  style: const TextStyle(
+                  context.tr("kyc_upload_help"),
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.bodyMuted,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 14),
                 _ImagePickerTile(
-                  label: "CNIC — Front side",
+                  label: context.tr("cnic_front"),
                   icon: Icons.credit_card_rounded,
                   pickedFile: _frontFile,
                   existingUrl: _existingFrontUrl,
@@ -217,7 +216,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 ),
                 const SizedBox(height: 10),
                 _ImagePickerTile(
-                  label: "CNIC — Back side",
+                  label: context.tr("cnic_back"),
                   icon: Icons.credit_card_outlined,
                   pickedFile: _backFile,
                   existingUrl: _existingBackUrl,
@@ -229,7 +228,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 ),
                 const SizedBox(height: 10),
                 _ImagePickerTile(
-                  label: "Selfie with CNIC",
+                  label: context.tr("selfie_with_cnic"),
                   icon: Icons.face_outlined,
                   pickedFile: _selfieFile,
                   existingUrl: _existingSelfieUrl,
@@ -259,8 +258,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           : const Icon(Icons.send_rounded, size: 18),
                       label: Text(
                         status == KycLifecycleStatus.rejected
-                            ? "Re-submit KYC"
-                            : "Submit for review",
+                            ? context.tr("resubmit_kyc")
+                            : context.tr("submit_for_review"),
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -269,7 +268,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 OutlinedButton.icon(
                   onPressed: () => context.push("/legal"),
                   icon: const Icon(Icons.description_outlined, size: 18),
-                  label: const Text("View legal consent"),
+                  label: Text(context.tr("view_legal_consent")),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -290,42 +289,53 @@ class _StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final (
       Color bg,
       Color fg,
       IconData icon,
-      String title,
+      String titleKey,
       String body,
     ) = switch (status) {
       KycLifecycleStatus.pending => (
-        const Color(0xFFFFF8E1),
+        isDark
+            ? scheme.secondaryContainer.withValues(alpha: 0.35)
+            : const Color(0xFFFFF8E1),
         AppColors.warning,
         Icons.info_outline_rounded,
-        "Verification required",
-        "Fill in your details and upload documents to unlock full account features.",
+        "kyc_status_pending_title",
+        context.tr("kyc_status_pending_body"),
       ),
       KycLifecycleStatus.underReview => (
-        const Color(0xFFE3F2FD),
+        isDark
+            ? scheme.primaryContainer.withValues(alpha: 0.4)
+            : const Color(0xFFE3F2FD),
         Colors.blue.shade700,
         Icons.hourglass_top_rounded,
-        "Under review",
-        "Your documents have been submitted and are being reviewed by our team. This usually takes up to 24 hours.",
+        "kyc_status_review_title",
+        context.tr("kyc_status_review_body"),
       ),
       KycLifecycleStatus.approved => (
-        const Color(0xFFE8F5E9),
+        isDark
+            ? scheme.primaryContainer.withValues(alpha: 0.35)
+            : const Color(0xFFE8F5E9),
         AppColors.success,
         Icons.verified_rounded,
-        "Identity verified",
-        "Your KYC is approved. You have full access to all investor features.",
+        "kyc_status_approved_title",
+        context.tr("kyc_status_approved_body"),
       ),
       KycLifecycleStatus.rejected => (
-        const Color(0xFFFFEBEE),
+        isDark
+            ? scheme.errorContainer.withValues(alpha: 0.45)
+            : const Color(0xFFFFEBEE),
         AppColors.error,
         Icons.warning_amber_rounded,
-        "Verification failed",
+        "kyc_status_rejected_title",
         kyc?.rejectionReason?.isNotEmpty == true
-            ? "Reason: ${kyc!.rejectionReason}"
-            : "Your documents were not accepted. Please correct any issues and re-submit.",
+            ? "${context.tr("kyc_rejection_reason_prefix")} ${kyc!.rejectionReason}"
+            : context.tr("kyc_status_rejected_body"),
       ),
     };
 
@@ -346,7 +356,7 @@ class _StatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  context.tr(titleKey),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -384,16 +394,17 @@ class _ReadOnlyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.bodyMuted),
+          Icon(icon, size: 20, color: scheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -401,27 +412,27 @@ class _ReadOnlyField extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.bodyMuted,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.heading,
+                    color: scheme.onSurface,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.lock_outline_rounded,
             size: 16,
-            color: AppColors.bodyMuted,
+            color: scheme.onSurfaceVariant,
           ),
         ],
       ),
@@ -437,12 +448,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: AppColors.bodyMuted,
+        color: scheme.onSurfaceVariant,
         letterSpacing: 0.4,
       ),
     );
@@ -472,17 +484,20 @@ class _ImagePickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: locked ? null : onPick,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: _hasImage ? const Color(0xFFE8F5E9) : AppColors.surface,
+          color: _hasImage
+              ? scheme.primaryContainer.withValues(alpha: 0.4)
+              : scheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: _hasImage
                 ? AppColors.success.withValues(alpha: 0.4)
-                : AppColors.border,
+                : scheme.outlineVariant,
           ),
         ),
         child: Row(
@@ -493,7 +508,7 @@ class _ImagePickerTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _hasImage
                     ? AppColors.success.withValues(alpha: 0.12)
-                    : AppColors.secondary,
+                    : scheme.primaryContainer.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: pickedFile != null
@@ -503,7 +518,7 @@ class _ImagePickerTile extends StatelessWidget {
                     )
                   : Icon(
                       _hasImage ? Icons.check_circle_outline_rounded : icon,
-                      color: _hasImage ? AppColors.success : AppColors.primary,
+                      color: _hasImage ? AppColors.success : scheme.primary,
                       size: 20,
                     ),
             ),
@@ -514,24 +529,24 @@ class _ImagePickerTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.heading,
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     pickedFile != null
-                        ? "New photo selected"
+                        ? context.tr("photo_new_selected")
                         : _hasImage
-                        ? "Photo uploaded"
-                        : "Tap to select photo",
+                        ? context.tr("photo_uploaded")
+                        : context.tr("tap_select_photo"),
                     style: TextStyle(
                       fontSize: 11,
                       color: _hasImage
                           ? AppColors.success
-                          : AppColors.bodyMuted,
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -542,14 +557,14 @@ class _ImagePickerTile extends StatelessWidget {
                 _hasImage
                     ? Icons.edit_outlined
                     : Icons.add_photo_alternate_outlined,
-                color: AppColors.primary,
+                color: scheme.primary,
                 size: 20,
               ),
             if (locked)
-              const Icon(
+              Icon(
                 Icons.lock_outline_rounded,
                 size: 16,
-                color: AppColors.bodyMuted,
+                color: scheme.onSurfaceVariant,
               ),
           ],
         ),

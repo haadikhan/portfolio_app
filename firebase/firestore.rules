@@ -45,12 +45,25 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role;
     }
 
+    // Owner-only: merge FCM device tokens (Cloud Functions also write inbox; clients only touch fcmTokens).
+    function ownerFcmTokensUpdateAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmTokens"]);
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && ownerUserCreateAllowed();
       allow update: if isOwner(userId) && ownerUserUpdateAllowed();
+      allow update: if isOwner(userId) && ownerFcmTokensUpdateAllowed();
       allow update: if isAdmin();
       allow delete: if false;
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, delete: if false;
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read", "readAt"]);
+      }
     }
 
     // Primary KYC collection (Wakalat Invest mobile + admin web)
@@ -102,9 +115,9 @@ service cloud.firestore {
       allow write: if hasRole("admin");
     }
 
+    // Legacy top-level path — inbox lives under users/{uid}/notifications (server-written).
     match /notifications/{notificationId} {
-      allow read, update: if isSignedIn();
-      allow create: if hasRole("admin");
+      allow read, update, create, delete: if false;
     }
 
     match /consents/{consentId} {
