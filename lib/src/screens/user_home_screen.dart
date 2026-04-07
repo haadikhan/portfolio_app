@@ -366,6 +366,14 @@ class _AppDrawer extends ConsumerWidget {
               },
             ),
             _DrawerItem(
+              icon: Icons.show_chart_rounded,
+              label: context.tr("drawer_kmi30_companies"),
+              onTap: () {
+                Navigator.pop(context);
+                context.push("/market/kmi30-companies");
+              },
+            ),
+            _DrawerItem(
               icon: Icons.account_balance_wallet_outlined,
               label: context.tr("drawer_wallet"),
               onTap: () {

@@ -21,6 +21,8 @@ import "../features/ledger/presentation/wallet_ledger_screen.dart";
 import "../features/ledger/presentation/withdrawal_request_screen.dart";
 import "../features/notifications/presentation/notifications_screen.dart";
 import "../features/market/presentation/market_overview_screen.dart";
+import "../features/market/presentation/kmi30_companies_screen.dart";
+import "../features/market/presentation/kmi30_company_chart_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
 import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../screens/auth_gate_screen.dart";
@@ -107,6 +109,19 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(
           path: "/market",
           builder: (_, __) => const ConsentGateScreen(child: MarketOverviewScreen()),
+        ),
+        GoRoute(
+          path: "/market/kmi30-companies",
+          builder: (_, __) =>
+              const ConsentGateScreen(child: Kmi30CompaniesScreen()),
+        ),
+        GoRoute(
+          path: "/market/kmi30-companies/:symbol",
+          builder: (_, state) => ConsentGateScreen(
+            child: Kmi30CompanyChartScreen(
+              symbol: (state.pathParameters["symbol"] ?? "").trim().toUpperCase(),
+            ),
+          ),
         ),
         GoRoute(
           path: "/admin",
