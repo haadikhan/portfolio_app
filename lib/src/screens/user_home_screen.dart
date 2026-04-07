@@ -27,9 +27,7 @@ class UserHomeScreen extends ConsumerWidget {
       ),
       error: (e, _) => Scaffold(
         backgroundColor: scheme.surface,
-        body: Center(
-          child: Text("${context.tr("error_prefix")} $e"),
-        ),
+        body: Center(child: Text("${context.tr("error_prefix")} $e")),
       ),
       data: (profile) {
         if (profile == null) {
@@ -117,8 +115,9 @@ class _DashboardView extends ConsumerWidget {
   String _kycSubtitle(BuildContext context, KycLifecycleStatus s) =>
       switch (s) {
         KycLifecycleStatus.approved => context.tr("kyc_subtitle_approved"),
-        KycLifecycleStatus.underReview =>
-          context.tr("kyc_subtitle_under_review"),
+        KycLifecycleStatus.underReview => context.tr(
+          "kyc_subtitle_under_review",
+        ),
         KycLifecycleStatus.rejected => context.tr("kyc_subtitle_rejected"),
         KycLifecycleStatus.pending => context.tr("kyc_subtitle_pending"),
       };
@@ -303,6 +302,14 @@ class _AppDrawer extends ConsumerWidget {
               },
             ),
             _DrawerItem(
+              icon: Icons.verified_user_outlined,
+              label: context.tr("drawer_transparency"),
+              onTap: () {
+                Navigator.pop(context);
+                context.push("/transparency");
+              },
+            ),
+            _DrawerItem(
               icon: Icons.pie_chart,
               label: context.tr("drawer_portfolio"),
               onTap: () {
@@ -405,8 +412,10 @@ class _KycChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (labelKey, color) = switch (status) {
       KycLifecycleStatus.approved => ("kyc_chip_verified", AppColors.success),
-      KycLifecycleStatus.underReview =>
-        ("kyc_chip_under_review", Colors.blue.shade600),
+      KycLifecycleStatus.underReview => (
+        "kyc_chip_under_review",
+        Colors.blue.shade600,
+      ),
       KycLifecycleStatus.rejected => ("kyc_chip_rejected", AppColors.error),
       KycLifecycleStatus.pending => ("kyc_chip_pending", AppColors.warning),
     };

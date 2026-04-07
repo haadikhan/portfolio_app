@@ -21,8 +21,9 @@ class _LegalConsentScreenState extends ConsumerState<LegalConsentScreen> {
     if (!mounted) return;
     final state = ref.read(authControllerProvider);
     state.whenOrNull(
-      error: (e, _) =>
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$e"))),
+      error: (e, _) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("$e"))),
       data: (_) => context.go("/investor"),
     );
   }
@@ -32,21 +33,26 @@ class _LegalConsentScreenState extends ConsumerState<LegalConsentScreen> {
     final busy = ref.watch(authControllerProvider).isLoading;
     return AppScaffold(
       title: context.tr("legal_title"),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(context.tr("legal_para_1")),
-            Text(context.tr("legal_para_2")),
-            Text(context.tr("legal_para_3")),
-            Text(context.tr("legal_para_4")),
-            const SizedBox(height: 16),
+            for (var i = 1; i <= 7; i++) ...[
+              Text(
+                context.tr("legal_para_$i"),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             CheckboxListTile(
               value: accepted,
               onChanged: (v) => setState(() => accepted = v ?? false),
               title: Text(context.tr("legal_accept")),
             ),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: (!accepted || busy) ? null : _continue,
               child: busy

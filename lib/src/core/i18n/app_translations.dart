@@ -90,12 +90,12 @@ const _en = <String, String>{
   "reports_monthly_subtitle":
       "Includes opening/closing balance and disclaimer.",
   "reports_portfolio_title": "Portfolio Summary",
-  "reports_portfolio_subtitle":
-      "Total investment, current value, return %.",
+  "reports_portfolio_subtitle": "Total investment, current value, return %.",
   "reports_tx_title": "Transaction Report",
   "reports_tx_subtitle": "Full ledger visibility for audit/disputes.",
   "reports_stub_button": "Trigger Monthly Auto-Generation (Stub)",
-  "reports_select_period": "Choose a time period, then download a PDF of your transactions.",
+  "reports_select_period":
+      "Choose a time period, then download a PDF of your transactions.",
   "reports_period_this_month": "This month",
   "reports_period_this_year": "This year",
   "reports_period_custom": "Custom",
@@ -195,12 +195,62 @@ const _en = <String, String>{
   "crm_assign_hint": "Choose which CRM member owns this investor.",
   "crm_followup_assign_required":
       "Assign a CRM member to this investor before adding follow-ups (or sign in as CRM).",
-  "legal_title": "Legal & Disclaimer",
-  "legal_para_1": "This is a private investment tracking platform.",
-  "legal_para_2": "Returns are not guaranteed.",
-  "legal_para_3": "Past performance does not guarantee future results.",
-  "legal_para_4": "We follow compliance best practices for KYC and consent.",
-  "legal_accept": "I understand and accept the disclaimer.",
+  "legal_title": "Legal & risk disclosure",
+  "legal_para_1":
+      "Wakalat Invest is a private portfolio tracking platform. It is not a registered investment company or fund. Information shown is for transparency only.",
+  "legal_para_2":
+      "All returns are market-based and illustrative. Past performance—including any track record shown for the founder—does not predict future results.",
+  "legal_para_3":
+      "There are no guaranteed profits. Deposits carry risk of loss; you may receive less than you put in.",
+  "legal_para_4":
+      "The platform acts as a tracking and record-keeping tool only. It does not constitute investment advice or an offer to buy securities.",
+  "legal_para_5":
+      "Portfolio values and returns may be entered or updated by administrators. You should seek independent advice before investing.",
+  "legal_para_6":
+      "By continuing, you confirm you have read and understood this disclosure and the risks of investing.",
+  "legal_para_7": "We follow compliance best practices for KYC and consent.",
+  "legal_accept":
+      "I understand and accept the updated disclaimer and risk disclosure.",
+  "drawer_transparency": "Transparency & trust",
+  "transparency_hub_title": "Transparency",
+  "transparency_tab_founder": "About",
+  "transparency_tab_strategy": "Strategy",
+  "transparency_tab_performance": "Performance",
+  "transparency_tab_legal": "Legal",
+  "founder_name_full": "Raja Hammad Sabir",
+  "founder_title_role": "Founder & portfolio manager",
+  "founder_bio_p1":
+      "Raja Hammad Sabir leads portfolio construction for investors on this platform and oversees the technology behind Wakalat Invest.",
+  "founder_bio_p2":
+      "His background combines investing discipline with software and operations—focused on clear reporting and prudent diversification rather than promises of fixed returns.",
+  "founder_mission":
+      "Mission: offer a transparent, well-documented way for aligned investors to participate in a professionally managed portfolio narrative—with honest communication about risk.",
+  "founder_vision":
+      "Vision: build long-term trust through consistency, education, and tools that make performance and activity easy to follow.",
+  "founder_contact_cta": "Reach out",
+  "founder_contact_hint": "Email us for questions about the platform.",
+  "strategy_intro":
+      "The approach below describes how we think about diversification across major sleeves. Allocation is illustrative and may change; it is not a guarantee of outcomes.",
+  "strategy_diversification":
+      "We spread exposure across equities, technology-oriented growth, income-oriented debt, and liquidity—so no single sleeve drives all results.",
+  "strategy_risk":
+      "Risk is managed through diversification and monitoring, not elimination. Losses can occur; returns shown elsewhere in the app are admin-input and illustrative.",
+  "strategy_alloc_note": "Target mix (illustrative):",
+  "strategy_alloc_stock": "Stocks",
+  "strategy_alloc_tech": "Technology",
+  "strategy_alloc_debt": "Debt / income",
+  "strategy_alloc_money": "Money market / cash",
+  "strategy_alloc_asset": "Alternative / other assets",
+  "performance_title": "Founder track record (illustrative)",
+  "performance_founder_note":
+      "The chart and metrics below reflect a consolidated illustrative history for Raja Hammad Sabir’s reference portfolio used to guide platform allocations—not your personal account. Your results may differ.",
+  "performance_disclaimer":
+      "Past performance is not indicative of future results. Figures are compiled for transparency; they are not a promise of profit.",
+  "performance_total_return": "Illustrative total return",
+  "performance_net_gain": "Illustrative net change (PKR)",
+  "performance_illustrative_monthly": "Illustrative growth of reference portfolio (PKR)",
+  "transparency_past_performance_warning":
+      "Past performance does not guarantee future results.",
   "continue_btn": "Continue",
   "otp_registration_title": "OTP Registration",
   "phone_number": "Phone Number",
@@ -320,10 +370,8 @@ const _en = <String, String>{
   "account_title": "Account title",
   "cancel": "Cancel",
   "submit_for_review_btn": "Submit for review",
-  "bank_request_submitted":
-      "Your request has been submitted for admin review.",
-  "nominee_approval_note":
-      "Nominee detail changes require admin approval.",
+  "bank_request_submitted": "Your request has been submitted for admin review.",
+  "nominee_approval_note": "Nominee detail changes require admin approval.",
   "update_nominee_title": "Update nominee details",
   "nominee_name": "Nominee name",
   "nominee_cnic": "Nominee CNIC",
@@ -503,8 +551,7 @@ const _ur = <String, String>{
   "reports_monthly_title": "ماہانہ بیان - جنوری 2026",
   "reports_monthly_subtitle": "کھلنے/بند بیلنس اور دستبرداری شامل۔",
   "reports_portfolio_title": "پورٹ فولیو خلاصہ",
-  "reports_portfolio_subtitle":
-      "کل سرمایہ، موجودہ قیمت، واپسی %۔",
+  "reports_portfolio_subtitle": "کل سرمایہ، موجودہ قیمت، واپسی %۔",
   "reports_tx_title": "لین دین کی رپورٹ",
   "reports_tx_subtitle": "آڈٹ/تنازع کے لیے مکمل لیجر۔",
   "reports_stub_button": "ماہانہ آٹو جنریشن (Stub)",
@@ -606,15 +653,66 @@ const _ur = <String, String>{
   "crm_assign_to_staff": "CRM تفویض",
   "crm_unassigned": "غیر تفویض شدہ",
   "crm_assignment_saved": "تفویض محفوظ ہو گئی۔",
-  "crm_assign_hint": "منتخب کریں کہ کون سا CRM ممبر اس سرمایہ کار کا ذمہ دار ہے۔",
+  "crm_assign_hint":
+      "منتخب کریں کہ کون سا CRM ممبر اس سرمایہ کار کا ذمہ دار ہے۔",
   "crm_followup_assign_required":
       "فالو اپ سے پہلے اس سرمایہ کار کو CRM ممبر تفویض کریں (یا CRM کے طور پر سائن ان کریں)۔",
-  "legal_title": "قانونی و دستبرداری",
-  "legal_para_1": "یہ نجی سرمایہ کاری ٹریکنگ پلیٹ فارم ہے۔",
-  "legal_para_2": "واپسی کی ضمانت نہیں۔",
-  "legal_para_3": "ماضی کی کارکردگی مستقبل کی ضمانت نہیں۔",
-  "legal_para_4": "ہم KYC اور رضامندی کے لیے بہترین طریقے اختیار کرتے ہیں۔",
-  "legal_accept": "میں دستبرداری سمجھتا/سمجھتی ہوں اور قبول کرتا/کرتی ہوں۔",
+  "legal_title": "قانونی و خطرے کی وضاحت",
+  "legal_para_1":
+      "وکالت انویسٹ نجی پورٹ فولیو ٹریکنگ پلیٹ فارم ہے۔ یہ رجسٹرڈ سرمایہ کاری کمپنی یا فنڈ نہیں۔ دکھائی گئی معلومات صرف شفافیت کے لیے ہیں۔",
+  "legal_para_2":
+      "تمام واپسیاں منڈی پر مبنی اور مثالی ہیں۔ ماضی کی کارکردگی—بانی کے ٹریک ریکارڈ سمیت—مستقبل کے نتائج کی پیش گوئی نہیں کرتی۔",
+  "legal_para_3":
+      "کوئی منافع کی ضمانت نہیں۔ جمع شدہ رقم میں نقصان کا خطرہ ہے؛ آپ کو واپسی کم مل سکتی ہے۔",
+  "legal_para_4":
+      "یہ پلیٹ فارم صرف ٹریکنگ اور ریکارڈ رکھنے کا ذریعہ ہے۔ یہ سرمایہ کاری مشورہ یا سیکیورٹیز کی پیشکش نہیں۔",
+  "legal_para_5":
+      "پورٹ فولیو کی قیمتیں اور واپسیاں منتظمین درج یا اپ ڈیٹ کر سکتے ہیں۔ سرمایہ کاری سے پہلے آزادانہ مشورہ لیں۔",
+  "legal_para_6":
+      "جاری رکھ کر آپ تصدیق کرتے ہیں کہ آپ نے یہ وضاحت اور خطرات سمجھ لیے ہیں۔",
+  "legal_para_7": "ہم KYC اور رضامندی کے لیے بہترین طریقے اختیار کرتے ہیں۔",
+  "legal_accept":
+      "میں تازہ دستبرداری اور خطرے کی وضاحت سمجھتا/سمجھتی ہوں اور قبول کرتا/کرتی ہوں۔",
+  "drawer_transparency": "شفافیت و اعتماد",
+  "transparency_hub_title": "شفافیت",
+  "transparency_tab_founder": "تعارف",
+  "transparency_tab_strategy": "حکمت عملی",
+  "transparency_tab_performance": "کارکردگی",
+  "transparency_tab_legal": "قانونی",
+  "founder_name_full": "راجہ حماد صابر",
+  "founder_title_role": "بانی اور پورٹ فولیو منیجر",
+  "founder_bio_p1":
+      "راجہ حماد صابر اس پلیٹ فارم پر سرمایہ کاروں کے لیے پورٹ فولیو کی تشکیل کی قیادت کرتے ہیں اور وکالت انویسٹ کے پیچھے ٹیکنالوجی کی نگرانی کرتے ہیں۔",
+  "founder_bio_p2":
+      "ان کا پس منظر سرمایہ کاری کی نظم، سافٹ ویئر اور آپریشنز کو جوڑتا ہے—ثابت شدہ واپسیوں کے وعدوں کے بجائے واضح رپورٹنگ اور محتاط تنوع پر مرکوز۔",
+  "founder_mission":
+      "مشن: ہم آہنگ سرمایہ کاروں کے لیے ایک شفاف، مستند طریقے سے پیشہ ورانہ پورٹ فولیو میں شرکت—خطرے کے بارے میں صاف گوئی کے ساتھ۔",
+  "founder_vision":
+      "ویژن: مستقل مزاجی، تعلیم اور ایسے ٹولز کے ذریعے طویل مدتی اعتماد بنانا جو کارکردگی کو آسانی سے سمجھنے میں مدد دیں۔",
+  "founder_contact_cta": "رابطہ کریں",
+  "founder_contact_hint": "پلیٹ فارم کے بارے میں سوالات کے لیے ای میل کریں۔",
+  "strategy_intro":
+      "ذیل میں ہم اہم حصوں میں تنوع کے بارے میں سوچتے ہیں۔ تقسیم مثالی ہے اور بدل سکتی ہے؛ یہ نتائج کی ضمانت نہیں۔",
+  "strategy_diversification":
+      "ہم ایکویٹی، ٹیکنالوجی پر مبنی ترقی، آمدنی پر مبنی قرضے اور لیکویڈیٹی میں نمائش پھیلاتے ہیں—تاکہ کوئی ایک حصہ تمام نتائج کنٹرول نہ کرے۔",
+  "strategy_risk":
+      "خطرے کو تنوع اور نگرانی سے سنبھالا جاتا ہے، ختم نہیں۔ نقصان ہو سکتا ہے؛ ایپ میں دکھائی گئی واپسیاں منتظم کے اندراج اور مثالی ہو سکتی ہیں۔",
+  "strategy_alloc_note": "ہدف مکس (مثالی):",
+  "strategy_alloc_stock": "اسٹاک",
+  "strategy_alloc_tech": "ٹیکنالوجی",
+  "strategy_alloc_debt": "قرض / آمدنی",
+  "strategy_alloc_money": "منی مارکیٹ / کیش",
+  "strategy_alloc_asset": "متبادل / دیگر اثاثے",
+  "performance_title": "بانی کا ٹریک ریکارڈ (مثالی)",
+  "performance_founder_note":
+      "ذیل کا چارٹ اور اعداد راجہ حماد صابر کے حوالہ پورٹ فولیو کے مثالی تاریخی ریکارڈ کو ظاہر کرتے ہیں جو پلیٹ فارم کی تقسیم کو رہنمائی دیتا ہے—آپ کے ذاتی اکاؤنٹ نہیں۔ آپ کے نتائج مختلف ہو سکتے ہیں۔",
+  "performance_disclaimer":
+      "ماضی کی کارکردگی مستقبل کے نتائج کی نشاندہی نہیں۔ اعداد شفافیت کے لیے ہیں؛ منافع کا وعدہ نہیں۔",
+  "performance_total_return": "مثالی کل واپسی",
+  "performance_net_gain": "مثالی خالص تبدیلی (PKR)",
+  "performance_illustrative_monthly": "حوالہ پورٹ فولیو کی مثالی ترقی (PKR)",
+  "transparency_past_performance_warning":
+      "ماضی کی کارکردگی مستقبل کی ضمانت نہیں۔",
   "continue_btn": "جاری رکھیں",
   "otp_registration_title": "OTP رجسٹریشن",
   "phone_number": "فون نمبر",
@@ -629,8 +727,7 @@ const _ur = <String, String>{
   "kyc_verification_title": "KYC تصدیق",
   "kyc_upload_help":
       "واضح، روشن تصاویر اپ لوڈ کریں۔ دھندلی تصاویر مسترد ہوں گی۔",
-  "kyc_submit_success":
-      "KYC جمع ہو گئی۔ 24 گھنٹوں میں جائزہ لیں گے۔",
+  "kyc_submit_success": "KYC جمع ہو گئی۔ 24 گھنٹوں میں جائزہ لیں گے۔",
   "kyc_submit_failed": "جمع کرنے میں ناکامی:",
   "your_profile": "آپ کا پروفائل",
   "identity_details": "شناختی تفصیلات",
@@ -650,14 +747,12 @@ const _ur = <String, String>{
   "submit_for_review": "جائزے کے لیے جمع کرائیں",
   "view_legal_consent": "قانونی رضامندی دیکھیں",
   "kyc_status_pending_title": "تصدیق درکار",
-  "kyc_status_pending_body":
-      "مکمل خصوصیات کے لیے تفصیلات اور دستاویزات بھریں۔",
+  "kyc_status_pending_body": "مکمل خصوصیات کے لیے تفصیلات اور دستاویزات بھریں۔",
   "kyc_status_review_title": "زیر جائزہ",
   "kyc_status_review_body":
       "آپ کے دستاویزات جمع ہو گئے ہیں اور ہماری ٹیم کا جائزہ جاری ہے۔ عام طور پر 24 گھنٹے لگتے ہیں۔",
   "kyc_status_approved_title": "شناخت تصدیق شدہ",
-  "kyc_status_approved_body":
-      "آپ کی KYC منظور ہے۔ تمام خصوصیات دستیاب ہیں۔",
+  "kyc_status_approved_body": "آپ کی KYC منظور ہے۔ تمام خصوصیات دستیاب ہیں۔",
   "kyc_status_rejected_title": "تصدیق ناکام",
   "kyc_status_rejected_body":
       "دستاویزات قبول نہیں ہوئیں۔ درست کریں اور دوبارہ جمع کرائیں۔",
@@ -668,8 +763,7 @@ const _ur = <String, String>{
   "wallet_ledger_title": "والیٹ اور لیجر",
   "wallet_error": "والیٹ خرابی:",
   "no_wallet_data": "ابھی والیٹ ڈیٹا نہیں",
-  "no_wallet_subtitle":
-      "KYC منظوری کے بعد جمع کرائیں یا سنک کا انتظار کریں۔",
+  "no_wallet_subtitle": "KYC منظوری کے بعد جمع کرائیں یا سنک کا انتظار کریں۔",
   "reserved_withdrawals": "محفوظ (نکاسی)",
   "totals": "کل",
   "totals_line_deposited": "جمع:",
@@ -735,8 +829,7 @@ const _ur = <String, String>{
   "cancel": "منسوخ",
   "submit_for_review_btn": "جائزے کے لیے جمع کرائیں",
   "bank_request_submitted": "آپ کی درخواست ایڈمن جائزے کے لیے جمع ہو گئی۔",
-  "nominee_approval_note":
-      "نومینی کی تبدیلیوں کے لیے ایڈمن منظوری درکار ہے۔",
+  "nominee_approval_note": "نومینی کی تبدیلیوں کے لیے ایڈمن منظوری درکار ہے۔",
   "update_nominee_title": "نومینی کی تفصیلات",
   "nominee_name": "نومینی کا نام",
   "nominee_cnic": "نومینی CNIC",
@@ -747,8 +840,7 @@ const _ur = <String, String>{
       "جمع کی درخواست جمع ہو گئی۔ ایڈمن منظوری کا انتظار۔",
   "err_service_unavailable":
       "سروس عارضی طور پر دستیاب نہیں۔ بعد میں کوشش کریں۔",
-  "err_kyc_required_deposit":
-      "جمع سے پہلے KYC منظوری ضروری ہے۔",
+  "err_kyc_required_deposit": "جمع سے پہلے KYC منظوری ضروری ہے۔",
   "err_session_expired": "سیشن ختم۔ دوبارہ سائن ان کریں۔",
   "deposit_info_banner":
       "ہمارے اکاؤنٹ میں رقم بھیجیں، پھر ادائیگی کی تصدیق کے ساتھ فارم جمع کرائیں۔ ایڈمن تصدیق کرے گا۔",
@@ -758,8 +850,7 @@ const _ur = <String, String>{
   "err_min_deposit": "کم از کم جمع 100 PKR",
   "payment_method": "ادائیگی کا طریقہ",
   "payment_proof": "ادائیگی کی تصدیق",
-  "payment_proof_help":
-      "ٹرانسفر کی رسید کا اسکرین شاٹ منسلک کریں (تجویز)۔",
+  "payment_proof_help": "ٹرانسفر کی رسید کا اسکرین شاٹ منسلک کریں (تجویز)۔",
   "proof_attached": "تصدیق منسلک",
   "tap_attach_proof": "تصدیق منسلک کرنے کے لیے ٹیپ (اختیاری)",
   "submitting": "جمع ہو رہا ہے…",
@@ -790,8 +881,7 @@ const _ur = <String, String>{
   "metric_total_return": "کل واپسی",
   "metric_last_period": "آخری مدت",
   "metric_net_gain": "خالص فائدہ",
-  "allocation_disclaimer":
-      "تقسیم اشارے کے لیے ہے، نمائندگی کے طور پر۔",
+  "allocation_disclaimer": "تقسیم اشارے کے لیے ہے، نمائندگی کے طور پر۔",
   "alloc_stock_market": "اسٹاک مارکیٹ",
   "alloc_tech": "ٹیک مصنوعات",
   "alloc_debt": "قرض مارکیٹ",

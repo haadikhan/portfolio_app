@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 
+import "../core/compliance/consent_version.dart";
 import "../models/app_user.dart";
 import "../models/user_kyc.dart";
 
@@ -95,32 +96,25 @@ class FirestoreService {
     }
     try {
       final batch = _db.batch();
-      batch.set(
-        _kyc.doc(userId),
-        {
-          "cnicNumber": cnic,
-          "phone": phoneClean,
-          "cnicFrontUrl": cnicFrontUrl?.trim().isEmpty == true
-              ? null
-              : cnicFrontUrl?.trim(),
-          "cnicBackUrl": cnicBackUrl?.trim().isEmpty == true
-              ? null
-              : cnicBackUrl?.trim(),
-          "selfieUrl":
-              selfieUrl?.trim().isEmpty == true ? null : selfieUrl?.trim(),
-          "status": "underReview",
-          "rejectionReason": null,
-          "submittedAt": FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-      batch.set(
-        _users.doc(userId),
-        {
-          "phone": phoneClean,
-        },
-        SetOptions(merge: true),
-      );
+      batch.set(_kyc.doc(userId), {
+        "cnicNumber": cnic,
+        "phone": phoneClean,
+        "cnicFrontUrl": cnicFrontUrl?.trim().isEmpty == true
+            ? null
+            : cnicFrontUrl?.trim(),
+        "cnicBackUrl": cnicBackUrl?.trim().isEmpty == true
+            ? null
+            : cnicBackUrl?.trim(),
+        "selfieUrl": selfieUrl?.trim().isEmpty == true
+            ? null
+            : selfieUrl?.trim(),
+        "status": "underReview",
+        "rejectionReason": null,
+        "submittedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      batch.set(_users.doc(userId), {
+        "phone": phoneClean,
+      }, SetOptions(merge: true));
       await batch.commit();
     } catch (_) {
       throw Exception("Failed to submit KYC.");
@@ -138,7 +132,7 @@ class FirestoreService {
       "userId": userId,
       "accepted": true,
       "acceptedAt": FieldValue.serverTimestamp(),
-      "version": "v1",
+      "version": kConsentDocumentVersion,
     }, SetOptions(merge: true));
   }
 
@@ -146,7 +140,9 @@ class FirestoreService {
     return _consents.doc(userId).snapshots().map((doc) {
       final data = doc.data();
       if (!doc.exists || data == null) return false;
-      return data["accepted"] == true;
+      final accepted = data["accepted"] == true;
+      final version = data["version"] as String? ?? "v1";
+      return accepted && version == kConsentDocumentVersion;
     });
   }
 }

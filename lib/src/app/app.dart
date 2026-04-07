@@ -21,6 +21,7 @@ import "../features/ledger/presentation/wallet_ledger_screen.dart";
 import "../features/ledger/presentation/withdrawal_request_screen.dart";
 import "../features/notifications/presentation/notifications_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
+import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../screens/auth_gate_screen.dart";
 import "../screens/consent_gate_screen.dart";
 import "../screens/kyc_approved_gate_screen.dart";
@@ -54,6 +55,11 @@ class WakalatInvestApp extends ConsumerWidget {
           path: "/investor",
           builder: (_, __) =>
               const ConsentGateScreen(child: InvestorDashboardScreen()),
+        ),
+        GoRoute(
+          path: "/transparency",
+          builder: (_, __) =>
+              const ConsentGateScreen(child: TransparencyHubScreen()),
         ),
         GoRoute(
           path: "/portfolio",
