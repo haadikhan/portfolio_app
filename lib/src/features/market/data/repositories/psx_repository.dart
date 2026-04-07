@@ -27,6 +27,9 @@ class PsxRepository {
 
   void connectWebSocket() => _ws.connect();
 
+  /// Updates WS cache and broadcasts to tick listeners (REST priming).
+  void seedTick(Kmi30Tick tick) => _ws.seedTick(tick);
+
   Future<Kmi30Tick> fetchTick(String symbol, {String market = "EQ"}) async {
     final s = symbol.trim().toUpperCase();
     final preferred = Uri.parse("https://psxterminal.com/api/ticks/$market/$s");

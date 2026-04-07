@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../data/websocket/psx_websocket_service.dart";
+import "../data/models/kmi30_tick.dart";
 import "providers/kmi30_companies_providers.dart";
 
 class Kmi30CompaniesScreen extends ConsumerWidget {
@@ -42,12 +43,23 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _WsDot(
-                  connected: ws.valueOrNull == PsxWsStatus.connected,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: _WsDot(
+                    connected: ws.valueOrNull == PsxWsStatus.connected,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Text(context.tr("market_ws_live_disclaimer")),
+                Expanded(
+                  child: Text(
+                    context.tr("market_ws_live_disclaimer"),
+                    maxLines: 4,
+                    softWrap: true,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               ],
             ),
           ),
@@ -60,7 +72,10 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                     separatorBuilder: (_, __) => const SizedBox(height: 6),
                     itemBuilder: (context, i) {
                       final c = companies[i];
-                      final tickAsync = ref.watch(symbolTickProvider(c.symbol));
+                      final restAsync = ref.watch(kmi30RestTickProvider(c.symbol));
+                      final liveAsync =
+                          ref.watch(selectedCompanyLiveTickStreamProvider(c.symbol));
+                      final t = liveAsync.valueOrNull ?? restAsync.valueOrNull;
                       return InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () => context.push("/market/kmi30-companies/${c.symbol}"),
@@ -73,6 +88,7 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                           child: Row(
                             children: [
                               Expanded(
+                                flex: 3,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -89,32 +105,58 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                              tickAsync.when(
-                                data: (t) {
-                                  final open = t?.price != null ? t!.price - t.change : null;
-                                  final close = t?.price;
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        "${context.tr("market_open")}: ${open?.toStringAsFixed(2) ?? "--"}",
-                                      ),
-                                      Text(
-                                        "${context.tr("market_close")}: ${close?.toStringAsFixed(2) ?? "--"}",
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
-                                      ),
-                                    ],
-                                  );
-                                },
-                                loading: () => const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                              Flexible(
+                                flex: 3,
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: () {
+                                    if (t == null && restAsync.isLoading) {
+                                      return const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      );
+                                    }
+                                    if (t == null) {
+                                      return Text(
+                                        "--",
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      );
+                                    }
+                                    final last = t.price;
+                                    final dayPct = displayKmi30Percent(t.changePercent);
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          "${context.tr("market_last")} ${last.toStringAsFixed(2)}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        Text(
+                                          "${context.tr("market_day_change")} ${dayPct >= 0 ? "+" : ""}${dayPct.toStringAsFixed(2)}%",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: dayPct >= 0
+                                                ? Colors.green.shade600
+                                                : Colors.red.shade600,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }(),
                                 ),
-                                error: (_, __) => Text(context.tr("market_live_fetch_failed")),
                               ),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.chevron_right_rounded),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.chevron_right_rounded, size: 20),
                             ],
                           ),
                         ),

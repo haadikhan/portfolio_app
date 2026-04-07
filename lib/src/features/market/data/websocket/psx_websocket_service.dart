@@ -56,11 +56,26 @@ class PsxWebSocketService {
   void _sendSubscribe() {
     final ch = _channel;
     if (ch == null) return;
-    final payload = {
+    ch.sink.add(jsonEncode({
       "action": "subscribe",
       "symbols": _symbols,
-    };
-    ch.sink.add(jsonEncode(payload));
+    }));
+    for (var i = 0; i < _symbols.length; i++) {
+      final sym = _symbols[i];
+      ch.sink.add(jsonEncode({
+        "type": "subscribe",
+        "subscriptionType": "marketData",
+        "params": {"marketType": "IDX", "symbol": sym},
+        "requestId": "kmi30-$i-$sym",
+      }));
+    }
+  }
+
+  /// Seeds cache so UI can show REST priming without waiting for WS.
+  void seedTick(Kmi30Tick tick) {
+    if (tick.symbol.isEmpty) return;
+    _latestBySymbol[tick.symbol.toUpperCase()] = tick;
+    _ticksController.add(tick);
   }
 
   void _handleMessage(dynamic raw) {
@@ -80,15 +95,30 @@ class PsxWebSocketService {
       map = raw;
     }
     if (map == null) return;
-    if (map["type"] == "pong" || map["type"] == "ping") return;
+    final t = map["type"];
+    if (t == "pong" || t == "ping") return;
+    if (t == "connected" || t == "subscriptionAck" || t == "error") return;
 
     // Handles common shapes:
     // 1) direct tick payload
     // 2) { type: "tickUpdate", data: {...} }
     // 3) { event: "...", payload: {...} }
-    final data = (map["data"] as Map?)?.cast<String, dynamic>() ??
+    Map<String, dynamic> data = (map["data"] as Map?)?.cast<String, dynamic>() ??
         (map["payload"] as Map?)?.cast<String, dynamic>() ??
         map;
+
+    if (t == "tickUpdate" || t == "tick" || t == "marketData") {
+      final nested = map["data"];
+      if (nested is Map) {
+        data = nested.cast<String, dynamic>();
+      }
+    }
+
+    final topSymbol = data["symbol"] ?? map["symbol"];
+    if (topSymbol != null && (data["symbol"] == null || data["symbol"] == "")) {
+      data = Map<String, dynamic>.from(data);
+      data["symbol"] = topSymbol is String ? topSymbol : topSymbol.toString();
+    }
 
     final tick = Kmi30Tick.fromWsJson(data);
     if (tick.symbol.isEmpty) return;

@@ -61,29 +61,18 @@ final selectedCompanyLiveTickStreamProvider =
   return ref.read(psxRepositoryProvider).streamTicksForSymbol(symbol);
 });
 
-final selectedCompanyTickProvider =
-    StreamProvider.family<Kmi30Tick, String>((ref, symbol) async* {
+/// REST snapshot for immediate UI (never waits on WebSocket first emit).
+final kmi30RestTickProvider = FutureProvider.family<Kmi30Tick, String>((ref, symbol) async {
   final repo = ref.read(psxRepositoryProvider);
-  final cached = repo.latestCachedTick(symbol);
-  if (cached != null) {
-    yield cached;
-  }
-  if (!repo.isWsConnected) {
-    try {
-      final restTick = await repo.fetchTick(symbol);
-      yield restTick;
-    } catch (_) {}
-  }
-  yield* repo.streamTicksForSymbol(symbol);
+  final t = await repo.fetchTick(symbol);
+  repo.seedTick(t);
+  return t;
 });
 
-final symbolTickProvider = StreamProvider.family<Kmi30Tick?, String>((ref, symbol) async* {
-  final repo = ref.read(psxRepositoryProvider);
-  final cached = repo.latestCachedTick(symbol);
-  if (cached != null) {
-    yield cached;
-  }
-  yield* repo.streamTicksForSymbol(symbol);
+/// Latest daily bars for session OHLC (independent of chart timeframe).
+final companyDailyOhlcBarsProvider =
+    FutureProvider.family<List<Kmi30Bar>, String>((ref, symbol) async {
+  return ref.read(psxRepositoryProvider).fetchKlines(symbol, "1d", limit: 2);
 });
 
 final selectedCompanyKlinesProvider =
