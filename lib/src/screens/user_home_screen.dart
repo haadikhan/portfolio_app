@@ -5,7 +5,9 @@ import "package:intl/intl.dart";
 
 import "../core/i18n/app_translations.dart";
 import "../core/theme/app_colors.dart";
+import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
+import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
 import "../providers/wallet_providers.dart";
@@ -42,26 +44,64 @@ class UserHomeScreen extends ConsumerWidget {
   }
 }
 
-class _DashboardView extends ConsumerWidget {
+class _DashboardView extends ConsumerStatefulWidget {
   const _DashboardView({required this.profile});
   final AppUser profile;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends ConsumerState<_DashboardView> {
+  bool _scheduledOneTimeDisclaimer = false;
+
+  Future<void> _maybeShowOneTimeRiskDisclaimer() async {
+    if (await hasSeenRiskDisclaimer()) return;
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.tr("mandatory_disclaimer_heading")),
+        content: const SingleChildScrollView(
+          child: MandatoryRiskDisclaimerStrip(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await markRiskDisclaimerSeen();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: Text(context.tr("continue_btn")),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_scheduledOneTimeDisclaimer) {
+      _scheduledOneTimeDisclaimer = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeShowOneTimeRiskDisclaimer();
+      });
+    }
+
     final walletAsync = ref.watch(userWalletStreamProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      drawer: _AppDrawer(profile: profile),
+      drawer: _AppDrawer(profile: widget.profile),
       body: CustomScrollView(
         slivers: [
-          _DashboardAppBar(profile: profile),
+          _DashboardAppBar(profile: widget.profile),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _KycBanner(profile: profile),
+                _KycBanner(profile: widget.profile),
                 const SizedBox(height: 20),
                 walletAsync.when(
                   loading: () => const _WalletCardSkeleton(),
@@ -71,7 +111,7 @@ class _DashboardView extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _SectionLabel(label: context.tr("quick_actions")),
                 const SizedBox(height: 12),
-                _QuickActions(profile: profile),
+                _QuickActions(profile: widget.profile),
                 const SizedBox(height: 28),
                 _SectionLabel(label: context.tr("my_account")),
                 const SizedBox(height: 12),
@@ -85,8 +125,8 @@ class _DashboardView extends ConsumerWidget {
                 _NavTile(
                   icon: Icons.shield_outlined,
                   label: context.tr("nav_kyc"),
-                  subtitle: _kycSubtitle(context, profile.kycStatus),
-                  badge: _kycBadge(context, profile.kycStatus),
+                  subtitle: _kycSubtitle(context, widget.profile.kycStatus),
+                  badge: _kycBadge(context, widget.profile.kycStatus),
                   onTap: () => context.push("/kyc"),
                 ),
                 const SizedBox(height: 10),
@@ -315,6 +355,14 @@ class _AppDrawer extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(context);
                 context.push("/portfolio");
+              },
+            ),
+            _DrawerItem(
+              icon: Icons.candlestick_chart_outlined,
+              label: context.tr("drawer_market"),
+              onTap: () {
+                Navigator.pop(context);
+                context.push("/market");
               },
             ),
             _DrawerItem(

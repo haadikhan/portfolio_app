@@ -128,12 +128,26 @@ class FirestoreService {
     if (!accepted) {
       throw Exception("Consent must be accepted.");
     }
-    await _consents.doc(userId).set({
+    final batch = _db.batch();
+    batch.set(
+      _consents.doc(userId),
+      {
+        "userId": userId,
+        "accepted": true,
+        "acceptedAt": FieldValue.serverTimestamp(),
+        "version": kConsentDocumentVersion,
+      },
+      SetOptions(merge: true),
+    );
+    final eventRef =
+        _users.doc(userId).collection("consent_events").doc();
+    batch.set(eventRef, {
       "userId": userId,
-      "accepted": true,
-      "acceptedAt": FieldValue.serverTimestamp(),
       "version": kConsentDocumentVersion,
-    }, SetOptions(merge: true));
+      "acceptedAt": FieldValue.serverTimestamp(),
+      "source": "in_app_legal",
+    });
+    await batch.commit();
   }
 
   Stream<bool> streamConsentAccepted(String userId) {

@@ -19,6 +19,7 @@ const _kAdminShellRoutes = <String>[
   "/crm/team",
   "/returns",
   "/upload-reports",
+  "/market",
   "/notifications",
   "/broadcast",
 ];
@@ -217,6 +218,14 @@ class AdminShell extends ConsumerWidget {
                       title: Text(context.tr("admin_nav_upload_reports")),
                       selected: loc.startsWith("/upload-reports"),
                       onTap: () => _go(context, "/upload-reports"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: const Icon(Icons.candlestick_chart_outlined),
+                      title: Text(context.tr("admin_nav_market")),
+                      selected: loc.startsWith("/market"),
+                      onTap: () => _go(context, "/market"),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -488,6 +497,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("admin_nav_upload_reports")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.candlestick_chart_outlined),
+          selectedIcon: const Icon(Icons.candlestick_chart),
+          label: Text(context.tr("admin_nav_market")),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.inbox_outlined),
           selectedIcon: const Icon(Icons.inbox),
           label: Text(context.tr("notifications")),
@@ -510,8 +524,9 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 11;
-  if (loc.startsWith("/notifications")) return 10;
+  if (loc.startsWith("/broadcast")) return 12;
+  if (loc.startsWith("/notifications")) return 11;
+  if (loc.startsWith("/market")) return 10;
   if (loc.startsWith("/upload-reports")) return 9;
   if (loc.startsWith("/returns")) return 8;
   if (loc.startsWith("/crm/team")) return 7;

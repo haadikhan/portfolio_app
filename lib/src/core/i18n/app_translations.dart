@@ -44,6 +44,7 @@ const _en = <String, String>{
   "nav_reports_subtitle": "Monthly statements & performance",
   "drawer_dashboard": "Dashboard",
   "drawer_portfolio": "My portfolio",
+  "drawer_market": "Market watch",
   "drawer_wallet": "Wallet & ledger",
   "drawer_kyc": "KYC verification",
   "drawer_reports": "Reports",
@@ -131,6 +132,7 @@ const _en = <String, String>{
   "reports_actions_hint":
       "View opens a preview; you can also download or print from here or below.",
   "admin_nav_upload_reports": "Investor reports",
+  "admin_nav_market": "Market index",
   "admin_reports_heading": "Upload investor report (PDF)",
   "admin_reports_subtitle":
       "Files appear under “Statements from your team” in the investor app for all accounts.",
@@ -211,6 +213,14 @@ const _en = <String, String>{
   "legal_para_7": "We follow compliance best practices for KYC and consent.",
   "legal_accept":
       "I understand and accept the updated disclaimer and risk disclosure.",
+  "legal_scroll_hint": "Please scroll to the bottom to enable acceptance.",
+  "mandatory_disclaimer_heading": "Risk disclosure",
+  "mandatory_disclaimer_line_1":
+      "This is a private investment tracking platform. The system does not manage real funds or execute trades.",
+  "mandatory_disclaimer_line_2":
+      "Returns are not guaranteed. Profits are illustrative or admin-input based, not contractual.",
+  "mandatory_disclaimer_line_3":
+      "Past performance does not guarantee future results. Historical growth or monthly returns do not promise future returns.",
   "drawer_transparency": "Transparency & trust",
   "transparency_hub_title": "Transparency",
   "transparency_tab_founder": "About",
@@ -460,6 +470,35 @@ const _en = <String, String>{
   "nominee_short": "Nominee",
   "profile_changes_note":
       "Changes to bank details and nominee require admin approval. You will be notified once reviewed.",
+  "market_title": "Daily market open/close",
+  "market_company": "Company",
+  "market_company_name": "Company name",
+  "market_ticker": "Ticker",
+  "market_exchange": "Exchange",
+  "market_active": "Active",
+  "market_add_company": "Add company",
+  "market_daily_entry": "Daily opening and closing",
+  "market_date": "Date",
+  "market_open": "Open",
+  "market_close": "Close",
+  "market_source": "Source",
+  "market_latest_day": "Latest day",
+  "market_recent_days": "Recent entries",
+  "market_save_day": "Save daily values",
+  "market_sync_api": "Sync from API",
+  "market_sync_ok": "Market sync complete",
+  "market_sync_failed": "Market sync failed",
+  "market_company_saved": "Company saved.",
+  "market_day_saved": "Daily values saved.",
+  "market_no_companies": "No companies added yet.",
+  "market_no_data": "No daily market data yet.",
+  "market_delay_disclaimer":
+      "Market data can be delayed depending on provider limits and exchange timings.",
+  "market_high_optional": "High (optional)",
+  "market_low_optional": "Low (optional)",
+  "admin_market_title": "Market index administration",
+  "admin_market_subtitle":
+      "Add companies and daily opening/closing values. API sync is optional.",
 };
 
 const _ur = <String, String>{
@@ -506,6 +545,7 @@ const _ur = <String, String>{
   "nav_reports_subtitle": "ماہانہ بیانات اور کارکردگی",
   "drawer_dashboard": "ڈیش بورڈ",
   "drawer_portfolio": "میرا پورٹ فولیو",
+  "drawer_market": "مارکیٹ واچ",
   "drawer_wallet": "والیٹ اور لیجر",
   "drawer_kyc": "KYC تصدیق",
   "drawer_reports": "رپورٹس",
@@ -592,6 +632,7 @@ const _ur = <String, String>{
   "reports_actions_hint":
       "دیکھیں سے پیش نظارہ کھولیں؛ یہاں یا نیچے سے ڈاؤن لوڈ یا پرنٹ بھی کریں۔",
   "admin_nav_upload_reports": "سرمایہ کار رپورٹس",
+  "admin_nav_market": "مارکیٹ انڈیکس",
   "admin_reports_heading": "سرمایہ کار رپورٹ اپ لوڈ (PDF)",
   "admin_reports_subtitle":
       "فائلیں سرمایہ کار ایپ میں تمام اکاؤنٹس کے لیے “آپ کی ٹیم سے بیانات” میں دکھائی جائیں گی۔",
@@ -673,6 +714,15 @@ const _ur = <String, String>{
   "legal_para_7": "ہم KYC اور رضامندی کے لیے بہترین طریقے اختیار کرتے ہیں۔",
   "legal_accept":
       "میں تازہ دستبرداری اور خطرے کی وضاحت سمجھتا/سمجھتی ہوں اور قبول کرتا/کرتی ہوں۔",
+  "legal_scroll_hint":
+      "قبولیت فعال کرنے کے لیے براہ کرم آخر تک سکرول کریں۔",
+  "mandatory_disclaimer_heading": "خطرے کی وضاحت",
+  "mandatory_disclaimer_line_1":
+      "یہ نجی سرمایہ کاری ٹریکنگ پلیٹ فارم ہے۔ یہ نظام حقیقی فنڈز منظم نہیں کرتا اور نہ ہی تجارت چلاتا ہے۔",
+  "mandatory_disclaimer_line_2":
+      "واپسیوں کی ضمانت نہیں۔ منافع مثالی یا منتظم کے اندراج پر مبنی ہو سکتے ہیں، معاہدہ نہیں۔",
+  "mandatory_disclaimer_line_3":
+      "ماضی کی کارکردگی مستقبل کے نتائج کی ضمانت نہیں۔ تاریخی ترقی یا ماہانہ واپسیاں مستقبل کا وعدہ نہیں۔",
   "drawer_transparency": "شفافیت و اعتماد",
   "transparency_hub_title": "شفافیت",
   "transparency_tab_founder": "تعارف",
@@ -915,6 +965,35 @@ const _ur = <String, String>{
   "nominee_short": "نومینی",
   "profile_changes_note":
       "بینک اور نومینی کی تبدیلیوں کے لیے ایڈمن منظوری درکار ہے۔",
+  "market_title": "روزانہ مارکیٹ اوپن/کلوز",
+  "market_company": "کمپنی",
+  "market_company_name": "کمپنی کا نام",
+  "market_ticker": "ٹکر",
+  "market_exchange": "ایکسچینج",
+  "market_active": "فعال",
+  "market_add_company": "کمپنی شامل کریں",
+  "market_daily_entry": "روزانہ اوپننگ اور کلوزنگ",
+  "market_date": "تاریخ",
+  "market_open": "اوپن",
+  "market_close": "کلوز",
+  "market_source": "ماخذ",
+  "market_latest_day": "تازہ ترین دن",
+  "market_recent_days": "حالیہ اندراجات",
+  "market_save_day": "روزانہ اقدار محفوظ کریں",
+  "market_sync_api": "API سے سنک کریں",
+  "market_sync_ok": "مارکیٹ سنک مکمل",
+  "market_sync_failed": "مارکیٹ سنک ناکام",
+  "market_company_saved": "کمپنی محفوظ ہو گئی۔",
+  "market_day_saved": "روزانہ اقدار محفوظ ہو گئیں۔",
+  "market_no_companies": "ابھی کوئی کمپنی شامل نہیں ہوئی۔",
+  "market_no_data": "ابھی روزانہ مارکیٹ ڈیٹا نہیں۔",
+  "market_delay_disclaimer":
+      "فراہم کنندہ کی حدود اور ایکسچینج اوقات کے باعث مارکیٹ ڈیٹا میں تاخیر ہو سکتی ہے۔",
+  "market_high_optional": "ہائی (اختیاری)",
+  "market_low_optional": "لو (اختیاری)",
+  "admin_market_title": "مارکیٹ انڈیکس انتظام",
+  "admin_market_subtitle":
+      "کمپنیاں اور روزانہ اوپن/کلوز اقدار شامل کریں۔ API سنک اختیاری ہے۔",
 };
 
 extension AppTranslations on BuildContext {
