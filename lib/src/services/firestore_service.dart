@@ -88,6 +88,7 @@ class FirestoreService {
     String? cnicFrontUrl,
     String? cnicBackUrl,
     String? selfieUrl,
+    Map<String, dynamic>? paymentProof,
   }) async {
     final cnic = cnicNumber.trim();
     final phoneClean = phone.trim();
@@ -108,6 +109,7 @@ class FirestoreService {
         "selfieUrl": selfieUrl?.trim().isEmpty == true
             ? null
             : selfieUrl?.trim(),
+        if (paymentProof != null) "paymentProof": paymentProof,
         "status": "underReview",
         "rejectionReason": null,
         "submittedAt": FieldValue.serverTimestamp(),

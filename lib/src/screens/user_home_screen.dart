@@ -358,14 +358,6 @@ class _AppDrawer extends ConsumerWidget {
               },
             ),
             _DrawerItem(
-              icon: Icons.candlestick_chart_outlined,
-              label: context.tr("drawer_market"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/market");
-              },
-            ),
-            _DrawerItem(
               icon: Icons.show_chart_rounded,
               label: context.tr("drawer_kmi30_companies"),
               onTap: () {

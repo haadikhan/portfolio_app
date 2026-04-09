@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
 import "package:firebase_storage/firebase_storage.dart";
+import "package:cloud_firestore/cloud_firestore.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
@@ -12,6 +13,8 @@ import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../models/user_kyc.dart";
+
+enum _PaymentProofType { salaried, foreigner, businessOwner, inheritance }
 
 class KycScreen extends ConsumerStatefulWidget {
   const KycScreen({super.key});
@@ -28,11 +31,24 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   File? _frontFile;
   File? _backFile;
   File? _selfieFile;
+  File? _salarySlipFile;
+  File? _passportFrontFile;
+  File? _passportBackFile;
+  File? _aqamaFile;
+  File? _businessProofFile;
+  File? _inheritanceProofFile;
 
   // existing URLs already saved in Firestore (shown when no new file picked)
   String? _existingFrontUrl;
   String? _existingBackUrl;
   String? _existingSelfieUrl;
+  String? _existingSalarySlipUrl;
+  String? _existingPassportFrontUrl;
+  String? _existingPassportBackUrl;
+  String? _existingAqamaUrl;
+  String? _existingBusinessProofUrl;
+  String? _existingInheritanceProofUrl;
+  _PaymentProofType? _paymentProofType;
 
   bool _seeded = false;
   bool _uploading = false;
@@ -52,6 +68,64 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     _existingFrontUrl = kyc?.cnicFrontUrl;
     _existingBackUrl = kyc?.cnicBackUrl;
     _existingSelfieUrl = kyc?.selfieUrl;
+    _existingSalarySlipUrl = kyc?.salarySlipUrl;
+    _existingPassportFrontUrl = kyc?.passportFrontUrl;
+    _existingPassportBackUrl = kyc?.passportBackUrl;
+    _existingAqamaUrl = kyc?.aqamaUrl;
+    _existingBusinessProofUrl = kyc?.businessProofUrl;
+    _existingInheritanceProofUrl = kyc?.inheritanceProofUrl;
+    _paymentProofType = switch (kyc?.paymentProofType) {
+      "salaried" => _PaymentProofType.salaried,
+      "foreigner" => _PaymentProofType.foreigner,
+      "businessOwner" => _PaymentProofType.businessOwner,
+      "inheritance" => _PaymentProofType.inheritance,
+      _ => null,
+    };
+  }
+
+  String _proofTypeValue(_PaymentProofType type) => switch (type) {
+        _PaymentProofType.salaried => "salaried",
+        _PaymentProofType.foreigner => "foreigner",
+        _PaymentProofType.businessOwner => "businessOwner",
+        _PaymentProofType.inheritance => "inheritance",
+      };
+
+  String? _validatePaymentProof() {
+    switch (_paymentProofType) {
+      case null:
+        return null;
+      case _PaymentProofType.salaried:
+        if (_salarySlipFile == null &&
+            (_existingSalarySlipUrl == null || _existingSalarySlipUrl!.isEmpty)) {
+          return context.tr("kyc_payment_proof_salary_required");
+        }
+        return null;
+      case _PaymentProofType.foreigner:
+        final hasFront = _passportFrontFile != null ||
+            (_existingPassportFrontUrl != null &&
+                _existingPassportFrontUrl!.isNotEmpty);
+        final hasBack = _passportBackFile != null ||
+            (_existingPassportBackUrl != null &&
+                _existingPassportBackUrl!.isNotEmpty);
+        if (!hasFront || !hasBack) {
+          return context.tr("kyc_payment_proof_foreigner_required");
+        }
+        return null;
+      case _PaymentProofType.businessOwner:
+        if (_businessProofFile == null &&
+            (_existingBusinessProofUrl == null ||
+                _existingBusinessProofUrl!.isEmpty)) {
+          return context.tr("kyc_payment_proof_business_required");
+        }
+        return null;
+      case _PaymentProofType.inheritance:
+        if (_inheritanceProofFile == null &&
+            (_existingInheritanceProofUrl == null ||
+                _existingInheritanceProofUrl!.isEmpty)) {
+          return context.tr("kyc_payment_proof_inheritance_required");
+        }
+        return null;
+    }
   }
 
   Future<File?> _pickImage(ImageSource source) async {
@@ -74,18 +148,74 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
   Future<void> _submit(String uid) async {
     if (!_formKey.currentState!.validate()) return;
+    final proofError = _validatePaymentProof();
+    if (proofError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(proofError)));
+      return;
+    }
 
     setState(() => _uploading = true);
     try {
       String? frontUrl = _existingFrontUrl;
       String? backUrl = _existingBackUrl;
       String? selfieUrl = _existingSelfieUrl;
+      String? salarySlipUrl = _existingSalarySlipUrl;
+      String? passportFrontUrl = _existingPassportFrontUrl;
+      String? passportBackUrl = _existingPassportBackUrl;
+      String? aqamaUrl = _existingAqamaUrl;
+      String? businessProofUrl = _existingBusinessProofUrl;
+      String? inheritanceProofUrl = _existingInheritanceProofUrl;
 
-      if (_frontFile != null)
+      if (_frontFile != null) {
         frontUrl = await _upload(_frontFile!, uid, "front");
-      if (_backFile != null) backUrl = await _upload(_backFile!, uid, "back");
-      if (_selfieFile != null)
+      }
+      if (_backFile != null) {
+        backUrl = await _upload(_backFile!, uid, "back");
+      }
+      if (_selfieFile != null) {
         selfieUrl = await _upload(_selfieFile!, uid, "selfie");
+      }
+      if (_salarySlipFile != null) {
+        salarySlipUrl = await _upload(_salarySlipFile!, uid, "salary_slip");
+      }
+      if (_passportFrontFile != null) {
+        passportFrontUrl =
+            await _upload(_passportFrontFile!, uid, "passport_front");
+      }
+      if (_passportBackFile != null) {
+        passportBackUrl = await _upload(_passportBackFile!, uid, "passport_back");
+      }
+      if (_aqamaFile != null) {
+        aqamaUrl = await _upload(_aqamaFile!, uid, "aqama");
+      }
+      if (_businessProofFile != null) {
+        businessProofUrl =
+            await _upload(_businessProofFile!, uid, "business_proof");
+      }
+      if (_inheritanceProofFile != null) {
+        inheritanceProofUrl =
+            await _upload(_inheritanceProofFile!, uid, "inheritance_proof");
+      }
+
+      Map<String, dynamic>? paymentProof;
+      if (_paymentProofType != null) {
+        paymentProof = {
+          "type": _proofTypeValue(_paymentProofType!),
+          "documents": {
+            if (salarySlipUrl?.isNotEmpty == true) "salarySlipUrl": salarySlipUrl,
+            if (passportFrontUrl?.isNotEmpty == true)
+              "passportFrontUrl": passportFrontUrl,
+            if (passportBackUrl?.isNotEmpty == true)
+              "passportBackUrl": passportBackUrl,
+            if (aqamaUrl?.isNotEmpty == true) "aqamaUrl": aqamaUrl,
+            if (businessProofUrl?.isNotEmpty == true)
+              "businessProofUrl": businessProofUrl,
+            if (inheritanceProofUrl?.isNotEmpty == true)
+              "inheritanceProofUrl": inheritanceProofUrl,
+          },
+          "updatedAt": FieldValue.serverTimestamp(),
+        };
+      }
 
       await ref
           .read(authControllerProvider.notifier)
@@ -95,6 +225,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             cnicFrontUrl: frontUrl,
             cnicBackUrl: backUrl,
             selfieUrl: selfieUrl,
+            paymentProof: paymentProof,
           );
 
       if (!mounted) return;
@@ -238,6 +369,141 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     if (f != null) setState(() => _selfieFile = f);
                   },
                 ),
+
+                // ── Optional payment/source proof ───────────────────────
+                const SizedBox(height: 22),
+                _SectionHeader(label: context.tr("kyc_payment_proof_title")),
+                const SizedBox(height: 4),
+                Text(
+                  context.tr("kyc_payment_proof_subtitle"),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: Text(context.tr("kyc_proof_type_salaried")),
+                      selected: _paymentProofType == _PaymentProofType.salaried,
+                      onSelected: locked
+                          ? null
+                          : (v) => setState(
+                                () => _paymentProofType =
+                                    v ? _PaymentProofType.salaried : null,
+                              ),
+                    ),
+                    ChoiceChip(
+                      label: Text(context.tr("kyc_proof_type_foreigner")),
+                      selected: _paymentProofType == _PaymentProofType.foreigner,
+                      onSelected: locked
+                          ? null
+                          : (v) => setState(
+                                () => _paymentProofType =
+                                    v ? _PaymentProofType.foreigner : null,
+                              ),
+                    ),
+                    ChoiceChip(
+                      label: Text(context.tr("kyc_proof_type_business_owner")),
+                      selected: _paymentProofType == _PaymentProofType.businessOwner,
+                      onSelected: locked
+                          ? null
+                          : (v) => setState(
+                                () => _paymentProofType =
+                                    v ? _PaymentProofType.businessOwner : null,
+                              ),
+                    ),
+                    ChoiceChip(
+                      label: Text(context.tr("kyc_proof_type_inheritance")),
+                      selected: _paymentProofType == _PaymentProofType.inheritance,
+                      onSelected: locked
+                          ? null
+                          : (v) => setState(
+                                () => _paymentProofType =
+                                    v ? _PaymentProofType.inheritance : null,
+                              ),
+                    ),
+                  ],
+                ),
+                if (_paymentProofType != null) ...[
+                  const SizedBox(height: 12),
+                  if (_paymentProofType == _PaymentProofType.salaried)
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_salary_slip"),
+                      icon: Icons.receipt_long_outlined,
+                      pickedFile: _salarySlipFile,
+                      existingUrl: _existingSalarySlipUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _salarySlipFile = f);
+                      },
+                    ),
+                  if (_paymentProofType == _PaymentProofType.foreigner) ...[
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_passport_front"),
+                      icon: Icons.badge_outlined,
+                      pickedFile: _passportFrontFile,
+                      existingUrl: _existingPassportFrontUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _passportFrontFile = f);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_passport_back"),
+                      icon: Icons.badge_outlined,
+                      pickedFile: _passportBackFile,
+                      existingUrl: _existingPassportBackUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _passportBackFile = f);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_aqama_optional"),
+                      icon: Icons.perm_identity_outlined,
+                      pickedFile: _aqamaFile,
+                      existingUrl: _existingAqamaUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _aqamaFile = f);
+                      },
+                    ),
+                  ],
+                  if (_paymentProofType == _PaymentProofType.businessOwner)
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_business_document"),
+                      icon: Icons.business_center_outlined,
+                      pickedFile: _businessProofFile,
+                      existingUrl: _existingBusinessProofUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _businessProofFile = f);
+                      },
+                    ),
+                  if (_paymentProofType == _PaymentProofType.inheritance)
+                    _ImagePickerTile(
+                      label: context.tr("kyc_proof_inheritance_document"),
+                      icon: Icons.description_outlined,
+                      pickedFile: _inheritanceProofFile,
+                      existingUrl: _existingInheritanceProofUrl,
+                      locked: locked,
+                      onPick: () async {
+                        final f = await _pickImage(ImageSource.gallery);
+                        if (f != null) setState(() => _inheritanceProofFile = f);
+                      },
+                    ),
+                ],
 
                 // ── Submit ──────────────────────────────────────────────
                 const SizedBox(height: 28),

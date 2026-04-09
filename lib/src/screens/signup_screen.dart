@@ -5,7 +5,6 @@ import "package:go_router/go_router.dart";
 import "../core/i18n/app_translations.dart";
 import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
-import "../core/widgets/design_system_widgets.dart";
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -51,12 +50,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? const [Color(0xFF121212), Color(0xFF1E1E1E)]
+              ? const [Color(0xFF121212), Color(0xFF171A1A), Color(0xFF121212)]
               : const [AppColors.backgroundTop, AppColors.backgroundBottom],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -65,84 +66,115 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(title: Text(context.tr("create_account_title"))),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SoftCard(
-                padding: const EdgeInsets.all(22),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr("create_your_account"),
-                        style: Theme.of(context).textTheme.headlineMedium,
+        body: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1F2223) : AppColors.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF343A3A)
+                            : AppColors.border,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr("signup_subtitle"),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(labelText: context.tr("name")),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? context.tr("enter_your_name")
-                                : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: InputDecoration(labelText: context.tr("email")),
-                        validator: (v) =>
-                            (v == null || !v.contains("@"))
-                                ? context.tr("enter_valid_email")
-                                : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration:
-                            InputDecoration(labelText: context.tr("password")),
-                        validator: (v) =>
-                            (v == null || v.length < 6)
-                                ? context.tr("password_min_chars")
-                                : null,
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: isLoading ? null : _submit,
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(context.tr("sign_up_btn")),
-                        ),
-                      ),
-                      if (authState.hasError) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          authState.error.toString(),
-                          style: const TextStyle(color: AppColors.error),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.28 : 0.05,
+                          ),
+                          blurRadius: 22,
+                          offset: const Offset(0, 10),
                         ),
                       ],
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => context.go("/login"),
-                        child: Text(context.tr("already_have_login")),
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr("create_your_account"),
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr("signup_subtitle"),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(labelText: context.tr("name")),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? context.tr("enter_your_name")
+                                : null,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: InputDecoration(labelText: context.tr("email")),
+                            validator: (v) => (v == null || !v.contains("@"))
+                                ? context.tr("enter_valid_email")
+                                : null,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            decoration:
+                                InputDecoration(labelText: context.tr("password")),
+                            validator: (v) => (v == null || v.length < 6)
+                                ? context.tr("password_min_chars")
+                                : null,
+                          ),
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: isLoading ? null : _submit,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : Text(context.tr("sign_up_btn")),
+                            ),
+                          ),
+                          if (authState.hasError) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              authState.error.toString(),
+                              style: const TextStyle(color: AppColors.error),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => context.go("/login"),
+                            child: Text(context.tr("already_have_login")),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

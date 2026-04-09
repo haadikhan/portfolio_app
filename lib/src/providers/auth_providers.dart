@@ -124,6 +124,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     String? cnicFrontUrl,
     String? cnicBackUrl,
     String? selfieUrl,
+    Map<String, dynamic>? paymentProof,
   }) async {
     final currentUser = _ref.read(currentUserProvider);
     if (currentUser == null) throw Exception("No active user session.");
@@ -136,6 +137,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         cnicFrontUrl: cnicFrontUrl,
         cnicBackUrl: cnicBackUrl,
         selfieUrl: selfieUrl,
+        paymentProof: paymentProof,
       );
     });
   }

@@ -312,6 +312,27 @@ const _en = <String, String>{
   "photo_new_selected": "New photo selected",
   "photo_uploaded": "Photo uploaded",
   "tap_select_photo": "Tap to select photo",
+  "kyc_payment_proof_title": "Optional source of funds proof",
+  "kyc_payment_proof_subtitle":
+      "Select your category and upload supporting documents if available.",
+  "kyc_proof_type_salaried": "Salaried",
+  "kyc_proof_type_foreigner": "Foreigner",
+  "kyc_proof_type_business_owner": "Business owner",
+  "kyc_proof_type_inheritance": "Inheritance",
+  "kyc_proof_salary_slip": "Salary slip",
+  "kyc_proof_passport_front": "Passport front",
+  "kyc_proof_passport_back": "Passport back",
+  "kyc_proof_aqama_optional": "Aqama (optional)",
+  "kyc_proof_business_document": "Business ownership document",
+  "kyc_proof_inheritance_document": "Inheritance document",
+  "kyc_payment_proof_salary_required":
+      "Please upload salary slip for the salaried option.",
+  "kyc_payment_proof_foreigner_required":
+      "Please upload both passport front and passport back.",
+  "kyc_payment_proof_business_required":
+      "Please upload a business ownership document.",
+  "kyc_payment_proof_inheritance_required":
+      "Please upload inheritance documents.",
   "wallet_ledger_title": "Wallet & Ledger",
   "wallet_error": "Wallet error:",
   "no_wallet_data": "No wallet data yet",
@@ -833,6 +854,27 @@ const _ur = <String, String>{
   "photo_new_selected": "نئی تصویر منتخب",
   "photo_uploaded": "تصویر اپ لوڈ",
   "tap_select_photo": "تصویر منتخب کرنے کے لیے ٹیپ کریں",
+  "kyc_payment_proof_title": "فنڈز کے سورس کا اختیاری ثبوت",
+  "kyc_payment_proof_subtitle":
+      "اپنی کیٹیگری منتخب کریں اور دستیاب ہو تو متعلقہ دستاویز اپ لوڈ کریں۔",
+  "kyc_proof_type_salaried": "تنخواہ دار",
+  "kyc_proof_type_foreigner": "غیر ملکی",
+  "kyc_proof_type_business_owner": "کاروباری مالک",
+  "kyc_proof_type_inheritance": "وراثت",
+  "kyc_proof_salary_slip": "سیلری سلپ",
+  "kyc_proof_passport_front": "پاسپورٹ سامنے",
+  "kyc_proof_passport_back": "پاسپورٹ پیچھے",
+  "kyc_proof_aqama_optional": "اقامہ (اختیاری)",
+  "kyc_proof_business_document": "کاروبار ملکیت دستاویز",
+  "kyc_proof_inheritance_document": "وراثتی دستاویز",
+  "kyc_payment_proof_salary_required":
+      "تنخواہ دار آپشن کے لیے سیلری سلپ اپ لوڈ کریں۔",
+  "kyc_payment_proof_foreigner_required":
+      "پاسپورٹ کا سامنے اور پیچھے دونوں اپ لوڈ کریں۔",
+  "kyc_payment_proof_business_required":
+      "کاروبار ملکیت کی دستاویز اپ لوڈ کریں۔",
+  "kyc_payment_proof_inheritance_required":
+      "وراثتی دستاویزات اپ لوڈ کریں۔",
   "wallet_ledger_title": "والیٹ اور لیجر",
   "wallet_error": "والیٹ خرابی:",
   "no_wallet_data": "ابھی والیٹ ڈیٹا نہیں",

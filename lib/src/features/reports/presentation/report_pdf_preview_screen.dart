@@ -35,6 +35,10 @@ class ReportPdfPreviewScreen extends StatelessWidget {
         mimeType: MimeType.pdf,
       );
     } catch (_) {
+      try {
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+        return;
+      } catch (_) {}
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),

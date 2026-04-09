@@ -163,8 +163,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Future<void> _downloadReport() async {
     final bytes = await _buildPdfBytes();
     if (bytes == null || !mounted) return;
+    final fileName = _pdfFileName();
     try {
-      final base = _pdfFileName().replaceAll(".pdf", "");
+      final base = fileName.replaceAll(".pdf", "");
       await FileSaver.instance.saveFile(
         name: base,
         bytes: bytes,
@@ -172,6 +173,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         mimeType: MimeType.pdf,
       );
     } catch (_) {
+      // Fallback for devices where direct file saver integration is restricted.
+      try {
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+        return;
+      } catch (_) {}
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),

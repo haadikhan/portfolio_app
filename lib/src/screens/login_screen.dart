@@ -5,7 +5,6 @@ import "package:go_router/go_router.dart";
 import "../core/i18n/app_translations.dart";
 import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
-import "../core/widgets/design_system_widgets.dart";
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -48,12 +47,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? const [Color(0xFF121212), Color(0xFF1E1E1E)]
+              ? const [Color(0xFF121212), Color(0xFF171A1A), Color(0xFF121212)]
               : const [AppColors.backgroundTop, AppColors.backgroundBottom],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -72,8 +73,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 460),
-                  child: SoftCard(
+                  child: Container(
                     padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1F2223) : AppColors.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF343A3A)
+                            : AppColors.border,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.28 : 0.05,
+                          ),
+                          blurRadius: 22,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -82,12 +101,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                       Text(
                         context.tr("welcome_back"),
-                        style: Theme.of(context).textTheme.headlineMedium,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         context.tr("sign_in_subtitle"),
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       TextFormField(
