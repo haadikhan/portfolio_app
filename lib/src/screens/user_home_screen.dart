@@ -216,31 +216,31 @@ class _DashboardAppBar extends ConsumerWidget {
           onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
-      title: Row(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                context.tr("good_day"),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: muted,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              Text(
-                profile.name.isNotEmpty
-                    ? profile.name
-                    : context.tr("investor_label"),
-                style: TextStyle(
-                  fontSize: 17,
-                  color: onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          Text(
+            context.tr("good_day"),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: muted,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          Text(
+            profile.name.isNotEmpty
+                ? profile.name
+                : context.tr("investor_label"),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
+              color: onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

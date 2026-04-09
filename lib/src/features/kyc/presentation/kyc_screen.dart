@@ -27,6 +27,35 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   final _formKey = GlobalKey<FormState>();
   final _cnic = TextEditingController();
   final _phone = TextEditingController();
+  final _address = TextEditingController();
+  final _nomineeName = TextEditingController();
+  final _nomineeCnic = TextEditingController();
+  final _nomineeRelation = TextEditingController();
+  final _ibanOrAccountNumber = TextEditingController();
+  final _accountTitle = TextEditingController();
+  String? _selectedBankName;
+
+  static const _pakistanBanks = <String>[
+    "Allied Bank Limited",
+    "Askari Bank Limited",
+    "Bank Al Habib Limited",
+    "Bank Alfalah Limited",
+    "BankIslami Pakistan Limited",
+    "Dubai Islamic Bank Pakistan Limited",
+    "Faysal Bank Limited",
+    "Habib Bank Limited",
+    "Habib Metropolitan Bank Limited",
+    "JS Bank Limited",
+    "MCB Bank Limited",
+    "Meezan Bank Limited",
+    "National Bank of Pakistan",
+    "Samba Bank Limited",
+    "Soneri Bank Limited",
+    "Standard Chartered Bank (Pakistan) Limited",
+    "The Bank of Khyber",
+    "The Bank of Punjab",
+    "United Bank Limited",
+  ];
 
   File? _frontFile;
   File? _backFile;
@@ -57,6 +86,12 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   void dispose() {
     _cnic.dispose();
     _phone.dispose();
+    _address.dispose();
+    _nomineeName.dispose();
+    _nomineeCnic.dispose();
+    _nomineeRelation.dispose();
+    _ibanOrAccountNumber.dispose();
+    _accountTitle.dispose();
     super.dispose();
   }
 
@@ -65,6 +100,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     _seeded = true;
     _cnic.text = kyc?.cnicNumber ?? "";
     _phone.text = kyc?.phone ?? "";
+    _address.text = kyc?.address ?? "";
+    _nomineeName.text = kyc?.nomineeName ?? "";
+    _nomineeCnic.text = kyc?.nomineeCnic ?? "";
+    _nomineeRelation.text = kyc?.nomineeRelation ?? "";
+    _ibanOrAccountNumber.text = kyc?.ibanOrAccountNumber ?? "";
+    _accountTitle.text = kyc?.accountTitle ?? "";
+    _selectedBankName = kyc?.bankName;
     _existingFrontUrl = kyc?.cnicFrontUrl;
     _existingBackUrl = kyc?.cnicBackUrl;
     _existingSelfieUrl = kyc?.selfieUrl;
@@ -222,6 +264,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           .submitKyc(
             cnicNumber: _cnic.text.trim(),
             phone: _phone.text.trim(),
+            address: _address.text.trim(),
+            bankName: (_selectedBankName ?? "").trim(),
+            nomineeName: _nomineeName.text.trim(),
+            nomineeCnic: _nomineeCnic.text.trim(),
+            nomineeRelation: _nomineeRelation.text.trim(),
+            ibanOrAccountNumber: _ibanOrAccountNumber.text.trim(),
+            accountTitle: _accountTitle.text.trim(),
             cnicFrontUrl: frontUrl,
             cnicBackUrl: backUrl,
             selfieUrl: selfieUrl,
@@ -232,6 +281,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr("kyc_submit_success"))),
       );
+      await Future<void>.delayed(const Duration(milliseconds: 1000));
+      if (!mounted) return;
+      context.go("/investor");
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -319,6 +371,127 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   ),
                   validator: (v) => (v == null || v.trim().length < 10)
                       ? context.tr("mobile_invalid")
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _address,
+                  enabled: !locked,
+                  minLines: 2,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_address"),
+                    hintText: context.tr("kyc_address_hint"),
+                    prefixIcon: const Icon(Icons.home_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().length < 5)
+                      ? context.tr("kyc_address_required")
+                      : null,
+                ),
+
+                // ── Bank details ────────────────────────────────────────
+                const SizedBox(height: 22),
+                _SectionHeader(label: context.tr("bank_details_section")),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedBankName != null &&
+                          _selectedBankName!.isNotEmpty
+                      ? _selectedBankName
+                      : null,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_bank_name"),
+                    prefixIcon: const Icon(Icons.account_balance_outlined),
+                  ),
+                  items: _pakistanBanks
+                      .map(
+                        (bank) => DropdownMenuItem<String>(
+                          value: bank,
+                          child: Text(
+                            bank,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  selectedItemBuilder: (context) {
+                    return _pakistanBanks
+                        .map(
+                          (bank) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              bank,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList();
+                  },
+                  onChanged: locked
+                      ? null
+                      : (v) => setState(() => _selectedBankName = v),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? context.tr("kyc_bank_required")
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _ibanOrAccountNumber,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_iban_or_account_number"),
+                    hintText: context.tr("kyc_iban_or_account_number_hint"),
+                    prefixIcon: const Icon(Icons.numbers_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _accountTitle,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_account_title_optional"),
+                    prefixIcon: const Icon(Icons.person_outline),
+                  ),
+                ),
+
+                // ── Successor person (nominee) ──────────────────────────
+                const SizedBox(height: 22),
+                _SectionHeader(label: context.tr("kyc_successor_title")),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _nomineeName,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_successor_name"),
+                    prefixIcon: const Icon(Icons.person_outline),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? context.tr("kyc_successor_name_required")
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _nomineeCnic,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_successor_cnic"),
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().length < 5)
+                      ? context.tr("kyc_successor_cnic_required")
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _nomineeRelation,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: context.tr("kyc_successor_relation"),
+                    prefixIcon: const Icon(Icons.family_restroom_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? context.tr("kyc_successor_relation_required")
                       : null,
                 ),
 

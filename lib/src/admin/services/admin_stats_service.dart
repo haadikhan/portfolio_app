@@ -13,16 +13,33 @@ class AdminStatsService {
 
   /// KYC submissions awaiting decision.
   Future<int> countPendingKyc() async {
-    final pending = await _db
+    final pendingKycDocs = await _db
         .collection("kyc")
         .where("status", isEqualTo: "pending")
         .count()
         .get();
-    final review = await _db
+    final underReviewKycDocs = await _db
         .collection("kyc")
         .where("status", isEqualTo: "underReview")
         .count()
         .get();
-    return (pending.count ?? 0) + (review.count ?? 0);
+
+    // Legacy fallback: include users marked pending/underReview in users/{uid}
+    // that still do not have a corresponding kyc/{uid} document.
+    final pendingUsers = await _db
+        .collection("users")
+        .where("kycStatus", whereIn: ["pending", "underReview"])
+        .get();
+    int legacyWithoutKyc = 0;
+    for (final userDoc in pendingUsers.docs) {
+      final kycDoc = await _db.collection("kyc").doc(userDoc.id).get();
+      if (!kycDoc.exists) {
+        legacyWithoutKyc++;
+      }
+    }
+
+    return (pendingKycDocs.count ?? 0) +
+        (underReviewKycDocs.count ?? 0) +
+        legacyWithoutKyc;
   }
 }

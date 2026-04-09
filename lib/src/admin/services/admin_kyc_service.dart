@@ -18,10 +18,13 @@ class AdminKycService {
     return _kyc
         .where("status", whereIn: ["pending", "underReview"])
         .snapshots()
-        .asyncMap((snap) async {
+        .asyncMap((kycSnap) async {
       final list = <KycAdminDocument>[];
-      for (final doc in snap.docs) {
+      final seenUserIds = <String>{};
+
+      for (final doc in kycSnap.docs) {
         final uid = doc.id;
+        seenUserIds.add(uid);
         String? name;
         String? phone;
         try {
@@ -41,6 +44,29 @@ class AdminKycService {
           ),
         );
       }
+
+      // Legacy fallback: include users that still have pending KYC status on
+      // users/{uid} but no corresponding kyc/{uid} doc from older/broken flows.
+      final legacyUsers = await _users
+          .where("kycStatus", whereIn: ["pending", "underReview"])
+          .get();
+      for (final u in legacyUsers.docs) {
+        if (seenUserIds.contains(u.id)) continue;
+        final m = u.data();
+        final status = (m["kycStatus"] as String? ?? "pending").trim();
+        list.add(
+          KycAdminDocument.fromFirestore(
+            u.id,
+            {
+              "status": status.isEmpty ? "pending" : status,
+              "submittedAt": m["createdAt"],
+            },
+            displayName: m["name"] as String? ?? "",
+            phone: m["phone"] as String? ?? "",
+          ),
+        );
+      }
+
       list.sort((a, b) {
         final ta = a.submittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         final tb = b.submittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -52,23 +78,44 @@ class AdminKycService {
 
   Future<KycAdminDocument?> fetchKycDetail(String userId) async {
     final doc = await _kyc.doc(userId).get();
-    if (!doc.exists || doc.data() == null) return null;
     String? name;
     String? phone;
+    Map<String, dynamic>? userData;
     try {
       final u = await _users.doc(userId).get();
       if (u.exists) {
-        final m = u.data()!;
-        name = m["name"] as String? ?? "";
-        phone = m["phone"] as String? ?? "";
+        userData = u.data()!;
+        name = userData["name"] as String? ?? "";
+        phone = userData["phone"] as String? ?? "";
       }
     } catch (_) {}
-    return KycAdminDocument.fromFirestore(
-      userId,
-      doc.data()!,
-      displayName: name,
-      phone: phone,
-    );
+
+    if (doc.exists && doc.data() != null) {
+      return KycAdminDocument.fromFirestore(
+        userId,
+        doc.data()!,
+        displayName: name,
+        phone: phone,
+      );
+    }
+
+    // Legacy fallback: old records may be pending in users/{uid} without a
+    // kyc/{uid} document. Return a synthetic review model instead of null.
+    if (userData != null) {
+      final status = (userData["kycStatus"] as String? ?? "").trim();
+      if (status == "pending" || status == "underReview") {
+        return KycAdminDocument.fromFirestore(
+          userId,
+          {
+            "status": status,
+            "submittedAt": userData["createdAt"],
+          },
+          displayName: name,
+          phone: phone,
+        );
+      }
+    }
+    return null;
   }
 
   Future<void> approveKyc(String userId) async {

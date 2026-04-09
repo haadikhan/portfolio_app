@@ -8,6 +8,13 @@ class UserKycRecord {
     required this.status,
     this.cnicNumber,
     this.phone,
+    this.address,
+    this.bankName,
+    this.nomineeName,
+    this.nomineeCnic,
+    this.nomineeRelation,
+    this.ibanOrAccountNumber,
+    this.accountTitle,
     this.cnicFrontUrl,
     this.cnicBackUrl,
     this.selfieUrl,
@@ -27,6 +34,13 @@ class UserKycRecord {
   final KycLifecycleStatus status;
   final String? cnicNumber;
   final String? phone;
+  final String? address;
+  final String? bankName;
+  final String? nomineeName;
+  final String? nomineeCnic;
+  final String? nomineeRelation;
+  final String? ibanOrAccountNumber;
+  final String? accountTitle;
   final String? cnicFrontUrl;
   final String? cnicBackUrl;
   final String? selfieUrl;
@@ -67,6 +81,15 @@ class UserKycRecord {
       status: status,
       cnicNumber: (map["cnicNumber"] as String?)?.trim(),
       phone: (map["phone"] as String?)?.trim(),
+      address: (map["address"] as String?)?.trim(),
+      bankName: (map["bankName"] as String?)?.trim(),
+      nomineeName: (map["nomineeName"] as String?)?.trim(),
+      nomineeCnic: (map["nomineeCnic"] as String?)?.trim(),
+      nomineeRelation: (map["nomineeRelation"] as String?)?.trim(),
+      ibanOrAccountNumber: ((map["ibanOrAccountNumber"] as String?) ??
+              (map["accountNumber"] as String?))
+          ?.trim(),
+      accountTitle: (map["accountTitle"] as String?)?.trim(),
       cnicFrontUrl: (map["cnicFrontUrl"] as String?)?.trim(),
       cnicBackUrl: (map["cnicBackUrl"] as String?)?.trim(),
       selfieUrl: (map["selfieUrl"] as String?)?.trim(),

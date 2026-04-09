@@ -80,18 +80,19 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final credential = await _auth.signUp(email: email, password: password);
-      final uid = credential.user?.uid;
-      if (uid == null) {
+      final createdUser = credential.user;
+      if (createdUser == null) {
         throw Exception("Unable to create account. Please try again.");
       }
-      final user = AppUser(
-        id: uid,
-        email: email.trim(),
-        name: name.trim(),
-        createdAt: DateTime.now(),
-        kycStatus: KycLifecycleStatus.pending,
-      );
-      await _firestore.createUserProfile(user);
+
+      // Single writer path for profile bootstrap avoids create/update races.
+      await _firestore.ensureUserProfileFromAuthUser(createdUser);
+
+      // Keep user's chosen display name in Firestore profile.
+      final trimmedName = name.trim();
+      if (trimmedName.isNotEmpty) {
+        await _firestore.updateUserProfile(userId: createdUser.uid, name: trimmedName);
+      }
     });
   }
 
@@ -121,6 +122,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<void> submitKyc({
     required String cnicNumber,
     required String phone,
+    required String address,
+    required String bankName,
+    required String nomineeName,
+    required String nomineeCnic,
+    required String nomineeRelation,
+    String? ibanOrAccountNumber,
+    String? accountTitle,
     String? cnicFrontUrl,
     String? cnicBackUrl,
     String? selfieUrl,
@@ -134,6 +142,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         userId: currentUser.uid,
         cnicNumber: cnicNumber,
         phone: phone,
+        address: address,
+        bankName: bankName,
+        nomineeName: nomineeName,
+        nomineeCnic: nomineeCnic,
+        nomineeRelation: nomineeRelation,
+        ibanOrAccountNumber: ibanOrAccountNumber,
+        accountTitle: accountTitle,
         cnicFrontUrl: cnicFrontUrl,
         cnicBackUrl: cnicBackUrl,
         selfieUrl: selfieUrl,

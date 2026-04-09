@@ -64,12 +64,15 @@ class FirestoreService {
 
     final fallbackName = user.displayName?.trim();
     final email = user.email?.trim() ?? "";
+    // Use auth creation timestamp so concurrent bootstrap writes stay identical.
+    final createdAtIso = user.metadata.creationTime?.toIso8601String() ??
+        DateTime.now().toIso8601String();
     await ref.set({
       "email": email,
       "name": (fallbackName == null || fallbackName.isEmpty)
           ? (email.contains("@") ? email.split("@").first : "Investor")
           : fallbackName,
-      "createdAt": DateTime.now().toIso8601String(),
+      "createdAt": createdAtIso,
       "kycStatus": "pending",
     }, SetOptions(merge: true));
   }
@@ -85,6 +88,13 @@ class FirestoreService {
     required String userId,
     required String cnicNumber,
     required String phone,
+    required String address,
+    required String bankName,
+    required String nomineeName,
+    required String nomineeCnic,
+    required String nomineeRelation,
+    String? ibanOrAccountNumber,
+    String? accountTitle,
     String? cnicFrontUrl,
     String? cnicBackUrl,
     String? selfieUrl,
@@ -92,14 +102,36 @@ class FirestoreService {
   }) async {
     final cnic = cnicNumber.trim();
     final phoneClean = phone.trim();
-    if (cnic.isEmpty || phoneClean.isEmpty) {
-      throw Exception("CNIC and phone are required.");
+    final addressClean = address.trim();
+    final bankNameClean = bankName.trim();
+    final nomineeNameClean = nomineeName.trim();
+    final nomineeCnicClean = nomineeCnic.trim();
+    final nomineeRelationClean = nomineeRelation.trim();
+    final ibanClean = ibanOrAccountNumber?.trim();
+    final accountTitleClean = accountTitle?.trim();
+    if (cnic.isEmpty ||
+        phoneClean.isEmpty ||
+        addressClean.isEmpty ||
+        bankNameClean.isEmpty ||
+        nomineeNameClean.isEmpty ||
+        nomineeCnicClean.isEmpty ||
+        nomineeRelationClean.isEmpty) {
+      throw Exception("KYC required fields are missing.");
     }
     try {
       final batch = _db.batch();
       batch.set(_kyc.doc(userId), {
         "cnicNumber": cnic,
         "phone": phoneClean,
+        "address": addressClean,
+        "bankName": bankNameClean,
+        "nomineeName": nomineeNameClean,
+        "nomineeCnic": nomineeCnicClean,
+        "nomineeRelation": nomineeRelationClean,
+        if (ibanClean != null && ibanClean.isNotEmpty)
+          "ibanOrAccountNumber": ibanClean,
+        if (accountTitleClean != null && accountTitleClean.isNotEmpty)
+          "accountTitle": accountTitleClean,
         "cnicFrontUrl": cnicFrontUrl?.trim().isEmpty == true
             ? null
             : cnicFrontUrl?.trim(),
