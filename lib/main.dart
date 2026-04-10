@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'src/app/app.dart';
 import 'src/core/config/app_config.dart';
 import 'src/core/fcm/fcm_bootstrap.dart';
+import 'src/core/splash/splash_host.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,11 +18,15 @@ Future<void> main() async {
   } catch (e) {
     initError = e;
   }
+  final config = AppConfig.fromEnvironment();
   runApp(
     ProviderScope(
       child: initError == null
-          ? FcmBootstrap(
-              child: WakalatInvestApp(config: AppConfig.fromEnvironment()),
+          ? SplashHost(
+              appName: config.appName,
+              builder: () => FcmBootstrap(
+                child: WakalatInvestApp(config: config),
+              ),
             )
           : MaterialApp(
               home: Scaffold(
