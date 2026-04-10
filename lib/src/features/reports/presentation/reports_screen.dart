@@ -1,6 +1,7 @@
 import "dart:typed_data";
 
 import "package:file_saver/file_saver.dart";
+import "package:flutter/foundation.dart" show debugPrint, kIsWeb;
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
@@ -8,6 +9,7 @@ import "package:printing/printing.dart";
 import "package:url_launcher/url_launcher.dart";
 
 import "../../../core/i18n/app_translations.dart";
+import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/reports_providers.dart";
@@ -28,6 +30,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   _PeriodPreset _preset = _PeriodPreset.thisMonth;
   DateTime? _customStart;
   DateTime? _customEnd;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -130,7 +133,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         transactions: filtered,
         labels: _labels(context),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint("[reports] buildInvestorReportPdf failed: $e\n$st");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),
@@ -161,27 +165,57 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<void> _downloadReport() async {
-    final bytes = await _buildPdfBytes();
-    if (bytes == null || !mounted) return;
-    final fileName = _pdfFileName();
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
     try {
+      final bytes = await _buildPdfBytes();
+      if (bytes == null || !mounted) return;
+
+      final fileName = _pdfFileName();
       final base = fileName.replaceAll(".pdf", "");
-      await FileSaver.instance.saveFile(
-        name: base,
-        bytes: bytes,
-        fileExtension: "pdf",
-        mimeType: MimeType.pdf,
-      );
-    } catch (_) {
-      // Fallback for devices where direct file saver integration is restricted.
-      try {
-        await Printing.sharePdf(bytes: bytes, filename: fileName);
-        return;
-      } catch (_) {}
+
+      Future<bool> trySharePdf() async {
+        try {
+          await Printing.sharePdf(bytes: bytes, filename: fileName);
+          return true;
+        } catch (e, st) {
+          debugPrint("[reports] sharePdf failed: $e\n$st");
+          return false;
+        }
+      }
+
+      Future<bool> tryFileSaver() async {
+        try {
+          await FileSaver.instance.saveFile(
+            name: base,
+            bytes: bytes,
+            fileExtension: "pdf",
+            mimeType: MimeType.pdf,
+          );
+          return true;
+        } catch (e, st) {
+          debugPrint("[reports] FileSaver.saveFile failed: $e\n$st");
+          return false;
+        }
+      }
+
+      // Web: browsers often handle Printing.sharePdf more reliably than FileSaver.
+      if (kIsWeb) {
+        if (await trySharePdf()) return;
+        if (await tryFileSaver()) return;
+      } else {
+        if (await tryFileSaver()) return;
+        if (await trySharePdf()) return;
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
       }
     }
   }
@@ -206,125 +240,230 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       orElse: () => <TxnItem>[],
     );
 
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageGradient = isDark
+        ? [scheme.surface, scheme.surfaceContainerLowest]
+        : [AppColors.backgroundTop, AppColors.backgroundBottom];
+
+    Widget periodChip({
+      required String label,
+      required bool selected,
+      required void Function(bool) onSelected,
+    }) {
+      return ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: AppColors.secondary,
+        backgroundColor: scheme.surface,
+        side: BorderSide(
+          color: selected ? AppColors.primary : scheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+        labelStyle: TextStyle(
+          color: selected ? AppColors.heading : scheme.onSurface,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+          fontSize: 13,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        onSelected: onSelected,
+      );
+    }
+
     return AppScaffold(
       title: context.tr("reports_center_title"),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            context.tr("reports_select_period"),
-            style: Theme.of(context).textTheme.bodyMedium,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: pageGradient,
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: Text(context.tr("reports_period_this_month")),
-                selected: _preset == _PeriodPreset.thisMonth,
-                onSelected: (v) {
-                  if (v) setState(() => _preset = _PeriodPreset.thisMonth);
-                },
-              ),
-              ChoiceChip(
-                label: Text(context.tr("reports_period_this_year")),
-                selected: _preset == _PeriodPreset.thisYear,
-                onSelected: (v) {
-                  if (v) setState(() => _preset = _PeriodPreset.thisYear);
-                },
-              ),
-              ChoiceChip(
-                label: Text(context.tr("reports_period_custom")),
-                selected: _preset == _PeriodPreset.custom,
-                onSelected: (v) {
-                  if (v) setState(() => _preset = _PeriodPreset.custom);
-                },
-              ),
-            ],
-          ),
-          if (_preset == _PeriodPreset.custom) ...[
-            const SizedBox(height: 12),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickDate(isStart: true),
-                    child: Text(
-                      "${context.tr("reports_pick_start")}: ${DateFormat.yMMMd().format(_customStart!)}",
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.description_rounded,
+                    color: AppColors.primary,
+                    size: 22,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickDate(isStart: false),
-                    child: Text(
-                      "${context.tr("reports_pick_end")}: ${DateFormat.yMMMd().format(_customEnd!)}",
-                    ),
+                  child: Text(
+                    context.tr("reports_select_period"),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
               ],
             ),
-          ],
-          const SizedBox(height: 16),
-          txsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text("${context.tr("error_prefix")} $e"),
-            data: (_) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    context.trParams("reports_preview_count", {
-                      "count": "${filtered.length}",
-                    }),
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
+                periodChip(
+                  label: context.tr("reports_period_this_month"),
+                  selected: _preset == _PeriodPreset.thisMonth,
+                  onSelected: (v) {
+                    if (v) setState(() => _preset = _PeriodPreset.thisMonth);
+                  },
                 ),
-                if (filtered.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      context.tr("reports_no_transactions"),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                periodChip(
+                  label: context.tr("reports_period_this_year"),
+                  selected: _preset == _PeriodPreset.thisYear,
+                  onSelected: (v) {
+                    if (v) setState(() => _preset = _PeriodPreset.thisYear);
+                  },
+                ),
+                periodChip(
+                  label: context.tr("reports_period_custom"),
+                  selected: _preset == _PeriodPreset.custom,
+                  onSelected: (v) {
+                    if (v) setState(() => _preset = _PeriodPreset.custom);
+                  },
+                ),
+              ],
+            ),
+            if (_preset == _PeriodPreset.custom) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pickDate(isStart: true),
+                      child: Text(
+                        "${context.tr("reports_pick_start")}: ${DateFormat.yMMMd().format(_customStart!)}",
+                      ),
                     ),
                   ),
-                Text(
-                  context.tr("reports_actions_hint"),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: _viewReport,
-                      icon: const Icon(Icons.visibility_outlined),
-                      label: Text(context.tr("reports_action_view")),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pickDate(isStart: false),
+                      child: Text(
+                        "${context.tr("reports_pick_end")}: ${DateFormat.yMMMd().format(_customEnd!)}",
+                      ),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: _downloadReport,
-                      icon: const Icon(Icons.download_outlined),
-                      label: Text(context.tr("reports_download_action")),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _printReport,
-                      icon: const Icon(Icons.print_outlined),
-                      label: Text(context.tr("reports_print")),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            txsAsync.when(
+              loading: () => Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.outlineVariant),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ],
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Text("${context.tr("error_prefix")} $e"),
+              data: (_) => Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.outlineVariant),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        context.trParams("reports_preview_count", {
+                          "count": "${filtered.length}",
+                        }),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.heading,
+                            ),
+                      ),
+                    ),
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          context.tr("reports_no_transactions"),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    Text(
+                      context.tr("reports_actions_hint"),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _viewReport,
+                          icon: const Icon(Icons.visibility_outlined),
+                          label: Text(context.tr("reports_action_view")),
+                        ),
+                        OutlinedButton(
+                          onPressed: _isDownloading ? null : _downloadReport,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isDownloading)
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else
+                                const Icon(Icons.download_outlined, size: 18),
+                              const SizedBox(width: 8),
+                              Text(context.tr("reports_download_action")),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _printReport,
+                          icon: const Icon(Icons.print_outlined),
+                          label: Text(context.tr("reports_print")),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),
@@ -380,6 +519,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             },
           ),
         ],
+        ),
       ),
     );
   }

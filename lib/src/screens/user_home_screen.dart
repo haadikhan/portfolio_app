@@ -14,6 +14,23 @@ import "../providers/wallet_providers.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 
+Color _actionButtonBg(BuildContext context, Color lightTint) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return Color.alphaBlend(
+      lightTint.withValues(alpha: 0.42),
+      Theme.of(context).colorScheme.surfaceContainerHigh,
+    );
+  }
+  return lightTint;
+}
+
+Color _quickAccessTileBg(BuildContext context, Color base) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return Color.lerp(base, Colors.black, 0.42)!;
+  }
+  return base;
+}
+
 class UserHomeScreen extends ConsumerWidget {
   const UserHomeScreen({super.key});
 
@@ -89,65 +106,78 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
     }
 
     final walletAsync = ref.watch(userWalletStreamProvider);
-    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: scheme.surface,
+      backgroundColor: AppColors.backgroundTop,
       drawer: _AppDrawer(profile: widget.profile),
-      body: CustomScrollView(
-        slivers: [
-          _DashboardAppBar(profile: widget.profile),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _KycBanner(profile: widget.profile),
-                const SizedBox(height: 20),
-                walletAsync.when(
-                  loading: () => const _WalletCardSkeleton(),
-                  error: (e, _) => _WalletCard(wallet: null),
-                  data: (w) => _WalletCard(wallet: w),
-                ),
-                const SizedBox(height: 24),
-                _SectionLabel(label: context.tr("quick_actions")),
-                const SizedBox(height: 12),
-                _QuickActions(profile: widget.profile),
-                const SizedBox(height: 28),
-                _SectionLabel(label: context.tr("my_account")),
-                const SizedBox(height: 12),
-                _NavTile(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: context.tr("nav_wallet_ledger"),
-                  subtitle: context.tr("nav_wallet_ledger_subtitle"),
-                  onTap: () => context.push("/wallet-ledger"),
-                ),
-                const SizedBox(height: 10),
-                _NavTile(
-                  icon: Icons.shield_outlined,
-                  label: context.tr("nav_kyc"),
-                  subtitle: _kycSubtitle(context, widget.profile.kycStatus),
-                  badge: _kycBadge(context, widget.profile.kycStatus),
-                  onTap: () => context.push("/kyc"),
-                ),
-                const SizedBox(height: 10),
-                _NavTile(
-                  icon: Icons.bar_chart_rounded,
-                  label: context.tr("nav_reports"),
-                  subtitle: context.tr("nav_reports_subtitle"),
-                  onTap: () => context.push("/reports"),
-                ),
-                const SizedBox(height: 10),
-                _NavTile(
-                  icon: Icons.notifications_outlined,
-                  label: context.tr("notifications"),
-                  subtitle: context.tr("notifications_subtitle"),
-                  onTap: () => context.push("/notifications"),
-                ),
-                const SizedBox(height: 32),
-              ]),
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
           ),
-        ],
+        ),
+        child: CustomScrollView(
+          slivers: [
+            _DashboardAppBar(profile: widget.profile),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _KycBanner(profile: widget.profile),
+                  const SizedBox(height: 20),
+                  walletAsync.when(
+                    loading: () => const _WalletCardSkeleton(),
+                    error: (e, _) => _WalletCard(wallet: null),
+                    data: (w) => _WalletCard(wallet: w),
+                  ),
+                  const SizedBox(height: 24),
+                  _SectionLabel(
+                    label: context.tr("quick_actions"),
+                  ),
+                  const SizedBox(height: 12),
+                  _QuickActions(profile: widget.profile),
+                  const SizedBox(height: 28),
+                  _SectionLabel(
+                    label: context.tr("quick_access"),
+                    smallCaps: true,
+                  ),
+                  const SizedBox(height: 12),
+                  const _QuickAccessGrid(),
+                  const SizedBox(height: 28),
+                  _SectionLabel(
+                    label: context.tr("dashboard_more"),
+                    smallCaps: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _NavTile(
+                    icon: Icons.shield_outlined,
+                    label: context.tr("nav_kyc"),
+                    subtitle: _kycSubtitle(context, widget.profile.kycStatus),
+                    badge: _kycBadge(context, widget.profile.kycStatus),
+                    onTap: () => context.push("/kyc"),
+                  ),
+                  const SizedBox(height: 10),
+                  _NavTile(
+                    icon: Icons.bar_chart_rounded,
+                    label: context.tr("nav_reports"),
+                    subtitle: context.tr("nav_reports_subtitle"),
+                    onTap: () => context.push("/reports"),
+                  ),
+                  const SizedBox(height: 10),
+                  _NavTile(
+                    icon: Icons.notifications_outlined,
+                    label: context.tr("notifications"),
+                    subtitle: context.tr("notifications_subtitle"),
+                    onTap: () => context.push("/notifications"),
+                  ),
+                  const SizedBox(height: 32),
+                ]),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -206,7 +236,7 @@ class _DashboardAppBar extends ConsumerWidget {
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
-      backgroundColor: scheme.surface,
+      backgroundColor: AppColors.backgroundTop,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0.5,
       elevation: 0,
@@ -624,13 +654,11 @@ class _WalletCard extends StatelessWidget {
     final tp = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0;
     final dash = context.tr("em_dash");
 
+    final depositedLabel =
+        context.tr("totals_line_deposited").replaceAll(":", "").trim();
+
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -640,106 +668,174 @@ class _WalletCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          clipBehavior: Clip.antiAlias,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  context.tr("current_balance"),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    context.tr("live_badge"),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              wallet == null ? dash : _money.format(current),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _WalletStat(
-                    label: context.tr("available"),
-                    value: wallet == null ? dash : _money.format(avail),
+            Positioned(
+              right: -56,
+              top: -48,
+              child: IgnorePointer(
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.walletHeroOverlayA,
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 32,
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-                Expanded(
-                  child: _WalletStat(
-                    label: context.tr("reserved"),
-                    value: wallet == null ? dash : _money.format(reserved),
-                    align: TextAlign.center,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 32,
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-                Expanded(
-                  child: _WalletStat(
-                    label: context.tr("profit_label"),
-                    value: wallet == null ? dash : _money.format(tp),
-                    align: TextAlign.right,
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 18),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                const Icon(
-                  Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: Colors.white70,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    "${context.tr("total_deposited_prefix")}: "
-                    "${wallet == null ? dash : _money.format(td)}",
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+            Positioned(
+              left: -40,
+              bottom: -36,
+              child: IgnorePointer(
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.walletHeroOverlayB,
                   ),
                 ),
-              ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        context.tr("current_balance"),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF69F0AE),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              context.tr("live_badge"),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    wallet == null ? dash : _money.format(current),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _WalletStat(
+                          label: context.tr("available"),
+                          value: wallet == null ? dash : _money.format(avail),
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 32,
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                      Expanded(
+                        child: _WalletStat(
+                          label: context.tr("reserved"),
+                          value: wallet == null ? dash : _money.format(reserved),
+                          align: TextAlign.center,
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 32,
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                      Expanded(
+                        child: _WalletStat(
+                          label: depositedLabel,
+                          value: wallet == null ? dash : _money.format(td),
+                          align: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.trending_up_rounded,
+                        size: 15,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          "${context.tr("profit_label")}: "
+                          "${wallet == null ? dash : _money.format(tp)}",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -824,15 +920,19 @@ class _QuickActions extends StatelessWidget {
             icon: Icons.add_rounded,
             label: context.tr("deposit"),
             enabled: approved,
+            backgroundColor: AppColors.dashboardDepositTint,
+            foregroundColor: AppColors.dashboardDepositFg,
             onTap: () => context.push("/wallet-ledger/deposit"),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _ActionButton(
-            icon: Icons.arrow_upward_rounded,
+            icon: Icons.remove_rounded,
             label: context.tr("withdraw"),
             enabled: approved,
+            backgroundColor: AppColors.dashboardWithdrawTint,
+            foregroundColor: AppColors.dashboardWithdrawFg,
             onTap: () => context.push("/wallet-ledger/withdraw"),
           ),
         ),
@@ -841,14 +941,18 @@ class _QuickActions extends StatelessWidget {
           child: _ActionButton(
             icon: Icons.history_rounded,
             label: context.tr("history"),
+            backgroundColor: AppColors.dashboardHistoryTint,
+            foregroundColor: AppColors.dashboardHistoryFg,
             onTap: () => context.push("/wallet-ledger"),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _ActionButton(
-            icon: Icons.description_outlined,
+            icon: Icons.bar_chart_rounded,
             label: context.tr("reports_quick"),
+            backgroundColor: AppColors.dashboardReportsTint,
+            foregroundColor: AppColors.dashboardReportsFg,
             onTap: () => context.push("/reports"),
           ),
         ),
@@ -862,43 +966,206 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.backgroundColor,
+    required this.foregroundColor,
     this.enabled = true,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color foregroundColor;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final surface = enabled ? scheme.surface : scheme.surfaceContainerHighest;
-    final border = scheme.outline.withValues(alpha: enabled ? 1 : 0.5);
-    final iconColor = enabled ? scheme.primary : scheme.onSurfaceVariant;
-    final textColor = enabled ? scheme.onSurface : scheme.onSurfaceVariant;
+    final bg = enabled
+        ? _actionButtonBg(context, backgroundColor)
+        : scheme.surfaceContainerHighest;
+    final fg = enabled ? foregroundColor : scheme.onSurfaceVariant;
 
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 22, color: iconColor),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: enabled
+                  ? fg.withValues(alpha: 0.12)
+                  : scheme.outline.withValues(alpha: 0.4),
             ),
-          ],
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 22, color: fg),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Quick access grid ────────────────────────────────────────────────────────
+
+class _QuickAccessGrid extends StatelessWidget {
+  const _QuickAccessGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.22,
+      children: [
+        _QuickAccessTile(
+          label: context.tr("qa_portfolio"),
+          icon: Icons.pie_chart_outline_rounded,
+          watermark: Icons.pie_chart_rounded,
+          backgroundColor:
+              _quickAccessTileBg(context, AppColors.quickAccessPortfolio),
+          onTap: () => context.push("/portfolio"),
+        ),
+        _QuickAccessTile(
+          label: context.tr("qa_wallet"),
+          icon: Icons.account_balance_wallet_rounded,
+          watermark: Icons.account_balance_wallet_outlined,
+          backgroundColor:
+              _quickAccessTileBg(context, AppColors.quickAccessWallet),
+          onTap: () => context.push("/wallet-ledger"),
+        ),
+        _QuickAccessTile(
+          label: context.tr("qa_transactions"),
+          icon: Icons.swap_horiz_rounded,
+          watermark: Icons.receipt_long_rounded,
+          backgroundColor:
+              _quickAccessTileBg(context, AppColors.quickAccessTransactions),
+          onTap: () => context.push("/wallet-ledger"),
+        ),
+        Builder(
+          builder: (ctx) => _QuickAccessTile(
+            label: context.tr("qa_my_profile"),
+            icon: Icons.person_rounded,
+            watermark: Icons.person_outline_rounded,
+            backgroundColor:
+                _quickAccessTileBg(context, AppColors.quickAccessProfile),
+            onTap: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAccessTile extends StatelessWidget {
+  const _QuickAccessTile({
+    required this.label,
+    required this.icon,
+    required this.watermark,
+    required this.backgroundColor,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final IconData watermark;
+  final Color backgroundColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              clipBehavior: Clip.antiAlias,
+              children: [
+                Positioned(
+                  right: -8,
+                  bottom: -12,
+                  child: Icon(
+                    watermark,
+                    size: 96,
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: Colors.white, size: 22),
+                        ),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -908,19 +1175,20 @@ class _ActionButton extends StatelessWidget {
 // ─── Section label ───────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
+  const _SectionLabel({required this.label, this.smallCaps = false});
   final String label;
+  final bool smallCaps;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Text(
-      label,
+      smallCaps ? label.toUpperCase() : label,
       style: TextStyle(
-        fontSize: 13,
+        fontSize: smallCaps ? 11 : 13,
         fontWeight: FontWeight.w700,
         color: scheme.onSurfaceVariant,
-        letterSpacing: 0.4,
+        letterSpacing: smallCaps ? 1.1 : 0.4,
       ),
     );
   }
@@ -956,9 +1224,18 @@ class _NavTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: scheme.surface,
+          color: scheme.surface.withValues(
+            alpha: Theme.of(context).brightness == Brightness.dark ? 0.94 : 1,
+          ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: scheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [

@@ -1,6 +1,7 @@
 import "dart:typed_data";
 
 import "package:file_saver/file_saver.dart";
+import "package:flutter/foundation.dart" show debugPrint, kIsWeb;
 import "package:flutter/material.dart";
 import "package:pdf/pdf.dart";
 import "package:printing/printing.dart";
@@ -8,7 +9,7 @@ import "package:printing/printing.dart";
 import "../../../core/i18n/app_translations.dart";
 
 /// Full-screen PDF preview with explicit **Download** and **Print** in the app bar.
-class ReportPdfPreviewScreen extends StatelessWidget {
+class ReportPdfPreviewScreen extends StatefulWidget {
   const ReportPdfPreviewScreen({
     super.key,
     required this.bytes,
@@ -18,39 +19,78 @@ class ReportPdfPreviewScreen extends StatelessWidget {
   final Uint8List bytes;
   final String fileName;
 
+  @override
+  State<ReportPdfPreviewScreen> createState() => _ReportPdfPreviewScreenState();
+}
+
+class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
+  bool _isDownloading = false;
+
   String get _baseName {
-    final n = fileName.trim();
+    final n = widget.fileName.trim();
     if (n.toLowerCase().endsWith(".pdf")) {
       return n.substring(0, n.length - 4);
     }
     return n.isEmpty ? "report" : n;
   }
 
-  Future<void> _download(BuildContext context) async {
+  Future<void> _download() async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
     try {
-      await FileSaver.instance.saveFile(
-        name: _baseName,
-        bytes: bytes,
-        fileExtension: "pdf",
-        mimeType: MimeType.pdf,
-      );
-    } catch (_) {
-      try {
-        await Printing.sharePdf(bytes: bytes, filename: fileName);
-        return;
-      } catch (_) {}
-      if (context.mounted) {
+      final bytes = widget.bytes;
+      final fileName = widget.fileName;
+      final base = _baseName;
+
+      Future<bool> trySharePdf() async {
+        try {
+          await Printing.sharePdf(bytes: bytes, filename: fileName);
+          return true;
+        } catch (e, st) {
+          debugPrint("[report_preview] sharePdf failed: $e\n$st");
+          return false;
+        }
+      }
+
+      Future<bool> tryFileSaver() async {
+        try {
+          await FileSaver.instance.saveFile(
+            name: base,
+            bytes: bytes,
+            fileExtension: "pdf",
+            mimeType: MimeType.pdf,
+          );
+          return true;
+        } catch (e, st) {
+          debugPrint("[report_preview] FileSaver.saveFile failed: $e\n$st");
+          return false;
+        }
+      }
+
+      if (kIsWeb) {
+        if (await trySharePdf()) return;
+        if (await tryFileSaver()) return;
+      } else {
+        if (await tryFileSaver()) return;
+        if (await trySharePdf()) return;
+      }
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
     }
   }
 
-  Future<void> _print(BuildContext context) async {
+  Future<void> _print() async {
     await Printing.layoutPdf(
-      onLayout: (_) async => bytes,
-      name: fileName,
+      onLayout: (_) async => widget.bytes,
+      name: widget.fileName,
     );
   }
 
@@ -62,18 +102,24 @@ class ReportPdfPreviewScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: context.tr("reports_download_action"),
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () => _download(context),
+            onPressed: _isDownloading ? null : _download,
+            icon: _isDownloading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined),
           ),
           IconButton(
             tooltip: context.tr("reports_print"),
             icon: const Icon(Icons.print_outlined),
-            onPressed: () => _print(context),
+            onPressed: _print,
           ),
         ],
       ),
       body: PdfPreview(
-        build: (PdfPageFormat format) async => bytes,
+        build: (PdfPageFormat format) async => widget.bytes,
         allowPrinting: false,
         allowSharing: false,
         canChangePageFormat: false,
