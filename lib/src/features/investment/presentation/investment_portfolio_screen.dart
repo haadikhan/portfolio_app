@@ -7,6 +7,7 @@ import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/portfolio_model.dart";
 import "../../../providers/portfolio_providers.dart";
+import "../../../providers/wallet_providers.dart";
 import "widgets/allocation_pie_chart_widget.dart";
 import "widgets/performance_metrics_widget.dart";
 import "widgets/return_history_list_widget.dart";
@@ -21,6 +22,11 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final portfolioAsync = ref.watch(myPortfolioProvider);
     final historyAsync = ref.watch(myReturnHistoryProvider);
+    final walletAsync = ref.watch(userWalletStreamProvider);
+    final double availableBalance = walletAsync.maybeWhen(
+      data: (wallet) => _readAvailableBalance(wallet),
+      orElse: () => 0.0,
+    );
 
     return AppScaffold(
       title: context.tr("my_portfolio_title"),
@@ -44,11 +50,27 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: scheme.surface,
+                      gradient: LinearGradient(
+                        colors: [
+                          scheme.surface,
+                          scheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: scheme.outlineVariant),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    child: const AllocationPieChartWidget(),
+                    child: AllocationPieChartWidget(
+                      totalAmountPkr: availableBalance,
+                    ),
                   );
                 },
               ),
@@ -100,6 +122,14 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+double _readAvailableBalance(Map<String, dynamic>? wallet) {
+  final raw = wallet?["availableBalance"];
+  if (raw is num && raw.isFinite && raw > 0) {
+    return raw.toDouble();
+  }
+  return 0;
 }
 
 // ── Portfolio value hero card ────────────────────────────────────────────────
