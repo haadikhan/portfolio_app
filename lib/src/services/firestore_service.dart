@@ -59,7 +59,11 @@ class FirestoreService {
     final ref = _users.doc(user.uid);
     final existing = await ref.get();
     if (existing.exists && existing.data() != null) {
-      return;
+      final email = (existing.data()!["email"] as String?)?.trim() ?? "";
+      // FCM may have created users/{uid} with only fcmTokens; still merge profile fields.
+      if (email.isNotEmpty) {
+        return;
+      }
     }
 
     final fallbackName = user.displayName?.trim();
@@ -148,10 +152,16 @@ class FirestoreService {
       }, SetOptions(merge: true));
       batch.set(_users.doc(userId), {
         "phone": phoneClean,
+        "kycStatus": KycLifecycleStatus.underReview.name,
       }, SetOptions(merge: true));
       await batch.commit();
-    } catch (_) {
-      throw Exception("Failed to submit KYC.");
+    } on FirebaseException catch (e) {
+      final msg = e.message?.trim();
+      throw Exception(
+        "Failed to submit KYC. [${e.code}]${msg != null && msg.isNotEmpty ? " $msg" : ""}",
+      );
+    } catch (e) {
+      throw Exception("Failed to submit KYC: $e");
     }
   }
 

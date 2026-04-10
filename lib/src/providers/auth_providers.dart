@@ -7,6 +7,20 @@ import "../models/user_kyc.dart";
 import "../services/auth_service.dart";
 import "../services/firestore_service.dart";
 
+Future<void> _ensureProfileWithDiagnostics(
+  FirestoreService firestore,
+  User user,
+) async {
+  try {
+    await firestore.ensureUserProfileFromAuthUser(user);
+  } on FirebaseException catch (e) {
+    final m = e.message?.trim();
+    throw Exception(
+      "Profile bootstrap failed. [${e.code}]${m != null && m.isNotEmpty ? " $m" : ""}",
+    );
+  }
+}
+
 final firebaseAuthProvider = Provider<FirebaseAuth>(
   (_) => FirebaseAuth.instance,
 );
@@ -43,7 +57,10 @@ final userProfileProvider = StreamProvider<AppUser?>((ref) {
       return Stream<AppUser?>.value(null);
     }
     return Stream<void>.fromFuture(
-      ref.read(firestoreServiceProvider).ensureUserProfileFromAuthUser(user),
+      _ensureProfileWithDiagnostics(
+        ref.read(firestoreServiceProvider),
+        user,
+      ),
     ).asyncExpand<AppUser?>((_) {
       return ref.read(firestoreServiceProvider).streamUser(user.uid);
     });

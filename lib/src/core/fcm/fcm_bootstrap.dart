@@ -23,7 +23,13 @@ class _FcmBootstrapState extends ConsumerState<FcmBootstrap> {
     ref.listen<AsyncValue<User?>>(authStateProvider, (prev, next) {
       next.whenData((user) {
         if (user != null) {
-          unawaited(syncFcmTokenForUser(user.uid));
+          // Defer so `users/{uid}` profile bootstrap can finish before FCM merge writes.
+          unawaited(
+            Future<void>.delayed(const Duration(milliseconds: 900), () async {
+              if (FirebaseAuth.instance.currentUser?.uid != user.uid) return;
+              await syncFcmTokenForUser(user.uid);
+            }),
+          );
         } else {
           unawaited(disposeFcmTokenListener());
         }

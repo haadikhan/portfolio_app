@@ -6,27 +6,40 @@ class KycAdminDocument {
     required this.userId,
     required this.status,
     required this.submittedAt,
+    this.cnicNumber,
+    this.address,
     this.cnicFrontUrl,
     this.cnicBackUrl,
     this.selfieUrl,
     this.bankDetails,
     this.nominee,
     this.riskProfile,
+    this.paymentProofDocuments,
     this.rejectionReason,
     this.reviewedAt,
     this.displayName,
     this.phone,
+    this.missingKycFirestoreBody = false,
   });
 
   final String userId;
   final String status;
   final DateTime? submittedAt;
+
+  /// From `kyc/{uid}` (investor-submitted identity).
+  final String? cnicNumber;
+  final String? address;
+
   final String? cnicFrontUrl;
   final String? cnicBackUrl;
   final String? selfieUrl;
   final Map<String, dynamic>? bankDetails;
   final Map<String, dynamic>? nominee;
   final Map<String, dynamic>? riskProfile;
+
+  /// URLs from `paymentProof.documents` (salary slip, passport, etc.).
+  final Map<String, String>? paymentProofDocuments;
+
   final String? rejectionReason;
   final DateTime? reviewedAt;
 
@@ -34,11 +47,15 @@ class KycAdminDocument {
   final String? displayName;
   final String? phone;
 
+  /// No `kyc/{uid}` document; only legacy `users/*` fields (queue may still list the user).
+  final bool missingKycFirestoreBody;
+
   factory KycAdminDocument.fromFirestore(
     String userId,
     Map<String, dynamic> data, {
     String? displayName,
     String? phone,
+    bool missingKycFirestoreBody = false,
   }) {
     final submitted = data["submittedAt"];
     final reviewed = data["reviewedAt"];
@@ -48,10 +65,13 @@ class KycAdminDocument {
     // Nested maps may exist as `{}` from older clients; still merge flat fields.
     final bankDetailsMap = _mergeBankDetails(data);
     final nomineeMap = _mergeNominee(data);
+    final proofDocs = _paymentProofDocumentUrls(data["paymentProof"]);
     return KycAdminDocument(
       userId: userId,
       status: data["status"] as String? ?? "pending",
       submittedAt: _parseTime(submitted),
+      cnicNumber: _readLooseString(data, "cnicNumber"),
+      address: _readLooseString(data, "address"),
       cnicFrontUrl: _pickString(data, const [
             "cnicFrontUrl",
             "cnicFrontImageUrl",
@@ -92,10 +112,13 @@ class KycAdminDocument {
       bankDetails: bankDetailsMap.isEmpty ? null : bankDetailsMap,
       nominee: nomineeMap.isEmpty ? null : nomineeMap,
       riskProfile: data["riskProfile"] as Map<String, dynamic>?,
+      paymentProofDocuments:
+          proofDocs == null || proofDocs.isEmpty ? null : proofDocs,
       rejectionReason: data["rejectionReason"] as String?,
       reviewedAt: _parseTime(reviewed),
       displayName: displayName,
       phone: phone,
+      missingKycFirestoreBody: missingKycFirestoreBody,
     );
   }
 
@@ -195,5 +218,21 @@ class KycAdminDocument {
       if (s != null) return s;
     }
     return null;
+  }
+
+  /// Non-empty string URLs under `paymentProof.documents` (mobile KYC writes plain strings).
+  static Map<String, String>? _paymentProofDocumentUrls(dynamic paymentProof) {
+    final m = _asMap(paymentProof);
+    if (m == null) return null;
+    final docsRaw = m["documents"];
+    if (docsRaw is! Map) return null;
+    final out = <String, String>{};
+    for (final e in docsRaw.entries) {
+      final v = e.value;
+      if (v is! String) continue;
+      final u = v.trim();
+      if (u.isNotEmpty) out[e.key.toString()] = u;
+    }
+    return out.isEmpty ? null : out;
   }
 }

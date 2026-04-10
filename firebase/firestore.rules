@@ -5,6 +5,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Custom claims (optional). Firestore `users/{uid}.role` is still the default source of truth.
+    function isAdminToken() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "Admin" ||
+        request.auth.token.role == "ADMIN"
+      );
+    }
+
     // Role checks without .lower() — avoids runtime errors; supports common casings.
     // exists() before get() so missing user docs do not throw inside hasRole.
     function hasRole(role) {
@@ -24,7 +34,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return hasRole("admin");
+      return isAdminToken() || hasRole("admin");
     }
 
     function isCrm() {
@@ -55,19 +65,51 @@ service cloud.firestore {
         && !("role" in request.resource.data);
     }
 
+    // FCM transaction may create users/{uid} with only fcmTokens before profile bootstrap runs.
+    function ownerFcmTokensCreateOnly() {
+      return request.resource.data.keys().hasOnly(["fcmTokens"])
+        && request.resource.data.fcmTokens is list
+        && request.resource.data.fcmTokens.size() <= 5;
+    }
+
     function ownerUserUpdateAllowed() {
+      // Include optional fcmTokens so name/phone updates still validate when tokens exist;
+      // tokens may only change via ownerFcmTokensUpdateAllowed().
+      // If resource has no email yet (FCM-only doc), allow first-time profile fields from merge.
       return request.resource.data.keys().hasOnly([
           "email",
           "name",
           "createdAt",
           "kycStatus",
           "phone",
-          "role"
+          "role",
+          "fcmTokens"
         ])
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.kycStatus == resource.data.kycStatus
-        && request.resource.data.role == resource.data.role;
+        && (
+          (!("email" in resource.data) && request.resource.data.email is string)
+          || request.resource.data.email == resource.data.email
+        )
+        && (
+          !("createdAt" in resource.data)
+          || request.resource.data.createdAt == resource.data.createdAt
+        )
+        && (
+          !("kycStatus" in resource.data)
+          || request.resource.data.kycStatus == resource.data.kycStatus
+          || (
+            resource.data.kycStatus in ["pending", "rejected"]
+            && request.resource.data.kycStatus == "underReview"
+          )
+        )
+        && (
+          (!("role" in resource.data) && !("role" in request.resource.data))
+          || request.resource.data.role == resource.data.role
+        )
+        && (
+          !("fcmTokens" in resource.data)
+            ? !("fcmTokens" in request.resource.data)
+            : request.resource.data.fcmTokens == resource.data.fcmTokens
+        );
     }
 
     // Owner-only: merge FCM device tokens (Cloud Functions also write inbox; clients only touch fcmTokens).
@@ -75,14 +117,26 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmTokens"]);
     }
 
+    // Investor `kyc/{uid}` submit/resubmit (merge write). Approved docs stay admin-only.
+    function investorKycOwnerWriteOk() {
+      return request.resource.data.status == "underReview"
+        && resource.data.status != "approved"
+        && (
+          (!("reviewedAt" in resource.data) && !("reviewedAt" in request.resource.data))
+          || request.resource.data.reviewedAt == resource.data.reviewedAt
+        );
+    }
+
     match /users/{userId} {
       // Own profile: no hasRole()/get() chains — fixes staff login + role stream for admin & CRM.
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow read: if isAdmin() || crmManagesInvestor(userId);
       allow create: if isOwner(userId) && ownerUserCreateAllowed();
+      allow create: if isOwner(userId) && ownerFcmTokensCreateOnly();
       allow update: if isOwner(userId) && ownerUserUpdateAllowed();
       allow update: if isOwner(userId) && ownerFcmTokensUpdateAllowed();
-      allow update: if isAdmin();
+      // Staff (admin or CRM assigned to this user) — approve/reject KYC updates `kycStatus` on users/{uid}.
+      allow update: if crmManagesInvestor(userId);
       allow delete: if false;
 
       match /notifications/{notificationId} {
@@ -100,18 +154,38 @@ service cloud.firestore {
           && request.resource.data.source == "in_app_legal";
         allow update, delete: if false;
       }
+
+      match /pendingProfileChanges/{changeId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+          && request.resource.data.status == "pending"
+          && request.resource.data.requestedFields is map;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Portfolio value + return history (investor app dashboard; admin applies returns in-app).
+    match /portfolios/{portfolioUid} {
+      allow read: if isOwner(portfolioUid) || isAdmin() || crmManagesInvestor(portfolioUid);
+      allow create, update: if isAdmin();
+      allow delete: if false;
+
+      match /returnHistory/{histId} {
+        allow read: if isOwner(portfolioUid) || isAdmin() || crmManagesInvestor(portfolioUid);
+        allow create, update: if isAdmin();
+        allow delete: if false;
+      }
     }
 
     // Primary KYC collection (Wakalat Invest mobile + admin web)
     match /kyc/{userId} {
-      allow read: if isOwner(userId) || isAdmin() || crmManagesInvestor(userId);
-      allow create: if isOwner(userId)
-        && request.resource.data.status == "underReview";
-      allow update: if isAdmin() || (
-        isOwner(userId)
-        && resource.data.status in ["pending", "rejected"]
-        && request.resource.data.status == "underReview"
-        && request.resource.data.reviewedAt == resource.data.reviewedAt
+      allow read: if isOwner(userId) || crmManagesInvestor(userId);
+      // Investor creates submission; staff may create if `kyc/{uid}` was missing (merge set == create).
+      allow create: if (isOwner(userId) && request.resource.data.status == "underReview")
+        || crmManagesInvestor(userId);
+      // Investor updates while not approved; staff (admin / assigned CRM) approve or reject.
+      allow update: if crmManagesInvestor(userId) || (
+        isOwner(userId) && investorKycOwnerWriteOk()
       );
       allow delete: if false;
     }

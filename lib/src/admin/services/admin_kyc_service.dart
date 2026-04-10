@@ -13,18 +13,16 @@ class AdminKycService {
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection("users");
 
-  /// Pending queue: submissions awaiting review (includes legacy `pending` and active `underReview`).
+  /// Queue: real submissions only (`kyc/{uid}` with status `underReview` from investor submit).
   Stream<List<KycAdminDocument>> watchPendingKycQueue() {
     return _kyc
-        .where("status", whereIn: ["pending", "underReview"])
+        .where("status", isEqualTo: "underReview")
         .snapshots()
         .asyncMap((kycSnap) async {
       final list = <KycAdminDocument>[];
-      final seenUserIds = <String>{};
 
       for (final doc in kycSnap.docs) {
         final uid = doc.id;
-        seenUserIds.add(uid);
         String? name;
         String? phone;
         try {
@@ -41,28 +39,6 @@ class AdminKycService {
             doc.data(),
             displayName: name,
             phone: phone,
-          ),
-        );
-      }
-
-      // Legacy fallback: include users that still have pending KYC status on
-      // users/{uid} but no corresponding kyc/{uid} doc from older/broken flows.
-      final legacyUsers = await _users
-          .where("kycStatus", whereIn: ["pending", "underReview"])
-          .get();
-      for (final u in legacyUsers.docs) {
-        if (seenUserIds.contains(u.id)) continue;
-        final m = u.data();
-        final status = (m["kycStatus"] as String? ?? "pending").trim();
-        list.add(
-          KycAdminDocument.fromFirestore(
-            u.id,
-            {
-              "status": status.isEmpty ? "pending" : status,
-              "submittedAt": m["createdAt"],
-            },
-            displayName: m["name"] as String? ?? "",
-            phone: m["phone"] as String? ?? "",
           ),
         );
       }
@@ -99,11 +75,10 @@ class AdminKycService {
       );
     }
 
-    // Legacy fallback: old records may be pending in users/{uid} without a
-    // kyc/{uid} document. Return a synthetic review model instead of null.
+    // Rare edge: users.kycStatus synced to underReview but kyc/{uid} missing.
     if (userData != null) {
       final status = (userData["kycStatus"] as String? ?? "").trim();
-      if (status == "pending" || status == "underReview") {
+      if (status == "underReview") {
         return KycAdminDocument.fromFirestore(
           userId,
           {
@@ -112,6 +87,7 @@ class AdminKycService {
           },
           displayName: name,
           phone: phone,
+          missingKycFirestoreBody: true,
         );
       }
     }

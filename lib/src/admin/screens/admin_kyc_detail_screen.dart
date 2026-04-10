@@ -141,6 +141,36 @@ class _KycDetailBodyState extends ConsumerState<_KycDetailBody> {
               Chip(label: Text("Status: ${k.status}")),
             ],
           ),
+          if (k.missingKycFirestoreBody) ...[
+            const SizedBox(height: 12),
+            Material(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "No kyc/{uid} document was found in Firestore for this user. "
+                        "Form fields below are empty because the submission did not persist or only legacy profile data exists. "
+                        "Ask the investor to submit again after fixing rules/network, or check the Firebase console.",
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             k.displayName?.isNotEmpty == true ? k.displayName! : widget.userId,
@@ -157,6 +187,13 @@ class _KycDetailBodyState extends ConsumerState<_KycDetailBody> {
             ),
           const SizedBox(height: 24),
           Text("Identity", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _InfoTable(
+            rows: {
+              "CNIC": k.cnicNumber ?? "—",
+              "Address": k.address ?? "—",
+            },
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 16,
@@ -197,6 +234,26 @@ class _KycDetailBodyState extends ConsumerState<_KycDetailBody> {
               "Monthly income": risk?["monthlyIncomeRange"] ?? "—",
             },
           ),
+          if (k.paymentProofDocuments != null &&
+              k.paymentProofDocuments!.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text(
+              "Source-of-funds / payment proof",
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                for (final e in k.paymentProofDocuments!.entries)
+                  _ImageTile(
+                    label: _paymentProofFieldLabel(e.key),
+                    url: e.value,
+                  ),
+              ],
+            ),
+          ],
           if (k.rejectionReason != null &&
               k.rejectionReason.toString().isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -233,6 +290,25 @@ class _KycDetailBodyState extends ConsumerState<_KycDetailBody> {
   }
 }
 
+String _paymentProofFieldLabel(String key) {
+  switch (key) {
+    case "salarySlipUrl":
+      return "Salary slip";
+    case "passportFrontUrl":
+      return "Passport (front)";
+    case "passportBackUrl":
+      return "Passport (back)";
+    case "aqamaUrl":
+      return "Residence permit (Iqama)";
+    case "businessProofUrl":
+      return "Business proof";
+    case "inheritanceProofUrl":
+      return "Inheritance proof";
+    default:
+      return key;
+  }
+}
+
 class _ImageTile extends StatelessWidget {
   const _ImageTile({required this.label, required this.url});
 
@@ -242,6 +318,9 @@ class _ImageTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final raw = url?.trim();
+    final isHttp =
+        raw != null &&
+        (raw.startsWith("http://") || raw.startsWith("https://"));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -257,27 +336,43 @@ class _ImageTile extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: raw == null || raw.isEmpty
               ? const Center(child: Text("No image"))
-              : FutureBuilder<Uint8List?>(
-                  future: _fetchImageBytes(raw),
-                  builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final bytes = snap.data;
-                    if (bytes == null || bytes.isEmpty) {
-                      return const Center(
-                        child: Icon(Icons.broken_image_outlined),
-                      );
-                    }
-                    return Image.memory(
-                      bytes,
+              : isHttp
+                  ? Image.network(
+                      raw,
                       fit: BoxFit.cover,
+                      width: 220,
+                      height: 140,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
                       errorBuilder: (_, __, ___) => const Center(
                         child: Icon(Icons.broken_image_outlined),
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : FutureBuilder<Uint8List?>(
+                      future: _fetchImageBytes(raw),
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        final bytes = snap.data;
+                        if (bytes == null || bytes.isEmpty) {
+                          return const Center(
+                            child: Icon(Icons.broken_image_outlined),
+                          );
+                        }
+                        return Image.memory(
+                          bytes,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.broken_image_outlined),
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
