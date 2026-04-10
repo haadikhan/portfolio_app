@@ -15,7 +15,7 @@ class AppConfig {
     return AppConfig(
       appName: const String.fromEnvironment(
         "APP_NAME",
-        defaultValue: "Wakalat Invest",
+        defaultValue: "ISC-WAI",
       ),
       environment: const String.fromEnvironment("APP_ENV", defaultValue: "dev"),
       enableAnalytics: const bool.fromEnvironment(

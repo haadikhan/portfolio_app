@@ -185,7 +185,7 @@ class WakalatAdminApp extends ConsumerWidget {
     final useUrduFont = locale.languageCode == "ur";
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: "Wakalat Invest — Admin",
+      title: "ISC-WAI — Admin",
       theme: AppTheme.light(useUrduFont: useUrduFont),
       darkTheme: AppTheme.dark(useUrduFont: useUrduFont),
       themeMode: themeMode,

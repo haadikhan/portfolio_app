@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../core/branding/brand_assets.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../core/widgets/app_bar_actions.dart";
 import "../../features/notifications/providers/notification_providers.dart";
@@ -87,7 +88,7 @@ class AdminShell extends ConsumerWidget {
         final scheme = Theme.of(context).colorScheme;
         final barTitle = isCrm
             ? context.tr("crm_app_bar_staff")
-            : "Wakalat Invest — Admin";
+            : "ISC-WAI — Admin";
 
         return Scaffold(
           drawer: Drawer(
@@ -98,11 +99,24 @@ class AdminShell extends ConsumerWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: Text(
-                      barTitle,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          BrandAssets.logoPng,
+                          height: 36,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            barTitle,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
+                        ),
+                      ],
                     ),
                   ),
                   const Divider(height: 1),
@@ -249,7 +263,23 @@ class AdminShell extends ConsumerWidget {
             ),
           ),
           appBar: AppBar(
-            title: Text(barTitle),
+            title: Row(
+              children: [
+                Image.asset(
+                  BrandAssets.logoPng,
+                  height: 28,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    barTitle,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
             actions: [
               Consumer(
                 builder: (context, ref, _) {

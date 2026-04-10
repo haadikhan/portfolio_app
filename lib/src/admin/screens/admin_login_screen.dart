@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../core/branding/brand_assets.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/design_system_widgets.dart";
 import "../../providers/auth_providers.dart";
@@ -103,13 +104,22 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Center(
+                        child: Image.asset(
+                          BrandAssets.logoPng,
+                          height: 96,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       Text(
                         "Admin sign in",
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Wakalat Invest — KYC operations",
+                        "ISC-WAI — KYC operations",
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 24),

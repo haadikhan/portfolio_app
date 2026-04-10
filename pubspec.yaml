@@ -1,5 +1,5 @@
 name: portfolio_app
-description: "A new Flutter project."
+description: "ISC-WAI — investor and admin apps."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -81,11 +81,17 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/branding/app_brand.png
+
 flutter_launcher_icons:
   android: true
-  image_path: assets/branding/app_icon.png
+  ios: true
+  web:
+    generate: true
+  image_path: assets/branding/app_brand.png
   adaptive_icon_background: "#0F7A2C"
-  adaptive_icon_foreground: assets/branding/app_icon.png
+  adaptive_icon_foreground: assets/branding/app_brand.png
   min_sdk_android: 21
 
   # An image asset can refer to one or more resolution-specific "variants", see

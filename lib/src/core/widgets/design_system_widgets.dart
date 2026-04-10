@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../branding/brand_assets.dart";
 import "../theme/app_colors.dart";
 
 class FinanceAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -17,7 +18,24 @@ class FinanceAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title, style: Theme.of(context).textTheme.titleLarge),
+      title: Row(
+        children: [
+          Image.asset(
+            BrandAssets.logoPng,
+            height: 32,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
       actions: [
         OutlinedButton(onPressed: onLogin, child: const Text("Login")),
         const SizedBox(width: 10),

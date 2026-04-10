@@ -10,7 +10,7 @@ void main() {
       const ProviderScope(
         child: WakalatInvestApp(
           config: AppConfig(
-            appName: "Wakalat Invest",
+            appName: "ISC-WAI",
             environment: "test",
             enableAnalytics: false,
           ),

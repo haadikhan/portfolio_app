@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Created only by scripts/vercel_build.sh during Vercel builds
+/flutter_sdk/

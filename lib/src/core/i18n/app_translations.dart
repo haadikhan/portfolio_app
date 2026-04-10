@@ -158,7 +158,7 @@ const _en = <String, String>{
   "crm_nav_dashboard": "CRM home",
   "crm_nav_investors": "CRM investors",
   "crm_nav_team": "CRM team",
-  "crm_app_bar_staff": "Wakalat Invest — Staff",
+  "crm_app_bar_staff": "ISC-WAI — Staff",
   "crm_pending_followups": "Pending follow-ups",
   "crm_assigned_investors": "Investors",
   "crm_assigned_investors_subtitle":
@@ -722,7 +722,7 @@ const _ur = <String, String>{
   "crm_nav_dashboard": "CRM ہوم",
   "crm_nav_investors": "CRM سرمایہ کار",
   "crm_nav_team": "CRM ٹیم",
-  "crm_app_bar_staff": "وکالت انویسٹ — اسٹاف",
+  "crm_app_bar_staff": "آئی ایس سی — ڈبلیو اے آئی — اسٹاف",
   "crm_pending_followups": "زیر التواء فالو اپ",
   "crm_assigned_investors": "سرمایہ کار",
   "crm_assigned_investors_subtitle":

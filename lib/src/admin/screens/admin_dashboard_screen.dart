@@ -138,7 +138,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Operational snapshot for Wakalat Invest.",
+            "Operational snapshot for ISC-WAI.",
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 28),

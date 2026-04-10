@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "../core/i18n/app_translations.dart";
+import "../core/branding/brand_assets.dart";
 import "../core/theme/app_colors.dart";
 import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
@@ -330,6 +331,13 @@ class _AppDrawer extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Image.asset(
+                    BrandAssets.logoPng,
+                    height: 44,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                  const SizedBox(height: 16),
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),

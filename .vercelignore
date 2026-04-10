@@ -1,0 +1,14 @@
+# Native / desktop targets (not needed for Flutter web build)
+android/
+ios/
+linux/
+macos/
+windows/
+
+# Build output and tooling
+build/
+.dart_tool/
+.git/
+
+# Large dependency trees not used by `flutter build web`
+**/node_modules/

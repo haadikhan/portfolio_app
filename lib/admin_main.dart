@@ -7,7 +7,7 @@ import "firebase_options.dart";
 import "src/admin/admin_app.dart";
 import "src/core/fcm/fcm_bootstrap.dart";
 
-/// Entrypoint for the Wakalat Invest admin web app (KYC review).
+/// Entrypoint for the ISC-WAI admin web app (KYC review).
 ///
 /// Run: `flutter run -d chrome -t lib/admin_main.dart`
 Future<void> main() async {
