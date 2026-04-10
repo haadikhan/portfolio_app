@@ -1,7 +1,8 @@
 import "dart:typed_data";
 
 import "package:file_saver/file_saver.dart";
-import "package:flutter/foundation.dart" show debugPrint, kIsWeb;
+import "package:flutter/foundation.dart"
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
@@ -199,8 +200,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         }
       }
 
-      // Web: browsers often handle Printing.sharePdf more reliably than FileSaver.
-      if (kIsWeb) {
+      // Android/iOS: share sheet first (user can save to Downloads / Files).
+      // Web/desktop: FileSaver first (save dialog / browser download).
+      final preferShareFirst = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
+      if (preferShareFirst) {
         if (await trySharePdf()) return;
         if (await tryFileSaver()) return;
       } else {

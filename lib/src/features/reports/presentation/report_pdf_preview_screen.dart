@@ -1,7 +1,8 @@
 import "dart:typed_data";
 
 import "package:file_saver/file_saver.dart";
-import "package:flutter/foundation.dart" show debugPrint, kIsWeb;
+import "package:flutter/foundation.dart"
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import "package:flutter/material.dart";
 import "package:pdf/pdf.dart";
 import "package:printing/printing.dart";
@@ -67,7 +68,10 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
         }
       }
 
-      if (kIsWeb) {
+      final preferShareFirst = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
+      if (preferShareFirst) {
         if (await trySharePdf()) return;
         if (await tryFileSaver()) return;
       } else {
