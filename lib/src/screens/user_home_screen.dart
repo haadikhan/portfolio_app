@@ -32,6 +32,23 @@ Color _quickAccessTileBg(BuildContext context, Color base) {
   return base;
 }
 
+/// Dashboard page background: light uses brand tints; dark uses [ColorScheme] surfaces.
+Color _dashboardBackgroundTop(BuildContext context) {
+  final scheme = Theme.of(context).colorScheme;
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return scheme.surface;
+  }
+  return AppColors.backgroundTop;
+}
+
+List<Color> _dashboardBackgroundGradient(BuildContext context) {
+  final scheme = Theme.of(context).colorScheme;
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return [scheme.surface, scheme.surfaceContainerLowest];
+  }
+  return [AppColors.backgroundTop, AppColors.backgroundBottom];
+}
+
 class UserHomeScreen extends ConsumerWidget {
   const UserHomeScreen({super.key});
 
@@ -107,16 +124,17 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
     }
 
     final walletAsync = ref.watch(userWalletStreamProvider);
+    final bgGradient = _dashboardBackgroundGradient(context);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundTop,
+      backgroundColor: _dashboardBackgroundTop(context),
       drawer: _AppDrawer(profile: widget.profile),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
+            colors: bgGradient,
           ),
         ),
         child: CustomScrollView(
@@ -237,7 +255,7 @@ class _DashboardAppBar extends ConsumerWidget {
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
-      backgroundColor: AppColors.backgroundTop,
+      backgroundColor: _dashboardBackgroundTop(context),
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0.5,
       elevation: 0,
@@ -951,7 +969,7 @@ class _QuickActions extends StatelessWidget {
             label: context.tr("history"),
             backgroundColor: AppColors.dashboardHistoryTint,
             foregroundColor: AppColors.dashboardHistoryFg,
-            onTap: () => context.push("/wallet-ledger"),
+            onTap: () => context.push("/wallet-ledger?tab=history"),
           ),
         ),
         const SizedBox(width: 10),
@@ -1070,7 +1088,7 @@ class _QuickAccessGrid extends StatelessWidget {
           watermark: Icons.account_balance_wallet_outlined,
           backgroundColor:
               _quickAccessTileBg(context, AppColors.quickAccessWallet),
-          onTap: () => context.push("/wallet-ledger"),
+          onTap: () => context.push("/wallet-ledger?tab=wallet"),
         ),
         _QuickAccessTile(
           label: context.tr("qa_transactions"),
@@ -1078,7 +1096,7 @@ class _QuickAccessGrid extends StatelessWidget {
           watermark: Icons.receipt_long_rounded,
           backgroundColor:
               _quickAccessTileBg(context, AppColors.quickAccessTransactions),
-          onTap: () => context.push("/wallet-ledger"),
+          onTap: () => context.push("/wallet-ledger?tab=transactions"),
         ),
         _QuickAccessTile(
           label: context.tr("qa_my_profile"),

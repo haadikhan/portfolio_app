@@ -355,6 +355,9 @@ const _en = <String, String>{
   "kyc_payment_proof_inheritance_required":
       "Please upload inheritance documents.",
   "wallet_ledger_title": "Wallet & Ledger",
+  "ledger_tab_wallet": "Wallet",
+  "ledger_tab_transactions": "Transactions",
+  "ledger_tab_history": "History",
   "wallet_error": "Wallet error:",
   "no_wallet_data": "No wallet data yet",
   "no_wallet_subtitle":
@@ -929,6 +932,9 @@ const _ur = <String, String>{
   "kyc_payment_proof_inheritance_required":
       "وراثتی دستاویزات اپ لوڈ کریں۔",
   "wallet_ledger_title": "والیٹ اور لیجر",
+  "ledger_tab_wallet": "والیٹ",
+  "ledger_tab_transactions": "لین دین",
+  "ledger_tab_history": "تاریخچہ",
   "wallet_error": "والیٹ خرابی:",
   "no_wallet_data": "ابھی والیٹ ڈیٹا نہیں",
   "no_wallet_subtitle": "KYC منظوری کے بعد جمع کرائیں یا سنک کا انتظار کریں۔",

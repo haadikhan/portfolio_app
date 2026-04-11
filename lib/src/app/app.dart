@@ -79,10 +79,19 @@ class WakalatInvestApp extends ConsumerWidget {
         ),
         GoRoute(
           path: "/wallet-ledger",
-          builder: (_, __) => const KycApprovedGateScreen(
-            featureName: "wallet and withdrawals",
-            child: WalletLedgerScreen(),
-          ),
+          builder: (_, state) {
+            final tab = state.uri.queryParameters["tab"];
+            final initialTab = switch (tab) {
+              "transactions" => 1,
+              "history" => 2,
+              "wallet" => 0,
+              _ => 0,
+            };
+            return KycApprovedGateScreen(
+              featureName: "wallet and withdrawals",
+              child: WalletLedgerScreen(initialTabIndex: initialTab),
+            );
+          },
         ),
         GoRoute(
           path: "/wallet-ledger/deposit",
