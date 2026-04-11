@@ -6,8 +6,11 @@ import "package:flutter/material.dart";
 
 import "../theme/app_colors.dart";
 
-/// Full-screen splash: green canvas only — premium animated growth line (wave + upward)
-/// with no brand image (cold start; driven by [SplashHost]).
+/// Hero photo under a green veil; bundled at [kSplashBackgroundAsset].
+const String kSplashBackgroundAsset = "assets/splash/splash_hero_background.png";
+
+/// Full-screen splash: green canvas — bar backdrop + trend line shaped like the app
+/// icon (rise, V-dip, higher peak, small dip, sharp finish), driven by [SplashHost].
 class PremiumSplashScreen extends StatefulWidget {
   const PremiumSplashScreen({
     super.key,
@@ -118,23 +121,38 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
           body: Stack(
             fit: StackFit.expand,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.lerp(
-                        const Color(0xFF118038),
-                        AppColors.primary,
-                        0.35 + pulse * 0.2,
-                      )!,
-                      Color.lerp(
-                        AppColors.primaryDark,
-                        const Color(0xFF073818),
-                        pulse * 0.15,
-                      )!,
-                    ],
+              Positioned.fill(
+                child: Image.asset(
+                  kSplashBackgroundAsset,
+                  fit: BoxFit.cover,
+                  // Slight positive X: crop favors the right side of the asset so the
+                  // scene reads shifted left on screen (portrait phones).
+                  alignment: const Alignment(0.2, 0),
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => const ColoredBox(
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color.lerp(
+                          const Color(0xFF118038),
+                          AppColors.primary,
+                          0.35 + pulse * 0.2,
+                        )!.withValues(alpha: 0.72),
+                        Color.lerp(
+                          AppColors.primaryDark,
+                          const Color(0xFF073818),
+                          pulse * 0.15,
+                        )!.withValues(alpha: 0.78),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -246,8 +264,9 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
   }
 }
 
-/// Sinusoidal “market line” trending up-right: stroke trims along path; wave phase
-/// moves with [motionT] so the line feels alive (up/down motion while growing).
+/// Matches the in-app “growth chart” icon: bars in the back, then a line that
+/// rises → dips in a V (stays above the start) → climbs higher → shallow pullback →
+/// sharp final ascent. [motionT] nudges micro motion along the stroke.
 class _PremiumGrowthWavePainter extends CustomPainter {
   _PremiumGrowthWavePainter({
     required this.progress,
@@ -257,28 +276,100 @@ class _PremiumGrowthWavePainter extends CustomPainter {
   });
 
   final double progress;
-  /// 0–1 full splash timeline — shifts the wave phase for traveling up/down motion.
   final double motionT;
   final Color lineCore;
   final Color lineGlow;
 
-  static const int _segments = 56;
+  static const int _segments = 72;
+
+  /// Horizontal key times (0 → 1) along the stroke.
+  static const List<double> _ku = [
+    0.0,
+    0.13,
+    0.30,
+    0.46,
+    0.60,
+    0.74,
+    0.86,
+    1.0,
+  ];
+
+  /// Absolute Y as fraction of canvas height (0 = top, 1 = bottom): icon-shaped path.
+  static const List<double> _ky = [
+    0.89, // start low left
+    0.55, // first moderate peak
+    0.72, // first valley — still clearly above start
+    0.39, // second peak — higher than first
+    0.48, // shallow retracement
+    0.34, // climb again
+    0.26, // approach final thrust
+    0.11, // highest point, sharp finish up-right
+  ];
+
+  static double _interpY(double u) {
+    u = u.clamp(0.0, 1.0);
+    for (var k = 0; k < _ku.length - 1; k++) {
+      if (u <= _ku[k + 1]) {
+        final span = _ku[k + 1] - _ku[k];
+        final t = span > 1e-9
+            ? ((u - _ku[k]) / span).clamp(0.0, 1.0)
+            : 0.0;
+        final s = t * t * (3.0 - 2.0 * t);
+        return _ky[k] + (_ky[k + 1] - _ky[k]) * s;
+      }
+    }
+    return _ky.last;
+  }
+
+  /// Soft bar chart behind the line (icon-style pillars), growing with [progress].
+  void _paintBarBackdrop(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final grow = (progress * 1.35).clamp(0.0, 1.0);
+    if (grow <= 0.01) return;
+
+    final left = w * 0.055;
+    final usable = w * 0.89;
+    const n = 8;
+    final pitch = usable / (n + 0.65);
+    final barW = pitch * 0.42;
+    final bottom = h * 0.905;
+    final topLimit = h * 0.14;
+    final maxH = bottom - topLimit;
+
+    // Heights (relative) — uneven, like a market strip behind the trend.
+    const relH = [0.38, 0.55, 0.30, 0.68, 0.45, 0.78, 0.36, 0.52];
+    final baseAlpha = 0.07 + 0.06 * progress;
+
+    for (var i = 0; i < n; i++) {
+      final cx = left + pitch * (i + 0.55);
+      final bh = maxH * relH[i] * grow;
+      final r = RRect.fromRectAndRadius(
+        Rect.fromLTRB(cx - barW * 0.5, bottom - bh, cx + barW * 0.5, bottom),
+        const Radius.circular(3),
+      );
+      canvas.drawRRect(
+        r,
+        Paint()
+          ..color = Colors.white.withValues(alpha: baseAlpha)
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
 
   List<Offset> _points(Size size) {
     final w = size.width;
     final h = size.height;
-    final phase = motionT * math.pi * 2.2;
+    final phase = motionT * math.pi * 2.0;
     final pts = <Offset>[];
     for (var i = 0; i <= _segments; i++) {
       final u = i / _segments;
       final x = w * (0.04 + u * 0.92);
-      final trend = h * (0.93 - u * 0.86);
-      // Up/down wave: amplitude grows slightly with progress so the motion “opens up”.
-      final amp = h * 0.052 * (0.55 + 0.45 * progress);
-      final wave = amp *
-          math.sin(u * math.pi * 5.5 + phase) *
-          (0.85 + 0.15 * math.sin(phase * 0.5 + u * 3));
-      pts.add(Offset(x, trend + wave));
+      var y = h * _interpY(u);
+      // Very light shimmer so the stroke breathes without fighting the icon shape.
+      final microAmp = h * 0.0075 * (0.5 + 0.5 * progress);
+      y += microAmp * math.sin(u * math.pi * 5 + phase) * (1.0 - u * 0.35);
+      pts.add(Offset(x, y));
     }
     return pts;
   }
@@ -294,6 +385,8 @@ class _PremiumGrowthWavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (progress <= 0) return;
+
+    _paintBarBackdrop(canvas, size);
 
     final points = _points(size);
     final full = _fullPath(points);

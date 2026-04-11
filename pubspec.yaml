@@ -83,6 +83,7 @@ flutter:
 
   assets:
     - assets/branding/app_brand.png
+    - assets/splash/splash_hero_background.png
 
 flutter_launcher_icons:
   android: true
