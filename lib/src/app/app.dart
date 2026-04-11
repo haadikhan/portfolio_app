@@ -13,6 +13,7 @@ import "../features/crm/presentation/crm_dashboard_screen.dart";
 import "../features/home/presentation/home_screen.dart";
 import "../features/investment/presentation/investment_portfolio_screen.dart";
 import "../features/investment/presentation/investor_dashboard_screen.dart";
+import "../features/investor/screens/investor_profile_screen.dart";
 import "../features/kyc/presentation/kyc_screen.dart";
 import "../features/legal/presentation/legal_consent_screen.dart";
 import "../features/admin/presentation/admin_finance_console_screen.dart";
@@ -63,6 +64,11 @@ class WakalatInvestApp extends ConsumerWidget {
           path: "/transparency",
           builder: (_, __) =>
               const ConsentGateScreen(child: TransparencyHubScreen()),
+        ),
+        GoRoute(
+          path: "/profile",
+          builder: (_, __) =>
+              const ConsentGateScreen(child: InvestorProfileScreen()),
         ),
         GoRoute(
           path: "/portfolio",

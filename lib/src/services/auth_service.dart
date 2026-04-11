@@ -49,6 +49,32 @@ class AuthService {
     }
   }
 
+  /// Re-authenticates with the current email/password, then updates the password.
+  /// Call only for users with the email/password provider linked.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    final email = user?.email?.trim();
+    if (user == null || email == null || email.isEmpty) {
+      throw Exception("No signed-in account or email is missing.");
+    }
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_messageForCode(e.code, fallback: e.message));
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception("Could not update password. Please try again.");
+    }
+  }
+
   String _messageForCode(String code, {String? fallback}) {
     switch (code) {
       case "email-already-in-use":
@@ -72,6 +98,12 @@ class AuthService {
         return "This app is not authorized for this Firebase project. Re-run FlutterFire configuration.";
       case "internal-error":
         return "Firebase internal error. Please try again in a moment.";
+      case "requires-recent-login":
+        return "For security, sign out and sign in again, then change your password.";
+      case "credential-mismatch":
+      case "invalid-verification-code":
+      case "invalid-verification-id":
+        return "Current password is incorrect.";
       default:
         return fallback?.trim().isNotEmpty == true
             ? fallback!

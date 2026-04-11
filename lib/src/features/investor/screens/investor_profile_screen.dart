@@ -1,3 +1,4 @@
+import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -7,7 +8,18 @@ import "../../../core/i18n/language_provider.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/theme/theme_provider.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../../models/app_user.dart";
+import "../../../providers/auth_providers.dart";
 import "../../../providers/profile_providers.dart";
+
+String _kycLifecycleBadgeLabel(BuildContext context, KycLifecycleStatus s) {
+  return switch (s) {
+    KycLifecycleStatus.approved => context.tr("kyc_badge_verified"),
+    KycLifecycleStatus.underReview => context.tr("kyc_badge_in_review"),
+    KycLifecycleStatus.rejected => context.tr("kyc_badge_rejected"),
+    KycLifecycleStatus.pending => context.tr("kyc_badge_pending"),
+  };
+}
 
 class InvestorProfileScreen extends ConsumerWidget {
   const InvestorProfileScreen({super.key});
@@ -251,9 +263,21 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
+  void _openChangePasswordDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => const _ChangePasswordDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final updateState = ref.watch(profileUpdateProvider);
+    final kycAsync = ref.watch(userKycProvider);
+    final kycRecord = kycAsync.valueOrNull;
+    final hasPasswordProvider = FirebaseAuth.instance.currentUser?.providerData
+            .any((p) => p.providerId == "password") ??
+        false;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -311,6 +335,14 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             title: context.tr("personal_information"),
             icon: Icons.person_outline_rounded,
             children: [
+              _ProfileFieldTile(
+                label: context.tr("email_address"),
+                value: widget.profile.email.isNotEmpty
+                    ? widget.profile.email
+                    : null,
+                locked: true,
+              ),
+              const Divider(height: 1),
               _editing
                   ? _EditableField(
                       label: context.tr("full_name"),
@@ -340,6 +372,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               _ProfileFieldTile(
                 label: context.tr("cnic_label"),
                 value: widget.profile.cnic,
+                locked: true,
+              ),
+              const Divider(height: 1),
+              _ProfileFieldTile(
+                label: context.tr("profile_kyc_status_label"),
+                value: _kycLifecycleBadgeLabel(
+                  context,
+                  widget.profile.kycStatus,
+                ),
                 locked: true,
               ),
             ],
@@ -407,6 +448,62 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ],
           ),
           const SizedBox(height: 14),
+          if (kycRecord != null) ...[
+            _ProfileCard(
+              title: context.tr("profile_verification_details"),
+              icon: Icons.verified_user_outlined,
+              children: [
+                if (kycRecord.address != null &&
+                    kycRecord.address!.trim().isNotEmpty) ...[
+                  _ProfileFieldTile(
+                    label: context.tr("kyc_address"),
+                    value: kycRecord.address,
+                  ),
+                  const Divider(height: 1),
+                ],
+                _ProfileFieldTile(
+                  label: context.tr("profile_submission_status"),
+                  value: _kycLifecycleBadgeLabel(context, kycRecord.status),
+                  locked: true,
+                ),
+                if (kycRecord.status == KycLifecycleStatus.rejected &&
+                    kycRecord.rejectionReason != null &&
+                    kycRecord.rejectionReason!.trim().isNotEmpty) ...[
+                  const Divider(height: 1),
+                  _ProfileFieldTile(
+                    label: context.tr("kyc_rejection_reason_prefix"),
+                    value: kycRecord.rejectionReason,
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
+          if (hasPasswordProvider) ...[
+            _ProfileCard(
+              title: context.tr("profile_account_security"),
+              icon: Icons.lock_outline_rounded,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _openChangePasswordDialog,
+                      icon: const Icon(Icons.vpn_key_outlined, size: 18),
+                      label: Text(context.tr("change_password_btn")),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
           _AppPreferencesCard(),
 
           const SizedBox(height: 20),
@@ -792,6 +889,151 @@ class _DialogField extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
+    );
+  }
+}
+
+// ── Change password dialog ─────────────────────────────────────────────────────
+
+class _ChangePasswordDialog extends ConsumerStatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
+  final _current = TextEditingController();
+  final _new = TextEditingController();
+  final _confirm = TextEditingController();
+  String? _localError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(passwordChangeProvider.notifier).reset();
+    });
+  }
+
+  @override
+  void dispose() {
+    _current.dispose();
+    _new.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _localError = null);
+    FocusScope.of(context).unfocus();
+    if (_new.text != _confirm.text) {
+      setState(() => _localError = context.tr("passwords_do_not_match"));
+      return;
+    }
+    if (_new.text.length < 6) {
+      setState(() => _localError = context.tr("password_min_chars"));
+      return;
+    }
+    await ref.read(passwordChangeProvider.notifier).changePassword(
+          currentPassword: _current.text,
+          newPassword: _new.text,
+        );
+    if (!mounted) return;
+    final asyncState = ref.read(passwordChangeProvider);
+    asyncState.whenOrNull(
+      data: (_) {
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.of(context).pop();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(context.tr("password_changed_success")),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      },
+      error: (e, _) {
+        setState(() {
+          _localError = e.toString().replaceFirst("Exception: ", "");
+        });
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loading = ref.watch(passwordChangeProvider).isLoading;
+
+    return AlertDialog(
+      title: Text(context.tr("change_password_title")),
+      content: SizedBox(
+        width: 320,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_localError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _localError!,
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              TextField(
+                controller: _current,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: context.tr("current_password_label"),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _new,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: context.tr("new_password_label"),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirm,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: context.tr("confirm_password_label"),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: loading ? null : () => Navigator.of(context).pop(),
+          child: Text(context.tr("cancel")),
+        ),
+        FilledButton(
+          onPressed: loading ? null : _submit,
+          child: loading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(context.tr("change_password_btn")),
+        ),
+      ],
     );
   }
 }

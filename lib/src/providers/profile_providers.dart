@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../models/app_user.dart";
 import "auth_providers.dart";
 
 // ── Extended profile model ────────────────────────────────────────────────────
@@ -12,6 +13,7 @@ class InvestorProfile {
     required this.email,
     this.phone,
     this.cnic,
+    required this.kycStatus,
     this.bankName,
     this.accountNumber,
     this.accountTitle,
@@ -25,6 +27,7 @@ class InvestorProfile {
   final String email;
   final String? phone;
   final String? cnic;
+  final KycLifecycleStatus kycStatus;
 
   // Bank details
   final String? bankName;
@@ -37,12 +40,18 @@ class InvestorProfile {
   final String? nomineeRelation;
 
   factory InvestorProfile.fromMap(String uid, Map<String, dynamic> map) {
+    final kycRaw = (map["kycStatus"] as String? ?? "pending").toLowerCase();
+    final kycStatus = KycLifecycleStatus.values.firstWhere(
+      (e) => e.name.toLowerCase() == kycRaw,
+      orElse: () => KycLifecycleStatus.pending,
+    );
     return InvestorProfile(
       uid: uid,
       name: map["name"] as String? ?? "",
       email: map["email"] as String? ?? "",
       phone: map["phone"] as String?,
       cnic: map["cnic"] as String? ?? map["cnicNumber"] as String?,
+      kycStatus: kycStatus,
       bankName: map["bankName"] as String?,
       accountNumber: map["accountNumber"] as String?,
       accountTitle: map["accountTitle"] as String?,
@@ -118,3 +127,31 @@ class ProfileUpdateNotifier extends AsyncNotifier<void> {
 final profileUpdateProvider =
     AsyncNotifierProvider<ProfileUpdateNotifier, void>(
         ProfileUpdateNotifier.new);
+
+// ── Password change (email/password accounts only) ───────────────────────────
+
+class PasswordChangeNotifier extends AsyncNotifier<void> {
+  @override
+  Future<void> build() async {}
+
+  void reset() {
+    state = const AsyncData(null);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authServiceProvider).changePassword(
+            currentPassword: currentPassword,
+            newPassword: newPassword,
+          );
+    });
+  }
+}
+
+final passwordChangeProvider =
+    AsyncNotifierProvider<PasswordChangeNotifier, void>(
+        PasswordChangeNotifier.new);

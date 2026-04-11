@@ -1080,15 +1080,13 @@ class _QuickAccessGrid extends StatelessWidget {
               _quickAccessTileBg(context, AppColors.quickAccessTransactions),
           onTap: () => context.push("/wallet-ledger"),
         ),
-        Builder(
-          builder: (ctx) => _QuickAccessTile(
-            label: context.tr("qa_my_profile"),
-            icon: Icons.person_rounded,
-            watermark: Icons.person_outline_rounded,
-            backgroundColor:
-                _quickAccessTileBg(context, AppColors.quickAccessProfile),
-            onTap: () => Scaffold.of(ctx).openDrawer(),
-          ),
+        _QuickAccessTile(
+          label: context.tr("qa_my_profile"),
+          icon: Icons.person_rounded,
+          watermark: Icons.person_outline_rounded,
+          backgroundColor:
+              _quickAccessTileBg(context, AppColors.quickAccessProfile),
+          onTap: () => context.push("/profile"),
         ),
       ],
     );
