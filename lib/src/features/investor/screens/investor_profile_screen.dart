@@ -12,6 +12,15 @@ import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/profile_providers.dart";
 
+/// Prefer `users/{uid}` field when set; otherwise show value from KYC doc.
+String? _preferProfileThenKyc(String? profileField, String? kycField) {
+  final p = profileField?.trim();
+  if (p != null && p.isNotEmpty) return p;
+  final k = kycField?.trim();
+  if (k != null && k.isNotEmpty) return k;
+  return null;
+}
+
 String _kycLifecycleBadgeLabel(BuildContext context, KycLifecycleStatus s) {
   return switch (s) {
     KycLifecycleStatus.approved => context.tr("kyc_badge_verified"),
@@ -93,12 +102,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   }
 
   Future<void> _openBankEditDialog() async {
-    final bankCtrl =
-        TextEditingController(text: widget.profile.bankName ?? "");
-    final acctCtrl =
-        TextEditingController(text: widget.profile.accountNumber ?? "");
-    final titleCtrl =
-        TextEditingController(text: widget.profile.accountTitle ?? "");
+    final kyc = ref.read(userKycProvider).valueOrNull;
+    final bankCtrl = TextEditingController(
+      text: _preferProfileThenKyc(widget.profile.bankName, kyc?.bankName) ?? "",
+    );
+    final acctCtrl = TextEditingController(
+      text: _preferProfileThenKyc(
+            widget.profile.accountNumber,
+            kyc?.ibanOrAccountNumber,
+          ) ??
+          "",
+    );
+    final titleCtrl = TextEditingController(
+      text: _preferProfileThenKyc(
+            widget.profile.accountTitle,
+            kyc?.accountTitle,
+          ) ??
+          "",
+    );
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -157,6 +178,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       ),
     );
 
+    final bankName = bankCtrl.text.trim();
+    final accountNumber = acctCtrl.text.trim();
+    final accountTitle = titleCtrl.text.trim();
     bankCtrl.dispose();
     acctCtrl.dispose();
     titleCtrl.dispose();
@@ -164,9 +188,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (confirmed != true || !mounted) return;
 
     await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-      "bankName": bankCtrl.text.trim(),
-      "accountNumber": acctCtrl.text.trim(),
-      "accountTitle": titleCtrl.text.trim(),
+      "bankName": bankName,
+      "accountNumber": accountNumber,
+      "accountTitle": accountTitle,
     });
 
     if (!mounted) return;
@@ -179,12 +203,25 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   }
 
   Future<void> _openNomineeEditDialog() async {
-    final nameCtrl =
-        TextEditingController(text: widget.profile.nomineeName ?? "");
-    final cnicCtrl =
-        TextEditingController(text: widget.profile.nomineeCnic ?? "");
-    final relCtrl =
-        TextEditingController(text: widget.profile.nomineeRelation ?? "");
+    final kyc = ref.read(userKycProvider).valueOrNull;
+    final nameCtrl = TextEditingController(
+      text: _preferProfileThenKyc(widget.profile.nomineeName, kyc?.nomineeName) ??
+          "",
+    );
+    final cnicCtrl = TextEditingController(
+      text: _preferProfileThenKyc(
+            widget.profile.nomineeCnic,
+            kyc?.nomineeCnic,
+          ) ??
+          "",
+    );
+    final relCtrl = TextEditingController(
+      text: _preferProfileThenKyc(
+            widget.profile.nomineeRelation,
+            kyc?.nomineeRelation,
+          ) ??
+          "",
+    );
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -242,6 +279,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       ),
     );
 
+    final nomineeName = nameCtrl.text.trim();
+    final nomineeCnic = cnicCtrl.text.trim();
+    final nomineeRelation = relCtrl.text.trim();
     nameCtrl.dispose();
     cnicCtrl.dispose();
     relCtrl.dispose();
@@ -249,9 +289,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (confirmed != true || !mounted) return;
 
     await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-      "nomineeName": nameCtrl.text.trim(),
-      "nomineeCnic": cnicCtrl.text.trim(),
-      "nomineeRelation": relCtrl.text.trim(),
+      "nomineeName": nomineeName,
+      "nomineeCnic": nomineeCnic,
+      "nomineeRelation": nomineeRelation,
     });
 
     if (!mounted) return;
@@ -275,6 +315,32 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final updateState = ref.watch(profileUpdateProvider);
     final kycAsync = ref.watch(userKycProvider);
     final kycRecord = kycAsync.valueOrNull;
+    final displayPhone =
+        _preferProfileThenKyc(widget.profile.phone, kycRecord?.phone);
+    final displayCnic =
+        _preferProfileThenKyc(widget.profile.cnic, kycRecord?.cnicNumber);
+    final displayBankName =
+        _preferProfileThenKyc(widget.profile.bankName, kycRecord?.bankName);
+    final displayAccountNumber = _preferProfileThenKyc(
+      widget.profile.accountNumber,
+      kycRecord?.ibanOrAccountNumber,
+    );
+    final displayAccountTitle = _preferProfileThenKyc(
+      widget.profile.accountTitle,
+      kycRecord?.accountTitle,
+    );
+    final displayNomineeName = _preferProfileThenKyc(
+      widget.profile.nomineeName,
+      kycRecord?.nomineeName,
+    );
+    final displayNomineeCnic = _preferProfileThenKyc(
+      widget.profile.nomineeCnic,
+      kycRecord?.nomineeCnic,
+    );
+    final displayNomineeRelation = _preferProfileThenKyc(
+      widget.profile.nomineeRelation,
+      kycRecord?.nomineeRelation,
+    );
     final hasPasswordProvider = FirebaseAuth.instance.currentUser?.providerData
             .any((p) => p.providerId == "password") ??
         false;
@@ -297,7 +363,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   onPressed: () => setState(() {
                     _editing = false;
                     _nameCtrl.text = widget.profile.name;
-                    _phoneCtrl.text = widget.profile.phone ?? "";
+                    _phoneCtrl.text = displayPhone ?? "";
                   }),
                   child: Text(context.tr("cancel")),
                 ),
@@ -318,7 +384,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 ),
               ] else
                 OutlinedButton.icon(
-                  onPressed: () => setState(() => _editing = true),
+                  onPressed: () => setState(() {
+                    _nameCtrl.text = widget.profile.name;
+                    _phoneCtrl.text = displayPhone ?? "";
+                    _editing = true;
+                  }),
                   icon: const Icon(Icons.edit_rounded, size: 16),
                   label: Text(context.tr("edit_profile_btn")),
                   style: OutlinedButton.styleFrom(
@@ -366,12 +436,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                     )
                   : _ProfileFieldTile(
                       label: context.tr("profile_phone_number"),
-                      value: widget.profile.phone,
+                      value: displayPhone,
                     ),
               const Divider(height: 1),
               _ProfileFieldTile(
                 label: context.tr("cnic_label"),
-                value: widget.profile.cnic,
+                value: displayCnic,
                 locked: true,
               ),
               const Divider(height: 1),
@@ -405,15 +475,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             children: [
               _ProfileFieldTile(
                   label: context.tr("bank_name"),
-                  value: widget.profile.bankName),
+                  value: displayBankName),
               const Divider(height: 1),
               _ProfileFieldTile(
                   label: context.tr("account_number"),
-                  value: widget.profile.accountNumber),
+                  value: displayAccountNumber),
               const Divider(height: 1),
               _ProfileFieldTile(
                   label: context.tr("account_title"),
-                  value: widget.profile.accountTitle),
+                  value: displayAccountTitle),
             ],
           ),
           const SizedBox(height: 14),
@@ -436,15 +506,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             children: [
               _ProfileFieldTile(
                   label: context.tr("nominee_name"),
-                  value: widget.profile.nomineeName),
+                  value: displayNomineeName),
               const Divider(height: 1),
               _ProfileFieldTile(
                   label: context.tr("nominee_cnic"),
-                  value: widget.profile.nomineeCnic),
+                  value: displayNomineeCnic),
               const Divider(height: 1),
               _ProfileFieldTile(
                   label: context.tr("relationship"),
-                  value: widget.profile.nomineeRelation),
+                  value: displayNomineeRelation),
             ],
           ),
           const SizedBox(height: 14),
@@ -908,6 +978,33 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
   final _new = TextEditingController();
   final _confirm = TextEditingController();
   String? _localError;
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  InputDecoration _passwordFieldDecoration(
+    BuildContext context, {
+    required String labelText,
+    required bool obscure,
+    required VoidCallback onToggleVisibility,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      border: const OutlineInputBorder(),
+      isDense: true,
+      suffixIcon: IconButton(
+        tooltip: obscure
+            ? context.tr("password_visibility_show")
+            : context.tr("password_visibility_hide"),
+        icon: Icon(
+          obscure
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
+        ),
+        onPressed: onToggleVisibility,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -987,31 +1084,39 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                 ),
               TextField(
                 controller: _current,
-                obscureText: true,
-                decoration: InputDecoration(
+                obscureText: _obscureCurrent,
+                decoration: _passwordFieldDecoration(
+                  context,
                   labelText: context.tr("current_password_label"),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+                  obscure: _obscureCurrent,
+                  onToggleVisibility: () => setState(
+                    () => _obscureCurrent = !_obscureCurrent,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _new,
-                obscureText: true,
-                decoration: InputDecoration(
+                obscureText: _obscureNew,
+                decoration: _passwordFieldDecoration(
+                  context,
                   labelText: context.tr("new_password_label"),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+                  obscure: _obscureNew,
+                  onToggleVisibility: () =>
+                      setState(() => _obscureNew = !_obscureNew),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _confirm,
-                obscureText: true,
-                decoration: InputDecoration(
+                obscureText: _obscureConfirm,
+                decoration: _passwordFieldDecoration(
+                  context,
                   labelText: context.tr("confirm_password_label"),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+                  obscure: _obscureConfirm,
+                  onToggleVisibility: () => setState(
+                    () => _obscureConfirm = !_obscureConfirm,
+                  ),
                 ),
               ),
             ],

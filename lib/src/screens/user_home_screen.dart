@@ -335,6 +335,7 @@ class _AppDrawer extends ConsumerWidget {
       backgroundColor: scheme.surface,
       child: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               width: double.infinity,
@@ -389,71 +390,84 @@ class _AppDrawer extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            _DrawerItem(
-              icon: Icons.dashboard_outlined,
-              label: context.tr("drawer_dashboard"),
-              onTap: () {
-                Navigator.pop(context);
-              },
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: 8),
+                children: [
+                  _DrawerItem(
+                    icon: Icons.dashboard_outlined,
+                    label: context.tr("drawer_dashboard"),
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.person_outline_rounded,
+                    label: context.tr("qa_my_profile"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/profile");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.verified_user_outlined,
+                    label: context.tr("drawer_transparency"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/transparency");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.pie_chart,
+                    label: context.tr("drawer_portfolio"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/portfolio");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.show_chart_rounded,
+                    label: context.tr("drawer_kmi30_companies"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/market/kmi30-companies");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: context.tr("drawer_wallet"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/wallet-ledger");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.shield_outlined,
+                    label: context.tr("drawer_kyc"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/kyc");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.bar_chart_rounded,
+                    label: context.tr("drawer_reports"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/reports");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.notifications_outlined,
+                    label: context.tr("drawer_notifications"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/notifications");
+                    },
+                  ),
+                ],
+              ),
             ),
-            _DrawerItem(
-              icon: Icons.verified_user_outlined,
-              label: context.tr("drawer_transparency"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/transparency");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.pie_chart,
-              label: context.tr("drawer_portfolio"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/portfolio");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.show_chart_rounded,
-              label: context.tr("drawer_kmi30_companies"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/market/kmi30-companies");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.account_balance_wallet_outlined,
-              label: context.tr("drawer_wallet"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/wallet-ledger");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.shield_outlined,
-              label: context.tr("drawer_kyc"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/kyc");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.bar_chart_rounded,
-              label: context.tr("drawer_reports"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/reports");
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.notifications_outlined,
-              label: context.tr("drawer_notifications"),
-              onTap: () {
-                Navigator.pop(context);
-                context.push("/notifications");
-              },
-            ),
-            const Spacer(),
             const Divider(height: 1),
             _DrawerItem(
               icon: Icons.logout_rounded,
