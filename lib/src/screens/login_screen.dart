@@ -148,6 +148,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? context.tr("password_min_chars")
                                 : null,
                       ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton(
+                          onPressed: isLoading
+                              ? null
+                              : () => context.push("/forgot-password"),
+                          child: Text(context.tr("forgot_password_link")),
+                        ),
+                      ),
                       const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,

@@ -506,6 +506,14 @@ const _en = <String, String>{
   "enter_valid_email": "Enter valid email",
   "password_min_chars": "Minimum 6 characters",
   "login_btn": "Login",
+  "forgot_password_link": "Forgot password?",
+  "reset_password_title": "Reset password",
+  "reset_password_subtitle":
+      "Enter the email you used to register. If it is an email/password account, we will send reset instructions.",
+  "send_reset_link_btn": "Send reset link",
+  "reset_email_sent_message":
+      "If an account exists for this email, you will receive a message with reset instructions.",
+  "reset_back_to_sign_in": "Back to sign in",
   "create_new_account": "Create new account",
   "create_account_title": "Create Account",
   "create_your_account": "Create your account",
@@ -1081,6 +1089,14 @@ const _ur = <String, String>{
   "enter_valid_email": "درست ای میل درج کریں",
   "password_min_chars": "کم از کم 6 حروف",
   "login_btn": "لاگ ان",
+  "forgot_password_link": "پاس ورڈ بھول گئے؟",
+  "reset_password_title": "پاس ورڈ ری سیٹ",
+  "reset_password_subtitle":
+      "وہ ای میل درج کریں جس سے آپ نے رجسٹر کیا تھا۔ اگر یہ ای میل/پاس ورڈ اکاؤنٹ ہے تو ہم ری سیٹ کی ہدایات بھیجیں گے۔",
+  "send_reset_link_btn": "ری سیٹ لنک بھیجیں",
+  "reset_email_sent_message":
+      "اگر اس ای میل پر اکاؤنٹ ہے تو آپ کو ری سیٹ کی ہدایات والا پیغام ملے گا۔",
+  "reset_back_to_sign_in": "سائن ان پر واپس",
   "create_new_account": "نیا اکاؤنٹ بنائیں",
   "create_account_title": "اکاؤنٹ بنائیں",
   "create_your_account": "اپنا اکاؤنٹ بنائیں",

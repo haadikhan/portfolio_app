@@ -49,6 +49,25 @@ class AuthService {
     }
   }
 
+  /// Sends Firebase's password-reset email (email/password accounts only).
+  /// Completes without error for [user-not-found] to avoid email enumeration.
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      throw Exception(_messageForCode("invalid-email"));
+    }
+    try {
+      await _auth.sendPasswordResetEmail(email: trimmed);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == "user-not-found") {
+        return;
+      }
+      throw Exception(_messageForCode(e.code, fallback: e.message));
+    } catch (_) {
+      throw Exception("Unable to send reset email. Please try again.");
+    }
+  }
+
   /// Re-authenticates with the current email/password, then updates the password.
   /// Call only for users with the email/password provider linked.
   Future<void> changePassword({

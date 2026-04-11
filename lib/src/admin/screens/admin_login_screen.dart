@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/branding/brand_assets.dart";
+import "../../core/i18n/app_translations.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/design_system_widgets.dart";
 import "../../providers/auth_providers.dart";
@@ -143,6 +144,15 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                         ),
                         validator: (v) =>
                             (v == null || v.length < 6) ? "Min 6 characters" : null,
+                      ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton(
+                          onPressed: authBusy
+                              ? null
+                              : () => context.push("/forgot-password"),
+                          child: Text(context.tr("forgot_password_link")),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       FilledButton(

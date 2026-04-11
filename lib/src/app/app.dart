@@ -29,6 +29,7 @@ import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../screens/auth_gate_screen.dart";
 import "../screens/consent_gate_screen.dart";
 import "../screens/kyc_approved_gate_screen.dart";
+import "../screens/forgot_password_screen.dart";
 import "../screens/login_screen.dart";
 import "../screens/signup_screen.dart";
 
@@ -49,6 +50,10 @@ class WakalatInvestApp extends ConsumerWidget {
       routes: <RouteBase>[
         GoRoute(path: "/", builder: (_, __) => const AuthGateScreen()),
         GoRoute(path: "/login", builder: (_, __) => const LoginScreen()),
+        GoRoute(
+          path: "/forgot-password",
+          builder: (_, __) => const ForgotPasswordScreen(),
+        ),
         GoRoute(path: "/signup", builder: (_, __) => const SignupScreen()),
         GoRoute(path: "/home", redirect: (_, __) => "/investor"),
         GoRoute(path: "/landing", builder: (_, __) => const HomeScreen()),

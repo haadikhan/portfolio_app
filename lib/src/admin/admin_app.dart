@@ -18,6 +18,7 @@ import "screens/admin_investor_detail_screen.dart";
 import "screens/admin_investor_list_screen.dart";
 import "screens/admin_kyc_detail_screen.dart";
 import "screens/admin_kyc_list_screen.dart";
+import "../screens/forgot_password_screen.dart";
 import "screens/admin_login_screen.dart";
 import "screens/admin_broadcast_screen.dart";
 import "../features/notifications/presentation/notifications_screen.dart";
@@ -31,7 +32,7 @@ bool _crmMustRedirect(String loc) {
   if (loc.startsWith("/crm/team")) return true;
   if (loc.startsWith("/crm")) return false;
   if (loc.startsWith("/notifications")) return false;
-  if (loc == "/login") return false;
+  if (loc == "/login" || loc == "/forgot-password") return false;
   return true;
 }
 
@@ -65,10 +66,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final user = FirebaseAuth.instance.currentUser;
       final loc = state.matchedLocation;
-      final loggingIn = loc == "/login";
+      final atPublicAuth = loc == "/login" || loc == "/forgot-password";
 
       if (user == null) {
-        if (!loggingIn) return "/login";
+        if (!atPublicAuth) return "/login";
         return null;
       }
 
@@ -81,7 +82,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
         return "/login";
       }
 
-      if (loggingIn) {
+      if (atPublicAuth) {
         return role == "crm" ? "/crm" : "/dashboard";
       }
 
@@ -93,6 +94,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: "/login", builder: (_, __) => const AdminLoginScreen()),
+      GoRoute(
+        path: "/forgot-password",
+        builder: (_, __) => const ForgotPasswordScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => _RoleReadyGate(
           child: AdminShell(child: child),
