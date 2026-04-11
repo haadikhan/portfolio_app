@@ -1,0 +1,3 @@
+﻿# Bash on Vercel/Linux requires LF; Windows checkouts must not convert to CRLF.
+*.sh text eol=lf
+

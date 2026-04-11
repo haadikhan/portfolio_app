@@ -46,3 +46,4 @@ app.*.map.json
 
 # Created only by scripts/vercel_build.sh during Vercel builds
 /flutter_sdk/
+.vercel
