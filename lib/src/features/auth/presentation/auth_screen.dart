@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
@@ -18,6 +19,10 @@ class AuthScreen extends StatelessWidget {
           children: [
             Text(context.tr("phone_number")),
             TextField(
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               decoration: InputDecoration(hintText: context.tr("phone_hint")),
             ),
             const SizedBox(height: 12),

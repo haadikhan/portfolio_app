@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/i18n/app_translations.dart";
@@ -326,7 +327,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   ? _EditableField(
                       label: context.tr("profile_phone_number"),
                       controller: _phoneCtrl,
-                      keyboardType: TextInputType.phone,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                     )
                   : _ProfileFieldTile(
                       label: context.tr("profile_phone_number"),
@@ -726,11 +730,13 @@ class _EditableField extends StatelessWidget {
     required this.label,
     required this.controller,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final String label;
   final TextEditingController controller;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -739,6 +745,7 @@ class _EditableField extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(fontSize: 14, color: AppColors.heading),
         decoration: InputDecoration(
           labelText: label,
