@@ -8,6 +8,7 @@ import "../core/branding/brand_assets.dart";
 import "../core/theme/app_colors.dart";
 import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
+import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
@@ -476,8 +477,12 @@ class _AppDrawer extends ConsumerWidget {
               labelColor: AppColors.error,
               onTap: () async {
                 Navigator.pop(context);
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) context.go("/login");
+                try {
+                  await ref.read(authControllerProvider.notifier).logout();
+                  if (context.mounted) context.go("/login");
+                } catch (e) {
+                  if (context.mounted) await showAppErrorDialog(context, e);
+                }
               },
             ),
             const SizedBox(height: 8),

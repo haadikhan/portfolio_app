@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 
 import "../core/i18n/app_translations.dart";
 import "../core/theme/app_colors.dart";
+import "../core/widgets/app_error_dialog.dart";
 import "../providers/auth_providers.dart";
 
 /// Password reset via Firebase email link (email/password accounts).
@@ -20,7 +21,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _loading = false;
   bool _sent = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -32,7 +32,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
-      _error = null;
       _sent = false;
     });
     try {
@@ -46,10 +45,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = e.toString().replaceFirst(RegExp(r"^Exception:\s*"), "");
-      });
+      setState(() => _loading = false);
+      await showAppErrorDialog(context, e);
     }
   }
 
@@ -149,13 +146,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ? context.tr("enter_valid_email")
                     : null,
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _error!,
-              style: const TextStyle(color: AppColors.error),
-            ),
-          ],
           const SizedBox(height: 18),
           SizedBox(
             width: double.infinity,

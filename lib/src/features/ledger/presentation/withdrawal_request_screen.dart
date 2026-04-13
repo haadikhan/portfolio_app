@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
+import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/wallet_providers.dart";
 
@@ -34,9 +35,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
   Future<void> _submit() async {
     final parsed = double.tryParse(_amountController.text.trim());
     if (parsed == null || parsed <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("enter_valid_amount"))),
-      );
+      await showAppErrorMessageDialog(context, context.tr("enter_valid_amount"));
       return;
     }
 
@@ -44,14 +43,16 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
 
     final walletState = ref.read(userWalletStreamProvider);
     if (walletState.isLoading) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("wallet_balance_still_loading"))),
+      await showAppErrorMessageDialog(
+        context,
+        context.tr("wallet_balance_still_loading"),
       );
       return;
     }
     if (walletState.hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("wallet_balance_unavailable"))),
+      await showAppErrorMessageDialog(
+        context,
+        context.tr("wallet_balance_unavailable"),
       );
       return;
     }
@@ -60,8 +61,9 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     final availRaw = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
     final available = double.parse(availRaw.toStringAsFixed(2));
     if (amount > available) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("withdrawal_exceeds_available"))),
+      await showAppErrorMessageDialog(
+        context,
+        context.tr("withdrawal_exceeds_available"),
       );
       return;
     }
@@ -79,14 +81,10 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
       final text = _isInsufficientBalanceMessage(e.message)
           ? context.tr("withdrawal_exceeds_available")
           : (e.message?.trim().isNotEmpty == true ? e.message! : e.code);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text)),
-      );
+      await showAppErrorMessageDialog(context, text);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      await showAppErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

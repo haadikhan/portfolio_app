@@ -8,6 +8,7 @@ import "package:image_picker/image_picker.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
+import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/wallet_providers.dart";
@@ -83,8 +84,9 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyError(context, e.toString()))),
+      await showAppErrorMessageDialog(
+        context,
+        _friendlyError(context, e.toString()),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

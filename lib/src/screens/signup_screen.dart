@@ -3,8 +3,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../core/i18n/app_translations.dart";
-import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
+import "../core/widgets/app_error_dialog.dart";
+import "../providers/auth_providers.dart";
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -37,14 +38,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         );
     if (!mounted) return;
     final state = ref.read(authControllerProvider);
-    state.whenOrNull(
-      error: (error, _) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
-      },
-      data: (_) => context.go("/investor"),
-    );
+    if (state.hasError && state.error != null) {
+      await showAppErrorDialog(context, state.error!);
+      return;
+    }
+    if (state.hasValue) {
+      context.go("/investor");
+    }
   }
 
   @override
@@ -178,7 +178,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           if (authState.hasError) ...[
                             const SizedBox(height: 12),
                             Text(
-                              authState.error.toString(),
+                              formatAppErrorMessage(
+                                context,
+                                authState.error!,
+                              ),
                               style: const TextStyle(color: AppColors.error),
                             ),
                           ],

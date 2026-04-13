@@ -6,6 +6,7 @@ import "package:go_router/go_router.dart";
 import "../../core/branding/brand_assets.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../core/theme/app_colors.dart";
+import "../../core/widgets/app_error_dialog.dart";
 import "../../core/widgets/design_system_widgets.dart";
 import "../../providers/auth_providers.dart";
 import "../providers/admin_providers.dart";
@@ -56,26 +57,24 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         );
     if (!mounted) return;
     final s = ref.read(adminAuthControllerProvider);
-    if (s.hasError) {
-      s.whenOrNull(
-        error: (e, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString())),
-          );
-        },
-      );
+    if (s.hasError && s.error != null) {
+      await showAppErrorDialog(context, s.error!);
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final doc = await ref
-        .read(firebaseFirestoreProvider)
-        .collection("users")
-        .doc(user.uid)
-        .get();
-    final role = (doc.data()?["role"] as String? ?? "").toLowerCase();
-    if (!mounted) return;
-    context.go(role == "crm" ? "/crm" : "/dashboard");
+    try {
+      final doc = await ref
+          .read(firebaseFirestoreProvider)
+          .collection("users")
+          .doc(user.uid)
+          .get();
+      final role = (doc.data()?["role"] as String? ?? "").toLowerCase();
+      if (!mounted) return;
+      context.go(role == "crm" ? "/crm" : "/dashboard");
+    } catch (e) {
+      if (mounted) await showAppErrorDialog(context, e);
+    }
   }
 
   @override

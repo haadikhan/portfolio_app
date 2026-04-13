@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 
 import "../../../core/compliance/risk_disclaimer_prefs.dart";
 import "../../../core/i18n/app_translations.dart";
+import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../core/widgets/mandatory_risk_disclaimer_strip.dart";
 import "../../../providers/auth_providers.dart";
@@ -61,12 +62,8 @@ class _LegalConsentScreenState extends ConsumerState<LegalConsentScreen> {
     await ref.read(authControllerProvider.notifier).acceptConsent();
     if (!mounted) return;
     final state = ref.read(authControllerProvider);
-    if (state.hasError) {
-      state.whenOrNull(
-        error: (e, _) => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("$e"))),
-      );
+    if (state.hasError && state.error != null) {
+      await showAppErrorDialog(context, state.error!);
       return;
     }
     await markRiskDisclaimerSeen();
