@@ -3,8 +3,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../core/i18n/app_translations.dart";
-import "../providers/auth_providers.dart";
 import "../core/theme/app_colors.dart";
+import "../providers/auth_providers.dart";
+import "../services/auth_service.dart";
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,6 +27,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  String _authErrorLabel(Object error) {
+    if (error is TranslatedAuthException) {
+      return context.tr(error.trKey);
+    }
+    final s = error.toString();
+    if (s.startsWith("Exception: ")) {
+      return s.substring("Exception: ".length);
+    }
+    return s;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     await ref.read(authControllerProvider.notifier).login(
@@ -36,9 +48,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final state = ref.read(authControllerProvider);
     state.whenOrNull(
       error: (error, _) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_authErrorLabel(error))),
+        );
       },
       data: (_) => context.go("/investor"),
     );
@@ -174,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       if (authState.hasError) ...[
                         const SizedBox(height: 12),
                         Text(
-                          authState.error.toString(),
+                          _authErrorLabel(authState.error!),
                           style: const TextStyle(color: AppColors.error),
                         ),
                       ],

@@ -35,24 +35,23 @@ class DashboardStats {
 }
 
 /// Streams aggregated dashboard stats for the signed-in user.
-final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) async* {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) {
-    yield const DashboardStats();
-    return;
-  }
+final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) {
+  return authBoundFirestoreStream(
+    ref,
+    whenSignedOut: const DashboardStats(),
+    body: (user) => _dashboardStatsForUid(ref, user.uid),
+  );
+});
 
+Stream<DashboardStats> _dashboardStatsForUid(Ref ref, String uid) async* {
   final db = ref.read(firebaseFirestoreProvider);
 
-    // Stream transactions; fetch portfolio doc on each update
   final txnStream = db
       .collection("transactions")
       .where("userId", isEqualTo: uid)
       .snapshots();
 
-  // Merge both streams by listening to them reactively
   await for (final txnSnap in txnStream) {
-    // Compute ledger values from transactions
     double totalDeposited = 0;
     double totalWithdrawn = 0;
     double totalProfit = 0;
@@ -72,7 +71,6 @@ final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) async* {
       }
     }
 
-    // Try to read portfolio doc synchronously (one-shot)
     PortfolioModel? portfolio;
     try {
       final pDoc = await db.collection("portfolios").doc(uid).get();
@@ -98,21 +96,23 @@ final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) async* {
       portfolio: portfolio,
     );
   }
-});
+}
 
 /// Convenience: streams all returnHistory entries for the chart (ascending).
 final returnHistoryForChartProvider =
     StreamProvider<List<ReturnHistoryModel>>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value([]);
-  return ref
-      .read(firebaseFirestoreProvider)
-      .collection("portfolios")
-      .doc(uid)
-      .collection("returnHistory")
-      .orderBy("appliedAt", descending: false)
-      .snapshots()
-      .map((snap) => snap.docs
-          .map((d) => ReturnHistoryModel.fromMap(d.id, d.data()))
-          .toList());
+  return authBoundFirestoreStream<List<ReturnHistoryModel>>(
+    ref,
+    whenSignedOut: const [],
+    body: (user) => ref
+        .read(firebaseFirestoreProvider)
+        .collection("portfolios")
+        .doc(user.uid)
+        .collection("returnHistory")
+        .orderBy("appliedAt", descending: false)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => ReturnHistoryModel.fromMap(d.id, d.data()))
+            .toList()),
+  );
 });

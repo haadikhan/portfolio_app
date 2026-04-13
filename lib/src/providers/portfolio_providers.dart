@@ -111,15 +111,21 @@ final applyReturnProvider =
 
 /// Shortcut provider — streams the signed-in user's own portfolio.
 final myPortfolioProvider = StreamProvider<PortfolioModel?>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value(null);
-  return ref.read(portfolioServiceProvider).streamPortfolio(uid);
+  return authBoundFirestoreStream<PortfolioModel?>(
+    ref,
+    whenSignedOut: null,
+    body: (user) =>
+        ref.read(portfolioServiceProvider).streamPortfolio(user.uid),
+  );
 });
 
 /// Shortcut provider — streams the signed-in user's own return history.
 final myReturnHistoryProvider =
     StreamProvider<List<ReturnHistoryModel>>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value([]);
-  return ref.read(portfolioServiceProvider).streamReturnHistory(uid);
+  return authBoundFirestoreStream<List<ReturnHistoryModel>>(
+    ref,
+    whenSignedOut: const [],
+    body: (user) =>
+        ref.read(portfolioServiceProvider).streamReturnHistory(user.uid),
+  );
 });

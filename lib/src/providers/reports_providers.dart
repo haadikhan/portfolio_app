@@ -47,19 +47,22 @@ class ReportItem {
 
 /// Streams reports for the signed-in user (own reports + global "all" reports).
 final userReportsProvider = StreamProvider<List<ReportItem>>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value([]);
-  // Firestore doesn't support OR queries on different fields in one query,
-  // so we fetch all and filter client-side (report collection is typically small).
-  return ref
-      .read(firebaseFirestoreProvider)
-      .collection("reports")
-      .orderBy("createdAt", descending: true)
-      .snapshots()
-      .map((snap) {
-    return snap.docs
-        .map(ReportItem.fromDoc)
-        .where((r) => r.uid == null || r.uid == "all" || r.uid == uid)
-        .toList();
-  });
+  return authBoundFirestoreStream<List<ReportItem>>(
+    ref,
+    whenSignedOut: const [],
+    body: (user) {
+      final uid = user.uid;
+      return ref
+          .read(firebaseFirestoreProvider)
+          .collection("reports")
+          .orderBy("createdAt", descending: true)
+          .snapshots()
+          .map((snap) {
+        return snap.docs
+            .map(ReportItem.fromDoc)
+            .where((r) => r.uid == null || r.uid == "all" || r.uid == uid)
+            .toList();
+      });
+    },
+  );
 });

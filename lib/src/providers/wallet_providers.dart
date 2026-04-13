@@ -10,28 +10,28 @@ final walletLedgerFunctionsProvider = Provider<WalletLedgerFunctionsService>(
 
 /// Server-derived wallet projection for the signed-in user.
 final userWalletStreamProvider = StreamProvider<Map<String, dynamic>?>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) {
-    return Stream<Map<String, dynamic>?>.value(null);
-  }
-  return ref.read(firebaseFirestoreProvider).collection("wallets").doc(uid).snapshots().map(
-        (s) => s.exists ? s.data() : null,
-      );
+  return authBoundFirestoreStream<Map<String, dynamic>?>(
+    ref,
+    whenSignedOut: null,
+    body: (user) => ref.read(firebaseFirestoreProvider).collection("wallets").doc(user.uid).snapshots().map(
+          (s) => s.exists ? s.data() : null,
+        ),
+  );
 });
 
 /// Ledger entries for the signed-in user (newest first).
 final userTransactionsStreamProvider =
     StreamProvider<QuerySnapshot<Map<String, dynamic>>?>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) {
-    return Stream<QuerySnapshot<Map<String, dynamic>>?>.value(null);
-  }
-  return ref
-      .read(firebaseFirestoreProvider)
-      .collection("transactions")
-      .where("userId", isEqualTo: uid)
-      .orderBy("createdAt", descending: true)
-      .limit(100)
-      .snapshots()
-      .map((s) => s);
+  return authBoundFirestoreStream<QuerySnapshot<Map<String, dynamic>>?>(
+    ref,
+    whenSignedOut: null,
+    body: (user) => ref
+        .read(firebaseFirestoreProvider)
+        .collection("transactions")
+        .where("userId", isEqualTo: user.uid)
+        .orderBy("createdAt", descending: true)
+        .limit(100)
+        .snapshots()
+        .map((s) => s),
+  );
 });

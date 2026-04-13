@@ -1,5 +1,13 @@
 import "package:firebase_auth/firebase_auth.dart";
 
+/// Thrown from [AuthService.login] when the UI should show [trKey] via [AppTranslations].
+class TranslatedAuthException implements Exception {
+  const TranslatedAuthException(this.trKey);
+  final String trKey;
+  @override
+  String toString() => trKey;
+}
+
 class AuthService {
   AuthService(this._auth);
 
@@ -14,10 +22,12 @@ class AuthService {
     required String password,
   }) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
+      await credential.user?.getIdToken(true);
+      return credential;
     } on FirebaseAuthException catch (e) {
       throw Exception(_messageForCode(e.code, fallback: e.message));
     } catch (_) {
@@ -29,11 +39,32 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    final trimmed = email.trim();
     try {
-      return await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+      try {
+        // ignore: deprecated_member_use — intentional; see plan (enumeration protection may disable; fallback below).
+        final methods = await _auth.fetchSignInMethodsForEmail(trimmed);
+        if (methods.isEmpty) {
+          throw const TranslatedAuthException("login_no_account");
+        }
+        if (!methods.contains("password")) {
+          throw const TranslatedAuthException("login_wrong_provider");
+        }
+      } on TranslatedAuthException {
+        rethrow;
+      } catch (_) {
+        // fetchSignInMethods may fail when email enumeration protection is enabled —
+        // fall through to password sign-in (same behavior as before).
+      }
+
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: trimmed,
         password: password,
       );
+      await credential.user?.getIdToken(true);
+      return credential;
+    } on TranslatedAuthException {
+      rethrow;
     } on FirebaseAuthException catch (e) {
       throw Exception(_messageForCode(e.code, fallback: e.message));
     } catch (_) {

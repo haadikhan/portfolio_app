@@ -26,12 +26,14 @@ final adminRoleProvider = StreamProvider<String?>((ref) {
     if (user == null) {
       return Stream<String?>.value(null);
     }
-    return ref
-        .read(firebaseFirestoreProvider)
-        .collection("users")
-        .doc(user.uid)
-        .snapshots()
-        .map((d) => (d.data()?["role"] as String? ?? "").toLowerCase());
+    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+      return ref
+          .read(firebaseFirestoreProvider)
+          .collection("users")
+          .doc(user.uid)
+          .snapshots()
+          .map((d) => (d.data()?["role"] as String? ?? "").toLowerCase());
+    });
   });
 });
 
@@ -87,6 +89,7 @@ class AdminAuthController extends StateNotifier<AsyncValue<void>> {
         email: email.trim(),
         password: password,
       );
+      await cred.user?.getIdToken(true);
       final uid = cred.user?.uid;
       if (uid == null) throw Exception("Sign-in failed.");
       final doc = await _ref.read(firebaseFirestoreProvider).collection("users").doc(uid).get();

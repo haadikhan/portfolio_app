@@ -34,6 +34,32 @@ class FirestoreService {
     }
   }
 
+  /// After email/password sign-in, the Auth user exists before Firestore always honors
+  /// `request.auth` on reads. Retries a server [get] on [users] until rules accept it
+  /// (matches login → immediate navigation → `permission-denied` on listeners).
+  Future<void> waitUntilUserDocAccessible(User user) async {
+    for (var attempt = 0; attempt < 15; attempt++) {
+      await user.getIdToken(true);
+      try {
+        await _users.doc(user.uid).get(
+              const GetOptions(source: Source.server),
+            );
+        return;
+      } on FirebaseException catch (e) {
+        final retryable = e.code == "permission-denied" ||
+            e.code == "unavailable" ||
+            e.code == "deadline-exceeded";
+        if (retryable && attempt < 14) {
+          await Future<void>.delayed(
+            Duration(milliseconds: 50 * (attempt + 1)),
+          );
+          continue;
+        }
+        rethrow;
+      }
+    }
+  }
+
   Future<void> updateUserProfile({
     required String userId,
     required String name,

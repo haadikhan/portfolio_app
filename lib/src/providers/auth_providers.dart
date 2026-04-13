@@ -12,6 +12,7 @@ Future<void> _ensureProfileWithDiagnostics(
   User user,
 ) async {
   try {
+    await user.getIdToken(true);
     await firestore.ensureUserProfileFromAuthUser(user);
   } on FirebaseException catch (e) {
     final m = e.message?.trim();
@@ -41,14 +42,34 @@ final authStateProvider = StreamProvider<User?>(
   (ref) => ref.read(authServiceProvider).authStateChanges(),
 );
 
-/// Resolves after auth restores (e.g. app restart). Avoids reading `currentUser` too early.
+/// Only exposes a user after [authStateProvider] has emitted — never during `AsyncLoading`.
+/// Using [FirebaseAuth.currentUser] while the stream is still loading caused Firestore
+/// listeners (wallet, notifications) to attach with a UID before `request.auth` was ready
+/// (`permission-denied`), while a later refresh looked "already logged in".
 final currentUserProvider = Provider<User?>((ref) {
   final auth = ref.watch(authStateProvider);
-  return auth.maybeWhen(
+  return auth.when(
     data: (u) => u,
-    orElse: () => ref.read(firebaseAuthProvider).currentUser,
+    loading: () => null,
+    error: (_, __) => null,
   );
 });
+
+/// Re-subscribes on auth changes and awaits [User.getIdToken] before opening [body].
+/// Use for Firestore listeners keyed by UID so rules always see `request.auth` — avoids races
+/// where [authStateChanges] and [AuthService.login] interleave (wallet, notifications, etc.).
+Stream<T> authBoundFirestoreStream<T>(
+  Ref ref, {
+  required T whenSignedOut,
+  required Stream<T> Function(User user) body,
+}) {
+  return ref.read(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
+    if (user == null) return Stream<T>.value(whenSignedOut);
+    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+      return body(user);
+    });
+  });
+}
 
 /// Follows [authStateChanges] then the Firestore user doc so restarts still load profile + kycStatus.
 final userProfileProvider = StreamProvider<AppUser?>((ref) {
@@ -70,14 +91,18 @@ final userProfileProvider = StreamProvider<AppUser?>((ref) {
 final userKycProvider = StreamProvider<UserKycRecord?>((ref) {
   return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
     if (user == null) return Stream<UserKycRecord?>.value(null);
-    return ref.read(firestoreServiceProvider).streamUserKyc(user.uid);
+    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+      return ref.read(firestoreServiceProvider).streamUserKyc(user.uid);
+    });
   });
 });
 
 final consentAcceptedProvider = StreamProvider<bool>((ref) {
   return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
     if (user == null) return Stream<bool>.value(false);
-    return ref.read(firestoreServiceProvider).streamConsentAccepted(user.uid);
+    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+      return ref.read(firestoreServiceProvider).streamConsentAccepted(user.uid);
+    });
   });
 });
 
@@ -110,13 +135,19 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       if (trimmedName.isNotEmpty) {
         await _firestore.updateUserProfile(userId: createdUser.uid, name: trimmedName);
       }
+
+      await _firestore.waitUntilUserDocAccessible(createdUser);
     });
   }
 
   Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await _auth.login(email: email, password: password);
+      final credential = await _auth.login(email: email, password: password);
+      final u = credential.user;
+      if (u != null) {
+        await _firestore.waitUntilUserDocAccessible(u);
+      }
     });
   }
 

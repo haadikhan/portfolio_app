@@ -386,6 +386,10 @@ const _en = <String, String>{
   "request_deposit_title": "Request deposit",
   "request_withdrawal_title": "Request withdrawal",
   "enter_valid_amount": "Enter a valid amount.",
+  "withdrawal_exceeds_available":
+      "That amount is more than your available balance.",
+  "wallet_balance_still_loading": "Balance is still loading. Try again in a moment.",
+  "wallet_balance_unavailable": "Could not read your balance. Pull to refresh or try again.",
   "withdrawal_submitted": "Withdrawal request submitted.",
   "withdrawal_reserved_note":
       "Funds are reserved while your request is pending. An admin will approve and mark settlement when paid out.",
@@ -395,6 +399,10 @@ const _en = <String, String>{
   "reserved_pkrf": "Reserved: {amount} PKR",
   "wallet_prefix": "Wallet:",
   "sign_in": "Sign In",
+  "login_no_account":
+      "No account exists for this email. Create an account to continue.",
+  "login_wrong_provider":
+      "This email is registered with a different sign-in method. Use that method to sign in.",
   "sign_up": "Sign Up",
   "email": "Email",
   "password": "Password",
@@ -972,6 +980,12 @@ const _ur = <String, String>{
   "request_deposit_title": "جمع کی درخواست",
   "request_withdrawal_title": "نکاسی کی درخواست",
   "enter_valid_amount": "درست رقم درج کریں۔",
+  "withdrawal_exceeds_available":
+      "یہ رقم آپ کے دستیاب بیلنس سے زیادہ ہے۔",
+  "wallet_balance_still_loading":
+      "بیلنس ابھی لوڈ ہو رہا ہے۔ تھوڑی دیر بعد کوشش کریں۔",
+  "wallet_balance_unavailable":
+      "بیلنس نہیں پڑھا جا سکا۔ ریفریش کریں یا دوبارہ کوشش کریں۔",
   "withdrawal_submitted": "نکاسی کی درخواست جمع ہو گئی۔",
   "withdrawal_reserved_note":
       "درخواست زیر التواء رہتے ہوئے رقم محفوظ ہیں۔ ایڈمن منظوری دے گا۔",
@@ -981,6 +995,10 @@ const _ur = <String, String>{
   "reserved_pkrf": "محفوظ: {amount} PKR",
   "wallet_prefix": "والیٹ:",
   "sign_in": "سائن ان",
+  "login_no_account":
+      "اس ای میل پر کوئی اکاؤنٹ نہیں۔ جاری رکھنے کے لیے اکاؤنٹ بنائیں۔",
+  "login_wrong_provider":
+      "یہ ای میل کسی اور سائن ان طریقے سے رجسٹرڈ ہے۔ سائن ان کے لیے وہ طریقہ استعمال کریں۔",
   "sign_up": "سائن اپ",
   "email": "ای میل",
   "password": "پاس ورڈ",

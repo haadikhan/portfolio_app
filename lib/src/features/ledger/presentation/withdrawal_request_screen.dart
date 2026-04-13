@@ -1,3 +1,4 @@
+import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -24,11 +25,43 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     super.dispose();
   }
 
+  bool _isInsufficientBalanceMessage(String? message) {
+    if (message == null || message.isEmpty) return false;
+    final m = message.toLowerCase();
+    return m.contains("insufficient") && m.contains("balance");
+  }
+
   Future<void> _submit() async {
-    final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
+    final parsed = double.tryParse(_amountController.text.trim());
+    if (parsed == null || parsed <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr("enter_valid_amount"))),
+      );
+      return;
+    }
+
+    final amount = double.parse(parsed.toStringAsFixed(2));
+
+    final walletState = ref.read(userWalletStreamProvider);
+    if (walletState.isLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("wallet_balance_still_loading"))),
+      );
+      return;
+    }
+    if (walletState.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("wallet_balance_unavailable"))),
+      );
+      return;
+    }
+
+    final w = walletState.value;
+    final availRaw = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
+    final available = double.parse(availRaw.toStringAsFixed(2));
+    if (amount > available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("withdrawal_exceeds_available"))),
       );
       return;
     }
@@ -41,6 +74,14 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
         SnackBar(content: Text(context.tr("withdrawal_submitted"))),
       );
       context.pop();
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      final text = _isInsufficientBalanceMessage(e.message)
+          ? context.tr("withdrawal_exceeds_available")
+          : (e.message?.trim().isNotEmpty == true ? e.message! : e.code);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(text)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

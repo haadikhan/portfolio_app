@@ -66,17 +66,19 @@ class InvestorProfile {
 
 /// Streams the full investor profile for the signed-in user.
 final investorProfileProvider = StreamProvider<InvestorProfile?>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value(null);
-  return ref
-      .read(firebaseFirestoreProvider)
-      .collection("users")
-      .doc(uid)
-      .snapshots()
-      .map((snap) {
-    if (!snap.exists || snap.data() == null) return null;
-    return InvestorProfile.fromMap(uid, snap.data()!);
-  });
+  return authBoundFirestoreStream<InvestorProfile?>(
+    ref,
+    whenSignedOut: null,
+    body: (user) => ref
+        .read(firebaseFirestoreProvider)
+        .collection("users")
+        .doc(user.uid)
+        .snapshots()
+        .map((snap) {
+      if (!snap.exists || snap.data() == null) return null;
+      return InvestorProfile.fromMap(user.uid, snap.data()!);
+    }),
+  );
 });
 
 // ── Profile update notifier ───────────────────────────────────────────────────

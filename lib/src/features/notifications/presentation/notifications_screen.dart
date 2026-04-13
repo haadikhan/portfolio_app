@@ -29,6 +29,9 @@ class NotificationsScreen extends ConsumerWidget {
         ? Center(child: Text(context.tr("sign_in_required")))
         : async.when(
             data: (snap) {
+              if (snap == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
               if (snap.docs.isEmpty) {
                 return Center(child: Text(context.tr("notifications_empty")));
               }

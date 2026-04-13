@@ -52,13 +52,15 @@ class TxnItem {
 
 /// Streams all transactions for the signed-in user, newest first.
 final userTransactionItemsProvider = StreamProvider<List<TxnItem>>((ref) {
-  final uid = ref.watch(currentUserProvider)?.uid;
-  if (uid == null) return Stream.value([]);
-  return ref
-      .read(firebaseFirestoreProvider)
-      .collection("transactions")
-      .where("userId", isEqualTo: uid)
-      .orderBy("createdAt", descending: true)
-      .snapshots()
-      .map((snap) => snap.docs.map(TxnItem.fromDoc).toList());
+  return authBoundFirestoreStream<List<TxnItem>>(
+    ref,
+    whenSignedOut: const [],
+    body: (user) => ref
+        .read(firebaseFirestoreProvider)
+        .collection("transactions")
+        .where("userId", isEqualTo: user.uid)
+        .orderBy("createdAt", descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(TxnItem.fromDoc).toList()),
+  );
 });
