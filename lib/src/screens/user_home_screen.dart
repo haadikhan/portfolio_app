@@ -16,6 +16,12 @@ import "../providers/wallet_providers.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 
+/// Dashboard wallet card only: mask PKR amounts when [hide] is true.
+String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
+  if (hide) return "PKR ••••••";
+  return formattedIfVisible;
+}
+
 Color _actionButtonBg(BuildContext context, Color lightTint) {
   if (Theme.of(context).brightness == Brightness.dark) {
     return Color.alphaBlend(
@@ -90,6 +96,7 @@ class _DashboardView extends ConsumerStatefulWidget {
 
 class _DashboardViewState extends ConsumerState<_DashboardView> {
   bool _scheduledOneTimeDisclaimer = false;
+  bool _hideMoney = true;
 
   Future<void> _maybeShowOneTimeRiskDisclaimer() async {
     if (await hasSeenRiskDisclaimer()) return;
@@ -149,13 +156,21 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
                   const SizedBox(height: 20),
                   walletAsync.when(
                     loading: () => const _WalletCardSkeleton(),
-                    error: (e, _) => _WalletCard(wallet: null),
-                    data: (w) => _WalletCard(wallet: w),
+                    error: (e, _) => _WalletCard(
+                      wallet: null,
+                      hideMoney: _hideMoney,
+                      onToggleHideMoney: () =>
+                          setState(() => _hideMoney = !_hideMoney),
+                    ),
+                    data: (w) => _WalletCard(
+                      wallet: w,
+                      hideMoney: _hideMoney,
+                      onToggleHideMoney: () =>
+                          setState(() => _hideMoney = !_hideMoney),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  _SectionLabel(
-                    label: context.tr("quick_actions"),
-                  ),
+                  _SectionLabel(label: context.tr("quick_actions")),
                   const SizedBox(height: 12),
                   _QuickActions(profile: widget.profile),
                   const SizedBox(height: 28),
@@ -687,8 +702,14 @@ class _KycBanner extends StatelessWidget {
 // ─── Wallet hero card ────────────────────────────────────────────────────────
 
 class _WalletCard extends StatelessWidget {
-  const _WalletCard({required this.wallet});
+  const _WalletCard({
+    required this.wallet,
+    required this.hideMoney,
+    required this.onToggleHideMoney,
+  });
   final Map<String, dynamic>? wallet;
+  final bool hideMoney;
+  final VoidCallback onToggleHideMoney;
 
   @override
   Widget build(BuildContext context) {
@@ -699,8 +720,10 @@ class _WalletCard extends StatelessWidget {
     final tp = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0;
     final dash = context.tr("em_dash");
 
-    final depositedLabel =
-        context.tr("totals_line_deposited").replaceAll(":", "").trim();
+    final depositedLabel = context
+        .tr("totals_line_deposited")
+        .replaceAll(":", "")
+        .trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -763,15 +786,35 @@ class _WalletCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        context.tr("current_balance"),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          context.tr("current_balance"),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        tooltip: hideMoney
+                            ? context.tr("show_amounts")
+                            : context.tr("hide_amounts"),
+                        icon: Icon(
+                          hideMoney
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: Colors.white70,
+                          size: 22,
+                        ),
+                        onPressed: onToggleHideMoney,
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -809,7 +852,12 @@ class _WalletCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    wallet == null ? dash : _money.format(current),
+                    wallet == null
+                        ? dash
+                        : _dashboardMoneyDisplay(
+                            hideMoney,
+                            _money.format(current),
+                          ),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 30,
@@ -823,7 +871,12 @@ class _WalletCard extends StatelessWidget {
                       Expanded(
                         child: _WalletStat(
                           label: context.tr("available"),
-                          value: wallet == null ? dash : _money.format(avail),
+                          value: wallet == null
+                              ? dash
+                              : _dashboardMoneyDisplay(
+                                  hideMoney,
+                                  _money.format(avail),
+                                ),
                         ),
                       ),
                       Container(
@@ -834,7 +887,12 @@ class _WalletCard extends StatelessWidget {
                       Expanded(
                         child: _WalletStat(
                           label: context.tr("reserved"),
-                          value: wallet == null ? dash : _money.format(reserved),
+                          value: wallet == null
+                              ? dash
+                              : _dashboardMoneyDisplay(
+                                  hideMoney,
+                                  _money.format(reserved),
+                                ),
                           align: TextAlign.center,
                         ),
                       ),
@@ -846,7 +904,12 @@ class _WalletCard extends StatelessWidget {
                       Expanded(
                         child: _WalletStat(
                           label: depositedLabel,
-                          value: wallet == null ? dash : _money.format(td),
+                          value: wallet == null
+                              ? dash
+                              : _dashboardMoneyDisplay(
+                                  hideMoney,
+                                  _money.format(td),
+                                ),
                           align: TextAlign.right,
                         ),
                       ),
@@ -869,7 +932,7 @@ class _WalletCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           "${context.tr("profit_label")}: "
-                          "${wallet == null ? dash : _money.format(tp)}",
+                          "${wallet == null ? dash : _dashboardMoneyDisplay(hideMoney, _money.format(tp))}",
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -1097,32 +1160,40 @@ class _QuickAccessGrid extends StatelessWidget {
           label: context.tr("qa_portfolio"),
           icon: Icons.pie_chart_outline_rounded,
           watermark: Icons.pie_chart_rounded,
-          backgroundColor:
-              _quickAccessTileBg(context, AppColors.quickAccessPortfolio),
+          backgroundColor: _quickAccessTileBg(
+            context,
+            AppColors.quickAccessPortfolio,
+          ),
           onTap: () => context.push("/portfolio"),
         ),
         _QuickAccessTile(
           label: context.tr("qa_wallet"),
           icon: Icons.account_balance_wallet_rounded,
           watermark: Icons.account_balance_wallet_outlined,
-          backgroundColor:
-              _quickAccessTileBg(context, AppColors.quickAccessWallet),
+          backgroundColor: _quickAccessTileBg(
+            context,
+            AppColors.quickAccessWallet,
+          ),
           onTap: () => context.push("/wallet-ledger?tab=wallet"),
         ),
         _QuickAccessTile(
           label: context.tr("qa_transactions"),
           icon: Icons.swap_horiz_rounded,
           watermark: Icons.receipt_long_rounded,
-          backgroundColor:
-              _quickAccessTileBg(context, AppColors.quickAccessTransactions),
+          backgroundColor: _quickAccessTileBg(
+            context,
+            AppColors.quickAccessTransactions,
+          ),
           onTap: () => context.push("/wallet-ledger?tab=transactions"),
         ),
         _QuickAccessTile(
           label: context.tr("qa_my_profile"),
           icon: Icons.person_rounded,
           watermark: Icons.person_outline_rounded,
-          backgroundColor:
-              _quickAccessTileBg(context, AppColors.quickAccessProfile),
+          backgroundColor: _quickAccessTileBg(
+            context,
+            AppColors.quickAccessProfile,
+          ),
           onTap: () => context.push("/profile"),
         ),
       ],

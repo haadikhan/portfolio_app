@@ -1,13 +1,5 @@
 import "package:firebase_auth/firebase_auth.dart";
 
-/// Thrown from [AuthService.login] when the UI should show [trKey] via [AppTranslations].
-class TranslatedAuthException implements Exception {
-  const TranslatedAuthException(this.trKey);
-  final String trKey;
-  @override
-  String toString() => trKey;
-}
-
 class AuthService {
   AuthService(this._auth);
 
@@ -41,30 +33,15 @@ class AuthService {
   }) async {
     final trimmed = email.trim();
     try {
-      try {
-        // ignore: deprecated_member_use — intentional; see plan (enumeration protection may disable; fallback below).
-        final methods = await _auth.fetchSignInMethodsForEmail(trimmed);
-        if (methods.isEmpty) {
-          throw const TranslatedAuthException("login_no_account");
-        }
-        if (!methods.contains("password")) {
-          throw const TranslatedAuthException("login_wrong_provider");
-        }
-      } on TranslatedAuthException {
-        rethrow;
-      } catch (_) {
-        // fetchSignInMethods may fail when email enumeration protection is enabled —
-        // fall through to password sign-in (same behavior as before).
-      }
-
+      // Never call fetchSignInMethodsForEmail before sign-in: with Firebase email
+      // enumeration protection it often returns [] for real users, which made us show
+      // "no account" before wrong-password / invalid-credential could run.
       final credential = await _auth.signInWithEmailAndPassword(
         email: trimmed,
         password: password,
       );
       await credential.user?.getIdToken(true);
       return credential;
-    } on TranslatedAuthException {
-      rethrow;
     } on FirebaseAuthException catch (e) {
       throw Exception(_messageForCode(e.code, fallback: e.message));
     } catch (_) {
