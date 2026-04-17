@@ -33,6 +33,9 @@ import "../screens/kyc_approved_gate_screen.dart";
 import "../screens/forgot_password_screen.dart";
 import "../screens/login_screen.dart";
 import "../screens/signup_screen.dart";
+import "investor_shell_scaffold.dart";
+
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class WakalatInvestApp extends ConsumerWidget {
   const WakalatInvestApp({super.key, required this.config});
@@ -47,6 +50,7 @@ class WakalatInvestApp extends ConsumerWidget {
     final useUrduFont = locale.languageCode == "ur";
 
     final router = GoRouter(
+      navigatorKey: _rootNavigatorKey,
       initialLocation: "/",
       routes: <RouteBase>[
         GoRoute(path: "/", builder: (_, __) => const AuthGateScreen()),
@@ -61,20 +65,72 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(path: "/auth", builder: (_, __) => const AuthScreen()),
         GoRoute(path: "/kyc", builder: (_, __) => const KycScreen()),
         GoRoute(path: "/legal", builder: (_, __) => const LegalConsentScreen()),
-        GoRoute(
-          path: "/investor",
-          builder: (_, __) =>
-              const ConsentGateScreen(child: InvestorDashboardScreen()),
+        StatefulShellRoute.indexedStack(
+          builder: (BuildContext context, GoRouterState state,
+                  StatefulNavigationShell navigationShell) =>
+              InvestorShellWithConsent(navigationShell: navigationShell),
+          branches: <StatefulShellBranch>[
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: "/investor",
+                  builder: (_, __) => const InvestorDashboardScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: "/market/kmi30-companies",
+                  builder: (_, __) => const Kmi30CompaniesScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: "/wallet-ledger",
+                  builder: (_, state) {
+                    final tab = state.uri.queryParameters["tab"];
+                    final initialTab = switch (tab) {
+                      "transactions" => 1,
+                      "history" => 2,
+                      "wallet" => 0,
+                      _ => 0,
+                    };
+                    return KycApprovedGateScreen(
+                      featureName: "wallet and withdrawals",
+                      child: WalletLedgerScreen(initialTabIndex: initialTab),
+                    );
+                  },
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: "/profile",
+                  builder: (_, __) => const InvestorProfileScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: "/reports",
+                  builder: (_, __) => const KycApprovedGateScreen(
+                    featureName: "reports",
+                    child: ReportsScreen(),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         GoRoute(
           path: "/transparency",
           builder: (_, __) =>
               const ConsentGateScreen(child: TransparencyHubScreen()),
-        ),
-        GoRoute(
-          path: "/profile",
-          builder: (_, __) =>
-              const ConsentGateScreen(child: InvestorProfileScreen()),
         ),
         GoRoute(
           path: "/portfolio",
@@ -84,23 +140,8 @@ class WakalatInvestApp extends ConsumerWidget {
           ),
         ),
         GoRoute(
-          path: "/wallet-ledger",
-          builder: (_, state) {
-            final tab = state.uri.queryParameters["tab"];
-            final initialTab = switch (tab) {
-              "transactions" => 1,
-              "history" => 2,
-              "wallet" => 0,
-              _ => 0,
-            };
-            return KycApprovedGateScreen(
-              featureName: "wallet and withdrawals",
-              child: WalletLedgerScreen(initialTabIndex: initialTab),
-            );
-          },
-        ),
-        GoRoute(
           path: "/wallet-ledger/deposit",
+          parentNavigatorKey: _rootNavigatorKey,
           builder: (_, __) => const KycApprovedGateScreen(
             featureName: "deposits",
             child: DepositRequestScreen(),
@@ -108,16 +149,10 @@ class WakalatInvestApp extends ConsumerWidget {
         ),
         GoRoute(
           path: "/wallet-ledger/withdraw",
+          parentNavigatorKey: _rootNavigatorKey,
           builder: (_, __) => const KycApprovedGateScreen(
             featureName: "withdrawals",
             child: WithdrawalRequestScreen(),
-          ),
-        ),
-        GoRoute(
-          path: "/reports",
-          builder: (_, __) => const KycApprovedGateScreen(
-            featureName: "reports",
-            child: ReportsScreen(),
           ),
         ),
         GoRoute(
@@ -132,17 +167,14 @@ class WakalatInvestApp extends ConsumerWidget {
           builder: (_, __) => const ConsentGateScreen(child: MarketOverviewScreen()),
         ),
         GoRoute(
-          path: "/market/kmi30-companies",
-          builder: (_, __) =>
-              const ConsentGateScreen(child: Kmi30CompaniesScreen()),
-        ),
-        GoRoute(
           path: "/market/gold",
+          parentNavigatorKey: _rootNavigatorKey,
           builder: (_, __) =>
               const ConsentGateScreen(child: GoldPriceChartScreen()),
         ),
         GoRoute(
           path: "/market/kmi30-companies/:symbol",
+          parentNavigatorKey: _rootNavigatorKey,
           builder: (_, state) => ConsentGateScreen(
             child: Kmi30CompanyChartScreen(
               symbol: (state.pathParameters["symbol"] ?? "").trim().toUpperCase(),
