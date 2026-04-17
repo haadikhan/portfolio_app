@@ -269,7 +269,8 @@ const _en = <String, String>{
       "Past performance is not indicative of future results. Figures are compiled for transparency; they are not a promise of profit.",
   "performance_total_return": "Illustrative total return",
   "performance_net_gain": "Illustrative net change (PKR)",
-  "performance_illustrative_monthly": "Illustrative growth of reference portfolio (PKR)",
+  "performance_illustrative_monthly":
+      "Illustrative growth of reference portfolio (PKR)",
   "transparency_past_performance_warning":
       "Past performance does not guarantee future results.",
   "continue_btn": "Continue",
@@ -392,8 +393,10 @@ const _en = <String, String>{
   "enter_valid_amount": "Enter a valid amount.",
   "withdrawal_exceeds_available":
       "That amount is more than your available balance.",
-  "wallet_balance_still_loading": "Balance is still loading. Try again in a moment.",
-  "wallet_balance_unavailable": "Could not read your balance. Pull to refresh or try again.",
+  "wallet_balance_still_loading":
+      "Balance is still loading. Try again in a moment.",
+  "wallet_balance_unavailable":
+      "Could not read your balance. Pull to refresh or try again.",
   "withdrawal_submitted": "Withdrawal request submitted.",
   "withdrawal_reserved_note":
       "Funds are reserved while your request is pending. An admin will approve and mark settlement when paid out.",
@@ -594,6 +597,18 @@ const _en = <String, String>{
   "kmi30_companies_title": "KMI30 companies",
   "kmi30_search_hint": "Search by symbol or name",
   "kmi30_no_companies": "No matching KMI30 companies.",
+  "gold_prices_title": "Gold prices",
+  "gold_price_xau_usd": "XAU/USD",
+  "gold_price_xau_pkr": "XAU/PKR",
+  "gold_last_updated": "Last updated",
+  "gold_refresh": "Refresh gold prices",
+  "gold_unavailable": "Gold prices are currently unavailable.",
+  "gold_detail_title": "Gold spot & chart",
+  "gold_spot_feed_status":
+      "Spot gold (PAXG) — bars from Binance; PKR uses current USD/PKR.",
+  "gold_spot_disclaimer":
+      "Prices are indicative. USD/PKR is applied to convert PAXG (USD) to PKR.",
+  "gold_spot_only_stats": "Spot quote",
   "market_high_optional": "High (optional)",
   "market_low_optional": "Low (optional)",
   "admin_market_title": "Market index administration",
@@ -825,8 +840,7 @@ const _ur = <String, String>{
   "legal_para_7": "ہم KYC اور رضامندی کے لیے بہترین طریقے اختیار کرتے ہیں۔",
   "legal_accept":
       "میں تازہ دستبرداری اور خطرے کی وضاحت سمجھتا/سمجھتی ہوں اور قبول کرتا/کرتی ہوں۔",
-  "legal_scroll_hint":
-      "قبولیت فعال کرنے کے لیے براہ کرم آخر تک سکرول کریں۔",
+  "legal_scroll_hint": "قبولیت فعال کرنے کے لیے براہ کرم آخر تک سکرول کریں۔",
   "mandatory_disclaimer_heading": "خطرے کی وضاحت",
   "mandatory_disclaimer_line_1":
       "یہ نجی سرمایہ کاری ٹریکنگ پلیٹ فارم ہے۔ یہ نظام حقیقی فنڈز منظم نہیں کرتا اور نہ ہی تجارت چلاتا ہے۔",
@@ -955,8 +969,7 @@ const _ur = <String, String>{
       "پاسپورٹ کا سامنے اور پیچھے دونوں اپ لوڈ کریں۔",
   "kyc_payment_proof_business_required":
       "کاروبار ملکیت کی دستاویز اپ لوڈ کریں۔",
-  "kyc_payment_proof_inheritance_required":
-      "وراثتی دستاویزات اپ لوڈ کریں۔",
+  "kyc_payment_proof_inheritance_required": "وراثتی دستاویزات اپ لوڈ کریں۔",
   "wallet_ledger_title": "والیٹ اور لیجر",
   "ledger_tab_wallet": "والیٹ",
   "ledger_tab_transactions": "لین دین",
@@ -988,8 +1001,7 @@ const _ur = <String, String>{
   "request_deposit_title": "جمع کی درخواست",
   "request_withdrawal_title": "نکاسی کی درخواست",
   "enter_valid_amount": "درست رقم درج کریں۔",
-  "withdrawal_exceeds_available":
-      "یہ رقم آپ کے دستیاب بیلنس سے زیادہ ہے۔",
+  "withdrawal_exceeds_available": "یہ رقم آپ کے دستیاب بیلنس سے زیادہ ہے۔",
   "wallet_balance_still_loading":
       "بیلنس ابھی لوڈ ہو رہا ہے۔ تھوڑی دیر بعد کوشش کریں۔",
   "wallet_balance_unavailable":
@@ -1186,11 +1198,24 @@ const _ur = <String, String>{
   "market_ws_disconnected": "لائیو منقطع",
   "market_ws_reconnecting": "لائیو فیڈ دوبارہ جوڑ رہے ہیں",
   "market_ws_live_disclaimer": "ویب ساکٹ لائیو اسٹریمنگ - تاخیر ممکن ہے",
-  "market_tick_fallback_used": "عارضی طور پر REST فال بیک ٹک استعمال ہو رہا ہے۔",
+  "market_tick_fallback_used":
+      "عارضی طور پر REST فال بیک ٹک استعمال ہو رہا ہے۔",
   "market_live_fetch_failed": "لائیو مارکیٹ حاصل نہ ہو سکی۔ ریفریش کریں۔",
   "kmi30_companies_title": "KMI30 کمپنیاں",
   "kmi30_search_hint": "سمبل یا نام سے تلاش کریں",
   "kmi30_no_companies": "کوئی مماثل KMI30 کمپنی نہیں۔",
+  "gold_prices_title": "سونے کی قیمتیں",
+  "gold_price_xau_usd": "XAU/USD",
+  "gold_price_xau_pkr": "XAU/PKR",
+  "gold_last_updated": "آخری اپ ڈیٹ",
+  "gold_refresh": "سونے کی قیمتیں ریفریش کریں",
+  "gold_unavailable": "فی الحال سونے کی قیمتیں دستیاب نہیں۔",
+  "gold_detail_title": "سونا — اسپاٹ اور چارٹ",
+  "gold_spot_feed_status":
+      "اسپاٹ سونا (PAXG) — Binance سے بارز؛ PKR کے لیے موجودہ USD/PKR۔",
+  "gold_spot_disclaimer":
+      "قیمتیں اشارتی ہیں۔ PAXG (USD) کو PKR میں بدلنے کے لیے USD/PKR لگایا گیا ہے۔",
+  "gold_spot_only_stats": "اسپاٹ کوٹ",
   "market_high_optional": "ہائی (اختیاری)",
   "market_low_optional": "لو (اختیاری)",
   "admin_market_title": "مارکیٹ انڈیکس انتظام",

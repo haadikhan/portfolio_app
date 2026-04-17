@@ -22,6 +22,7 @@ import "../features/ledger/presentation/wallet_ledger_screen.dart";
 import "../features/ledger/presentation/withdrawal_request_screen.dart";
 import "../features/notifications/presentation/notifications_screen.dart";
 import "../features/market/presentation/market_overview_screen.dart";
+import "../features/market/presentation/gold_price_chart_screen.dart";
 import "../features/market/presentation/kmi30_companies_screen.dart";
 import "../features/market/presentation/kmi30_company_chart_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
@@ -134,6 +135,11 @@ class WakalatInvestApp extends ConsumerWidget {
           path: "/market/kmi30-companies",
           builder: (_, __) =>
               const ConsentGateScreen(child: Kmi30CompaniesScreen()),
+        ),
+        GoRoute(
+          path: "/market/gold",
+          builder: (_, __) =>
+              const ConsentGateScreen(child: GoldPriceChartScreen()),
         ),
         GoRoute(
           path: "/market/kmi30-companies/:symbol",
