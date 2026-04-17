@@ -35,7 +35,7 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
     final effectiveTick = liveTick ?? restTick;
 
     return AppScaffold(
-      title: "KMI30 • $symbol",
+      title: context.trParams("kmi30_chart_app_bar", {"symbol": symbol}),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(kmi30RestTickProvider(symbol));
