@@ -3,19 +3,26 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../features/notifications/providers/notification_providers.dart";
+import "../../providers/auth_providers.dart";
 import "../i18n/app_translations.dart";
 import "../i18n/language_provider.dart";
+import "../theme/app_colors.dart";
 import "../theme/theme_provider.dart";
+import "app_error_dialog.dart";
 
 /// Notifications shortcut plus theme and language controls for app bars.
 class AppBarPreferenceActions extends ConsumerWidget {
   const AppBarPreferenceActions({
     super.key,
     this.showNotificationAction = true,
+    this.showLogoutAction = true,
   });
 
   /// When false, hides the investor notifications shortcut (e.g. admin-only screens).
   final bool showNotificationAction;
+
+  /// When false, hides logout (e.g. admin app bar already has a dedicated sign-out control).
+  final bool showLogoutAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,6 +49,19 @@ class AppBarPreferenceActions extends ConsumerWidget {
             ref.read(languageProvider.notifier).setLanguage(next);
           },
         ),
+        if (showLogoutAction)
+          IconButton(
+            tooltip: context.tr("drawer_logout"),
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            onPressed: () async {
+              try {
+                await ref.read(authControllerProvider.notifier).logout();
+                if (context.mounted) context.go("/login");
+              } catch (e) {
+                if (context.mounted) await showAppErrorDialog(context, e);
+              }
+            },
+          ),
       ],
     );
   }

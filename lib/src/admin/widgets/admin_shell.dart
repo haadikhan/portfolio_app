@@ -337,7 +337,10 @@ class AdminShell extends ConsumerWidget {
                   );
                 },
               ),
-              const AppBarPreferenceActions(showNotificationAction: false),
+              const AppBarPreferenceActions(
+                showNotificationAction: false,
+                showLogoutAction: false,
+              ),
               TextButton(
                 onPressed: () async {
                   await ref

@@ -259,15 +259,6 @@ class _DashboardAppBar extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final onSurface = scheme.onSurface;
     final muted = scheme.onSurfaceVariant;
-    final initials = profile.name.isNotEmpty
-        ? profile.name
-              .trim()
-              .split(" ")
-              .map((w) => w[0].toUpperCase())
-              .take(2)
-              .join()
-        : "?";
-
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
@@ -309,21 +300,9 @@ class _DashboardAppBar extends ConsumerWidget {
           ),
         ],
       ),
-      actions: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: scheme.primary,
-          child: Text(
-            initials,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const AppBarPreferenceActions(),
-        const SizedBox(width: 8),
+      actions: const [
+        AppBarPreferenceActions(),
+        SizedBox(width: 8),
       ],
     );
   }
