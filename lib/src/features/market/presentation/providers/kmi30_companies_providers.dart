@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../data/gold_units.dart";
 import "../../data/kmi30_seed_companies.dart";
 import "../../data/models/gold_price_quote.dart";
 import "../../data/models/kmi30_bar.dart";
@@ -100,6 +101,11 @@ final selectedCompanyRestFallbackTickProvider =
     });
 
 // ─── Gold spot (KMI30 screen only) ─────────────────────────────────────────
+
+/// PKR line: per troy oz (international) vs per Pakistani tola (11.664 g).
+final goldPkrUnitProvider = StateProvider<GoldPkrUnit>(
+  (_) => GoldPkrUnit.tola,
+);
 
 final goldPriceRepositoryProvider = Provider<GoldPriceRepository>((ref) {
   final repo = GoldPriceRepository();

@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "../../../../core/i18n/app_translations.dart";
+import "../../data/gold_units.dart";
 import "../providers/kmi30_companies_providers.dart";
 
 /// Dashboard-style card for spot gold (USD/oz) and PKR conversion (KMI30 screen only).
@@ -27,6 +28,8 @@ class GoldPriceCard extends ConsumerWidget {
     final hasError = quote == null && (live.hasError || initial.hasError);
     final scheme = Theme.of(context).colorScheme;
     final onSurface = scheme.onSurface;
+    final pkrUnit = ref.watch(goldPkrUnitProvider);
+    final pkrFactor = goldPkrDisplayFactor(pkrUnit);
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -77,6 +80,31 @@ class GoldPriceCard extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  SegmentedButton<GoldPkrUnit>(
+                    segments: [
+                      ButtonSegment(
+                        value: GoldPkrUnit.tola,
+                        label: Text(context.tr("gold_unit_tola")),
+                      ),
+                      ButtonSegment(
+                        value: GoldPkrUnit.troyOz,
+                        label: Text(context.tr("gold_unit_troy_oz")),
+                      ),
+                    ],
+                    selected: {pkrUnit},
+                    onSelectionChanged: (s) => ref
+                        .read(goldPkrUnitProvider.notifier)
+                        .state = s.first,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr("gold_unit_hint"),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                  ),
                   const SizedBox(height: 8),
                   _ValueLine(
                     label: context.tr("gold_price_xau_usd"),
@@ -85,8 +113,10 @@ class GoldPriceCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   _ValueLine(
-                    label: context.tr("gold_price_xau_pkr"),
-                    value: _pkr.format(quote.xauPkr),
+                    label: pkrUnit == GoldPkrUnit.tola
+                        ? context.tr("gold_price_pkr_per_tola")
+                        : context.tr("gold_price_xau_pkr"),
+                    value: _pkr.format(quote.xauPkr * pkrFactor),
                     color: onSurface,
                   ),
                   const SizedBox(height: 6),

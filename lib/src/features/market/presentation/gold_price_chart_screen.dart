@@ -4,6 +4,7 @@ import "package:intl/intl.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../data/gold_units.dart";
 import "../data/models/gold_price_quote.dart";
 import "../data/models/kmi30_bar.dart";
 import "providers/kmi30_companies_providers.dart";
@@ -23,6 +24,8 @@ class GoldPriceChartScreen extends ConsumerWidget {
     final fallback = ref.watch(goldPriceLastKnownProvider);
     final quote = live.valueOrNull ?? initial.valueOrNull ?? fallback;
     final klinesAsync = ref.watch(goldDetailKlinesProvider);
+    final pkrUnit = ref.watch(goldPkrUnitProvider);
+    final pkrFactor = goldPkrDisplayFactor(pkrUnit);
 
     final money = NumberFormat.decimalPatternDigits(decimalDigits: 2);
 
@@ -66,14 +69,39 @@ class GoldPriceChartScreen extends ConsumerWidget {
               context.tr("gold_spot_disclaimer"),
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            const SizedBox(height: 10),
+            SegmentedButton<GoldPkrUnit>(
+              segments: [
+                ButtonSegment(
+                  value: GoldPkrUnit.tola,
+                  label: Text(context.tr("gold_unit_tola")),
+                ),
+                ButtonSegment(
+                  value: GoldPkrUnit.troyOz,
+                  label: Text(context.tr("gold_unit_troy_oz")),
+                ),
+              ],
+              selected: {pkrUnit},
+              onSelectionChanged: (s) =>
+                  ref.read(goldPkrUnitProvider.notifier).state = s.first,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              context.tr("gold_unit_hint"),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
             const SizedBox(height: 12),
             Builder(
               builder: (context) {
-                final chartBars =
+                final rawBars =
                     klinesAsync.valueOrNull ?? const <Kmi30Bar>[];
+                final chartBars = scaleGoldBarsPkr(rawBars, pkrFactor);
                 final dailyBars =
                     tf.toLowerCase() == "1d" ? chartBars : const <Kmi30Bar>[];
-                final hasAny = quote != null || chartBars.isNotEmpty;
+                final hasAny = quote != null || rawBars.isNotEmpty;
 
                 if (quote == null && klinesAsync.isLoading && !hasAny) {
                   return const Padding(
@@ -81,7 +109,7 @@ class GoldPriceChartScreen extends ConsumerWidget {
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                if (quote == null && klinesAsync.hasError && chartBars.isEmpty) {
+                if (quote == null && klinesAsync.hasError && rawBars.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
@@ -92,7 +120,7 @@ class GoldPriceChartScreen extends ConsumerWidget {
                     ),
                   );
                 }
-                if (klinesAsync.hasError && chartBars.isEmpty && quote == null) {
+                if (klinesAsync.hasError && rawBars.isEmpty && quote == null) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
@@ -109,6 +137,7 @@ class GoldPriceChartScreen extends ConsumerWidget {
                   chartBars: chartBars,
                   dailyBars: dailyBars,
                   money: money,
+                  pkrDisplayFactor: pkrFactor,
                 );
               },
             ),
@@ -159,9 +188,10 @@ class GoldPriceChartScreen extends ConsumerWidget {
                   if (bars.isEmpty) {
                     return Center(child: Text(context.tr("market_no_data")));
                   }
+                  final displayBars = scaleGoldBarsPkr(bars, pkrFactor);
                   return chartType == "candle"
-                      ? CandleChartView(bars: bars)
-                      : Kmi30LineChart(bars: bars, timeframe: tf);
+                      ? CandleChartView(bars: displayBars)
+                      : Kmi30LineChart(bars: displayBars, timeframe: tf);
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
@@ -183,6 +213,7 @@ class _GoldSummaryCard extends StatelessWidget {
     required this.chartBars,
     required this.dailyBars,
     required this.money,
+    required this.pkrDisplayFactor,
   });
 
   final GoldPriceQuote? quote;
@@ -190,6 +221,7 @@ class _GoldSummaryCard extends StatelessWidget {
   final List<Kmi30Bar> chartBars;
   final List<Kmi30Bar> dailyBars;
   final NumberFormat money;
+  final double pkrDisplayFactor;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +232,7 @@ class _GoldSummaryCard extends StatelessWidget {
 
     final double lastPrice;
     if (quote != null && quote!.xauPkr > 0) {
-      lastPrice = quote!.xauPkr;
+      lastPrice = quote!.xauPkr * pkrDisplayFactor;
     } else if (lastBar != null) {
       lastPrice = lastBar.close;
     } else {
@@ -250,10 +282,11 @@ class _GoldSummaryCard extends StatelessWidget {
       }
     } else if (quote != null) {
       periodLabel = context.tr("gold_spot_only_stats");
-      openVal = quote!.xauPkr;
-      highVal = quote!.xauPkr;
-      lowVal = quote!.xauPkr;
-      closeVal = quote!.xauPkr;
+      final q = quote!.xauPkr * pkrDisplayFactor;
+      openVal = q;
+      highVal = q;
+      lowVal = q;
+      closeVal = q;
       changePct = 0;
     } else {
       return const SizedBox.shrink();

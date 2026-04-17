@@ -609,6 +609,10 @@ const _en = <String, String>{
   "gold_spot_disclaimer":
       "Prices are indicative. USD/PKR is applied to convert PAXG (USD) to PKR.",
   "gold_spot_only_stats": "Spot quote",
+  "gold_unit_troy_oz": "Per oz",
+  "gold_unit_tola": "Per tola",
+  "gold_price_pkr_per_tola": "PKR / tola",
+  "gold_unit_hint": "1 Pakistani tola = 11.664 g (PKR shown for selected unit).",
   "market_high_optional": "High (optional)",
   "market_low_optional": "Low (optional)",
   "admin_market_title": "Market index administration",
@@ -1216,6 +1220,10 @@ const _ur = <String, String>{
   "gold_spot_disclaimer":
       "قیمتیں اشارتی ہیں۔ PAXG (USD) کو PKR میں بدلنے کے لیے USD/PKR لگایا گیا ہے۔",
   "gold_spot_only_stats": "اسپاٹ کوٹ",
+  "gold_unit_troy_oz": "فی اونس",
+  "gold_unit_tola": "فی تولہ",
+  "gold_price_pkr_per_tola": "PKR / تولہ",
+  "gold_unit_hint": "1 پاکستانی تولہ = 11.664 گرام (PKR منتخب اکائی کے مطابق)۔",
   "market_high_optional": "ہائی (اختیاری)",
   "market_low_optional": "لو (اختیاری)",
   "admin_market_title": "مارکیٹ انڈیکس انتظام",
