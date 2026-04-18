@@ -7,6 +7,7 @@ import "package:intl/intl.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../investment/data/allocation_money_market.dart";
 import "../../../providers/wallet_providers.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
@@ -175,7 +176,12 @@ class _WalletTab extends ConsumerWidget {
                   ),
                 );
               }
-              final current = (w["currentBalance"] as num?)?.toDouble() ?? 0;
+              final allocationTotalPkr = (w["availableBalance"] as num?)
+                      ?.toDouble() ??
+                  (w["currentBalance"] as num?)?.toDouble() ??
+                  0;
+              final moneyMarketPkr =
+                  moneyMarketAmountFromAllocationTotal(allocationTotalPkr);
               final avail =
                   (w["availableBalance"] as num?)?.toDouble() ?? 0;
               final reserved =
@@ -184,6 +190,7 @@ class _WalletTab extends ConsumerWidget {
               final tw = (w["totalWithdrawn"] as num?)?.toDouble() ?? 0;
               final tp = (w["totalProfit"] as num?)?.toDouble() ?? 0;
               final ta = (w["totalAdjustments"] as num?)?.toDouble() ?? 0;
+              final totalAllocationLine = _money.format(allocationTotalPkr);
 
               return Container(
                 padding: const EdgeInsets.all(20),
@@ -206,7 +213,7 @@ class _WalletTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr("current_balance"),
+                      context.tr("money_market_withdrawable_label"),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -215,12 +222,21 @@ class _WalletTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _money.format(current),
+                      _money.format(moneyMarketPkr),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "${context.tr("total_investment_label")}: $totalAllocationLine",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 16),

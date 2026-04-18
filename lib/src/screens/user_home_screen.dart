@@ -10,6 +10,7 @@ import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
 import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
+import "../features/investment/data/allocation_money_market.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
 import "../providers/wallet_providers.dart";
@@ -680,7 +681,7 @@ class _KycBanner extends StatelessWidget {
 
 // ─── Wallet hero card ────────────────────────────────────────────────────────
 
-class _WalletCard extends StatelessWidget {
+class _WalletCard extends ConsumerWidget {
   const _WalletCard({
     required this.wallet,
     required this.hideMoney,
@@ -691,8 +692,14 @@ class _WalletCard extends StatelessWidget {
   final VoidCallback onToggleHideMoney;
 
   @override
-  Widget build(BuildContext context) {
-    final current = (wallet?["currentBalance"] as num?)?.toDouble() ?? 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allocationTotalPkr = wallet == null
+        ? 0.0
+        : ((wallet!["availableBalance"] as num?)?.toDouble() ??
+            (wallet!["currentBalance"] as num?)?.toDouble() ??
+            0);
+    final moneyMarketPkr =
+        moneyMarketAmountFromAllocationTotal(allocationTotalPkr);
     final avail = (wallet?["availableBalance"] as num?)?.toDouble() ?? 0;
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
@@ -703,6 +710,13 @@ class _WalletCard extends StatelessWidget {
         .tr("totals_line_deposited")
         .replaceAll(":", "")
         .trim();
+
+    final totalAllocationDisplay = wallet == null
+        ? dash
+        : _dashboardMoneyDisplay(
+            hideMoney,
+            _money.format(allocationTotalPkr),
+          );
 
     return Container(
       decoration: BoxDecoration(
@@ -768,7 +782,7 @@ class _WalletCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          context.tr("current_balance"),
+                          context.tr("money_market_withdrawable_label"),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -835,7 +849,7 @@ class _WalletCard extends StatelessWidget {
                         ? dash
                         : _dashboardMoneyDisplay(
                             hideMoney,
-                            _money.format(current),
+                            _money.format(moneyMarketPkr),
                           ),
                     style: const TextStyle(
                       color: Colors.white,
@@ -844,7 +858,17 @@ class _WalletCard extends StatelessWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 6),
+                  Text(
+                    "${context.tr("total_investment_label")}: "
+                    "$totalAllocationDisplay",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(

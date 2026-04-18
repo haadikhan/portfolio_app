@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 
 import "../../../../core/i18n/app_translations.dart";
+import "../../data/allocation_money_market.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 
@@ -11,38 +12,33 @@ List<_Allocation> _allocationsFor(BuildContext context, double totalAmountPkr) =
         context.tr("alloc_stock_market"),
         40,
         const Color(0xFF0F7A2C),
-        _deriveAmount(totalAmountPkr, 40),
+        allocationAmountFromTotal(totalAmountPkr, 40),
       ),
       _Allocation(
         context.tr("alloc_tech"),
         25,
         const Color(0xFF2196F3),
-        _deriveAmount(totalAmountPkr, 25),
+        allocationAmountFromTotal(totalAmountPkr, 25),
       ),
       _Allocation(
         context.tr("alloc_debt"),
         25,
         const Color(0xFFFF9800),
-        _deriveAmount(totalAmountPkr, 25),
+        allocationAmountFromTotal(totalAmountPkr, 25),
       ),
       _Allocation(
         context.tr("alloc_money"),
-        5,
+        kMoneyMarketAllocationPercent,
         const Color(0xFF9C27B0),
-        _deriveAmount(totalAmountPkr, 5),
+        moneyMarketAmountFromAllocationTotal(totalAmountPkr),
       ),
       _Allocation(
         context.tr("alloc_asset"),
         5,
         const Color(0xFFE91E63),
-        _deriveAmount(totalAmountPkr, 5),
+        allocationAmountFromTotal(totalAmountPkr, 5),
       ),
     ];
-
-double _deriveAmount(double total, double percentage) {
-  if (!total.isFinite || total <= 0) return 0;
-  return total * (percentage / 100);
-}
 
 String _formatMoney(double value) {
   if (!value.isFinite || value <= 0) return _money.format(0);
@@ -77,6 +73,7 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
   Widget build(BuildContext context) {
     final allocations = _allocationsFor(context, widget.totalAmountPkr);
     final scheme = Theme.of(context).colorScheme;
+    final mmPkr = moneyMarketAmountFromAllocationTotal(widget.totalAmountPkr);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,25 +181,41 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "TOTAL",
+                        context.tr("alloc_money").toUpperCase(),
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 0.7,
+                          letterSpacing: 0.5,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _formatMoney(widget.totalAmountPkr),
-                        maxLines: 2,
+                        _formatMoney(mmPkr),
+                        maxLines: 1,
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 10,
-                          height: 1.2,
+                          fontSize: 11,
+                          height: 1.1,
                           fontWeight: FontWeight.w800,
                           color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${context.tr("total_investment_label")}\n${_formatMoney(widget.totalAmountPkr)}",
+                        maxLines: 3,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 8,
+                          height: 1.15,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
