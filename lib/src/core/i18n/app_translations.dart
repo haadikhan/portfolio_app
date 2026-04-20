@@ -400,6 +400,8 @@ const _en = <String, String>{
   "enter_valid_amount": "Enter a valid amount.",
   "withdrawal_exceeds_available":
       "That amount is more than your available balance.",
+  "withdrawal_exceeds_money_market":
+      "That amount is more than your withdrawable Money Market balance.",
   "wallet_balance_still_loading":
       "Balance is still loading. Try again in a moment.",
   "wallet_balance_unavailable":
@@ -411,6 +413,8 @@ const _en = <String, String>{
   "submit_request": "Submit request",
   "available_pkrf": "Available: {amount} PKR",
   "reserved_pkrf": "Reserved: {amount} PKR",
+  "withdrawable_money_market_pkrf":
+      "Withdrawable (Money Market 5%): {amount} PKR",
   "wallet_prefix": "Wallet:",
   "sign_in": "Sign In",
   "login_no_account":
@@ -1021,6 +1025,8 @@ const _ur = <String, String>{
   "request_withdrawal_title": "نکاسی کی درخواست",
   "enter_valid_amount": "درست رقم درج کریں۔",
   "withdrawal_exceeds_available": "یہ رقم آپ کے دستیاب بیلنس سے زیادہ ہے۔",
+  "withdrawal_exceeds_money_market":
+      "یہ رقم آپ کے قابلِ نکاسی منی مارکیٹ بیلنس سے زیادہ ہے۔",
   "wallet_balance_still_loading":
       "بیلنس ابھی لوڈ ہو رہا ہے۔ تھوڑی دیر بعد کوشش کریں۔",
   "wallet_balance_unavailable":
@@ -1032,6 +1038,8 @@ const _ur = <String, String>{
   "submit_request": "درخواست جمع کریں",
   "available_pkrf": "دستیاب: {amount} PKR",
   "reserved_pkrf": "محفوظ: {amount} PKR",
+  "withdrawable_money_market_pkrf":
+      "قابلِ نکاسی (منی مارکیٹ 5%): {amount} PKR",
   "wallet_prefix": "والیٹ:",
   "sign_in": "سائن ان",
   "login_no_account":

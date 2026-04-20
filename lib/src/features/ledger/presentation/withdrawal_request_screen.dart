@@ -6,6 +6,7 @@ import "package:go_router/go_router.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../investment/data/allocation_money_market.dart";
 import "../../../providers/wallet_providers.dart";
 
 class WithdrawalRequestScreen extends ConsumerStatefulWidget {
@@ -60,10 +61,13 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     final w = walletState.value;
     final availRaw = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
     final available = double.parse(availRaw.toStringAsFixed(2));
-    if (amount > available) {
+    final moneyMarketWithdrawable = double.parse(
+      moneyMarketAmountFromAllocationTotal(available).toStringAsFixed(2),
+    );
+    if (amount > moneyMarketWithdrawable) {
       await showAppErrorMessageDialog(
         context,
-        context.tr("withdrawal_exceeds_available"),
+        context.tr("withdrawal_exceeds_money_market"),
       );
       return;
     }
@@ -79,7 +83,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       final text = _isInsufficientBalanceMessage(e.message)
-          ? context.tr("withdrawal_exceeds_available")
+          ? context.tr("withdrawal_exceeds_money_market")
           : (e.message?.trim().isNotEmpty == true ? e.message! : e.code);
       await showAppErrorMessageDialog(context, text);
     } catch (e) {
@@ -104,6 +108,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
             error: (e, _) => Text("${context.tr("wallet_prefix")} $e"),
             data: (w) {
               final avail = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
+              final mm = moneyMarketAmountFromAllocationTotal(avail);
               final res = (w?["reservedAmount"] as num?)?.toDouble() ?? 0;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,6 +121,11 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
                   Text(
                     context.trParams("reserved_pkrf", {
                       "amount": res.toStringAsFixed(2),
+                    }),
+                  ),
+                  Text(
+                    context.trParams("withdrawable_money_market_pkrf", {
+                      "amount": mm.toStringAsFixed(2),
                     }),
                   ),
                 ],
