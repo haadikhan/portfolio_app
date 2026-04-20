@@ -26,8 +26,8 @@ String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
 Color _actionButtonBg(BuildContext context, Color lightTint) {
   if (Theme.of(context).brightness == Brightness.dark) {
     return Color.alphaBlend(
-      lightTint.withValues(alpha: 0.42),
-      Theme.of(context).colorScheme.surfaceContainerHigh,
+      lightTint.withValues(alpha: 0.55),
+      Theme.of(context).colorScheme.surfaceContainerHighest,
     );
   }
   return lightTint;
@@ -35,7 +35,7 @@ Color _actionButtonBg(BuildContext context, Color lightTint) {
 
 Color _quickAccessTileBg(BuildContext context, Color base) {
   if (Theme.of(context).brightness == Brightness.dark) {
-    return Color.lerp(base, Colors.black, 0.42)!;
+    return Color.lerp(base, Colors.black, 0.30)!;
   }
   return base;
 }
@@ -693,6 +693,7 @@ class _WalletCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final allocationTotalPkr = wallet == null
         ? 0.0
         : ((wallet!["availableBalance"] as num?)?.toDouble() ??
@@ -723,9 +724,9 @@ class _WalletCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: AppColors.primary.withValues(alpha: isDark ? 0.26 : 0.35),
+            blurRadius: isDark ? 16 : 18,
+            offset: Offset(0, isDark ? 4 : 6),
           ),
         ],
       ),
@@ -815,7 +816,7 @@ class _WalletCard extends ConsumerWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.22),
+                          color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.22),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -885,7 +886,7 @@ class _WalletCard extends ConsumerWidget {
                       Container(
                         width: 1,
                         height: 32,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.2),
                       ),
                       Expanded(
                         child: _WalletStat(
@@ -902,7 +903,7 @@ class _WalletCard extends ConsumerWidget {
                       Container(
                         width: 1,
                         height: 32,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.2),
                       ),
                       Expanded(
                         child: _WalletStat(
@@ -921,7 +922,7 @@ class _WalletCard extends ConsumerWidget {
                   const SizedBox(height: 14),
                   Container(
                     height: 1,
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.15),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -1091,6 +1092,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = enabled
         ? _actionButtonBg(context, backgroundColor)
         : scheme.surfaceContainerHighest;
@@ -1108,15 +1110,17 @@ class _ActionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: enabled
-                  ? fg.withValues(alpha: 0.12)
+                  ? (isDark
+                        ? fg.withValues(alpha: 0.34)
+                        : fg.withValues(alpha: 0.12))
                   : scheme.outline.withValues(alpha: 0.4),
             ),
             boxShadow: enabled
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.04),
+                      blurRadius: isDark ? 10 : 8,
+                      offset: Offset(0, isDark ? 3 : 2),
                     ),
                   ]
                 : null,
@@ -1220,6 +1224,8 @@ class _QuickAccessTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1229,11 +1235,16 @@ class _QuickAccessTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? scheme.outlineVariant.withValues(alpha: 0.42)
+                  : Colors.transparent,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
+                blurRadius: isDark ? 14 : 12,
+                offset: Offset(0, isDark ? 5 : 4),
               ),
             ],
           ),
@@ -1248,7 +1259,7 @@ class _QuickAccessTile extends StatelessWidget {
                   child: Icon(
                     watermark,
                     size: 96,
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: Colors.white.withValues(alpha: isDark ? 0.13 : 0.1),
                   ),
                 ),
                 Positioned.fill(
@@ -1262,7 +1273,7 @@ class _QuickAccessTile extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.22),
+                            color: Colors.white.withValues(alpha: isDark ? 0.26 : 0.22),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(icon, color: Colors.white, size: 22),
@@ -1336,21 +1347,24 @@ class _NavTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: scheme.surface.withValues(
-            alpha: Theme.of(context).brightness == Brightness.dark ? 0.94 : 1,
+            alpha: isDark ? 0.98 : 1,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.outlineVariant),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: isDark ? 0.72 : 1),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+              blurRadius: isDark ? 12 : 10,
+              offset: Offset(0, isDark ? 4 : 3),
             ),
           ],
         ),
