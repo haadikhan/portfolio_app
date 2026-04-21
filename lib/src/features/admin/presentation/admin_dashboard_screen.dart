@@ -35,6 +35,11 @@ class AdminDashboardScreen extends StatelessWidget {
                 subtitle: "PDF statements visible in the investor app",
                 onTap: () => context.go("/upload-reports"),
               ),
+              _ActionCard(
+                title: "App updates",
+                subtitle: "Upload Android APK and publish release",
+                onTap: () => context.go("/app-updates"),
+              ),
             ],
           ),
           const SizedBox(height: 16),

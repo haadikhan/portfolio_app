@@ -11,6 +11,8 @@ import "../core/widgets/app_bar_actions.dart";
 import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
 import "../features/investment/data/allocation_money_market.dart";
+import "../features/update/data/app_update_providers.dart";
+import "../features/update/presentation/update_action.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
 import "../providers/wallet_providers.dart";
@@ -318,6 +320,8 @@ class _AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final updateGate = ref.watch(appUpdateGateProvider).valueOrNull;
+    final showUpdateItem = updateGate?.release != null;
     final initials = profile.name.isNotEmpty
         ? profile.name
               .trim()
@@ -461,6 +465,16 @@ class _AppDrawer extends ConsumerWidget {
                       context.push("/notifications");
                     },
                   ),
+                  if (showUpdateItem)
+                    _DrawerItem(
+                      icon: Icons.system_update_alt_rounded,
+                      label: context.tr("update_now"),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final release = updateGate!.release!;
+                        await openReleaseUpdate(context, ref, release);
+                      },
+                    ),
                 ],
               ),
             ),

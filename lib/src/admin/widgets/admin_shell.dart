@@ -20,6 +20,7 @@ const _kAdminShellRoutes = <String>[
   "/crm/team",
   "/returns",
   "/upload-reports",
+  "/app-updates",
   "/notifications",
   "/broadcast",
 ];
@@ -232,6 +233,14 @@ class AdminShell extends ConsumerWidget {
                       selected: loc.startsWith("/upload-reports"),
                       onTap: () => _go(context, "/upload-reports"),
                     ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: const Icon(Icons.system_update_alt_rounded),
+                      title: Text(context.tr("admin_nav_app_updates")),
+                      selected: loc.startsWith("/app-updates"),
+                      onTap: () => _go(context, "/app-updates"),
+                    ),
                     const Divider(height: 1),
                     ListTile(
                       dense: true,
@@ -422,6 +431,7 @@ class _CrmNavigationRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NavigationRail(
+      scrollable: true,
       extended: true,
       minExtendedWidth: 200,
       selectedIndex: _indexForCrm(loc),
@@ -460,6 +470,7 @@ class _AdminNavigationRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NavigationRail(
+      scrollable: true,
       extended: true,
       minExtendedWidth: 200,
       selectedIndex: _indexForAdmin(loc),
@@ -521,6 +532,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("admin_nav_upload_reports")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.system_update_alt_outlined),
+          selectedIcon: const Icon(Icons.system_update_alt_rounded),
+          label: Text(context.tr("admin_nav_app_updates")),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.inbox_outlined),
           selectedIcon: const Icon(Icons.inbox),
           label: Text(context.tr("notifications")),
@@ -543,8 +559,9 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 11;
-  if (loc.startsWith("/notifications")) return 10;
+  if (loc.startsWith("/broadcast")) return 12;
+  if (loc.startsWith("/notifications")) return 11;
+  if (loc.startsWith("/app-updates")) return 10;
   if (loc.startsWith("/upload-reports")) return 9;
   if (loc.startsWith("/returns")) return 8;
   if (loc.startsWith("/crm/team")) return 7;

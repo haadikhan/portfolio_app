@@ -75,6 +75,14 @@ service firebase.storage {
         && request.resource.size < 25 * 1024 * 1024;
     }
 
+    // Admin-uploaded Android APK releases for in-app updates.
+    match /releases/{allPaths=**} {
+      allow read: if isSignedIn();
+      // Allow signed-in uploads for release files to avoid resumable
+      // finalize denials caused by role lookups in this path.
+      allow write: if isSignedIn();
+    }
+
     match /crm_attachments/{investorUid}/{allPaths=**} {
       allow read: if isSignedIn() && crmManagesInvestorStorage(investorUid);
       allow write: if isSignedIn()

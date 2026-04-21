@@ -61,6 +61,16 @@ async function getPdfBuffer(req) {
   return readRequestBodyBuffer(req);
 }
 
+/** Prefer Cloud Functions rawBody when present (binary APK). */
+async function getBinaryBuffer(req) {
+  if (req.rawBody && req.rawBody.length) {
+    return Buffer.isBuffer(req.rawBody)
+      ? req.rawBody
+      : Buffer.from(req.rawBody);
+  }
+  return readRequestBodyBuffer(req);
+}
+
 function txId() {
   const y = new Date().getFullYear();
   const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
@@ -1310,6 +1320,86 @@ exports.uploadInvestorReportHttp = onRequest(
         return;
       }
       res.status(500).json({ error: "Upload failed." });
+    }
+  },
+);
+
+/**
+ * Admin: POST raw APK bytes with Authorization: Bearer <Firebase ID token>.
+ * Stores object in Cloud Storage and returns storage path.
+ */
+exports.uploadAndroidReleaseApkHttp = onRequest(
+  {
+    region: "us-central1",
+    cors: true,
+    memory: "512MiB",
+    cpu: 0.5,
+    timeoutSeconds: 180,
+    invoker: "public",
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "POST only" });
+      return;
+    }
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({ error: "Sign in required." });
+        return;
+      }
+      const versionCodeRaw = String(req.query.versionCode || "").trim();
+      const versionCode = Number(versionCodeRaw);
+      if (!versionCodeRaw || !Number.isFinite(versionCode) || versionCode <= 0) {
+        res.status(400).json({ error: "versionCode query param is required." });
+        return;
+      }
+
+      const idToken = authHeader.slice(7);
+      let decoded;
+      try {
+        decoded = await admin.auth().verifyIdToken(idToken);
+      } catch (e) {
+        logger.warn("uploadAndroidReleaseApkHttp_bad_token", { err: String(e) });
+        res.status(401).json({ error: "Invalid session token." });
+        return;
+      }
+      await assertAdmin(decoded.uid);
+
+      const buffer = await getBinaryBuffer(req);
+      if (buffer.length === 0) {
+        res.status(400).json({ error: "Empty APK body." });
+        return;
+      }
+      if (buffer.length > 200 * 1024 * 1024) {
+        res.status(400).json({ error: "APK must be 200 MB or smaller." });
+        return;
+      }
+      const contentType = String(req.headers["content-type"] || "").toLowerCase();
+      if (contentType && !contentType.includes("application/vnd.android.package-archive")) {
+        logger.warn("uploadAndroidReleaseApkHttp_content_type", { contentType });
+      }
+
+      const bucket = admin.storage().bucket();
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+      const objectPath = `releases/android/${versionCode}/${id}.apk`;
+      const file = bucket.file(objectPath);
+      await file.save(buffer, {
+        metadata: { contentType: "application/vnd.android.package-archive" },
+        resumable: false,
+      });
+
+      res.status(200).json({ ok: true, storagePath: objectPath });
+    } catch (e) {
+      logger.error("uploadAndroidReleaseApkHttp", {
+        err: String(e),
+        stack: e.stack,
+      });
+      if (e instanceof HttpsError) {
+        res.status(e.httpErrorCode?.status ?? 500).json({ error: e.message });
+        return;
+      }
+      res.status(500).json({ error: "APK upload failed." });
     }
   },
 );

@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../core/config/app_config.dart";
+import "../core/session/session_idle_watcher.dart";
 import "../core/i18n/language_provider.dart";
 import "../core/theme/app_theme.dart";
 import "../core/theme/theme_provider.dart";
@@ -27,6 +28,9 @@ import "../features/market/presentation/kmi30_companies_screen.dart";
 import "../features/market/presentation/kmi30_company_chart_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
 import "../features/transparency/presentation/transparency_hub_screen.dart";
+import "../features/update/data/app_update_providers.dart";
+import "../features/update/presentation/force_update_screen.dart";
+import "../features/update/presentation/update_notice_host.dart";
 import "../screens/auth_gate_screen.dart";
 import "../screens/consent_gate_screen.dart";
 import "../screens/kyc_approved_gate_screen.dart";
@@ -48,12 +52,24 @@ class WakalatInvestApp extends ConsumerWidget {
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final useUrduFont = locale.languageCode == "ur";
+    final appUpdateGate = ref.watch(appUpdateGateProvider);
 
     final router = GoRouter(
       navigatorKey: _rootNavigatorKey,
       initialLocation: "/",
+      redirect: (_, state) {
+        final blocked = appUpdateGate.valueOrNull?.isBlocked == true;
+        final atForceUpdate = state.matchedLocation == "/force-update";
+        if (blocked && !atForceUpdate) return "/force-update";
+        if (!blocked && atForceUpdate) return "/";
+        return null;
+      },
       routes: <RouteBase>[
         GoRoute(path: "/", builder: (_, __) => const AuthGateScreen()),
+        GoRoute(
+          path: "/force-update",
+          builder: (_, __) => const ForceUpdateScreen(),
+        ),
         GoRoute(path: "/login", builder: (_, __) => const LoginScreen()),
         GoRoute(
           path: "/forgot-password",
@@ -208,9 +224,15 @@ class WakalatInvestApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         final code = Localizations.localeOf(context).languageCode;
-        return Directionality(
-          textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
-          child: child ?? const SizedBox.shrink(),
+        return SessionIdleWatcher(
+          navigatorKey: _rootNavigatorKey,
+          child: UpdateNoticeHost(
+            navigatorKey: _rootNavigatorKey,
+            child: Directionality(
+              textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         );
       },
       routerConfig: router,

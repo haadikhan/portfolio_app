@@ -226,6 +226,12 @@ service cloud.firestore {
       allow write: if hasRole("admin");
     }
 
+    // Admin-published app update metadata consumed by investor app.
+    match /app_releases/{releaseId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /market_companies/{companyId} {
       allow read: if isSignedIn();
       allow create, update: if isAdmin();
