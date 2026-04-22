@@ -60,18 +60,6 @@ class CrmService {
       final detail = await _investorService.fetchInvestorDetail(uid);
       if (detail != null) {
         out.add(detail.summary);
-      } else {
-        out.add(
-          AdminInvestorSummary(
-            userId: uid,
-            name: "",
-            email: "",
-            phone: "",
-            kycStatus: "pending",
-            createdAt: null,
-            role: "investor",
-          ),
-        );
       }
     }
     out.sort((a, b) {

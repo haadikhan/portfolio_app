@@ -14,12 +14,24 @@ class AdminInvestorService {
       _db.collection("transactions");
   CollectionReference<Map<String, dynamic>> get _kyc => _db.collection("kyc");
 
+  bool _isDeletedUser(Map<String, dynamic>? data) {
+    if (data == null) return false;
+    if (data["deleted"] == true) return true;
+    return data["deletedAt"] != null;
+  }
+
   Future<List<AdminInvestorSummary>> fetchInvestors() async {
     final usersSnap = await _users.get();
     final byId = <String, AdminInvestorSummary>{};
+    final deletedIds = <String>{};
 
     for (final doc in usersSnap.docs) {
-      final summary = AdminInvestorSummary.fromFirestore(doc.id, doc.data());
+      final data = doc.data();
+      if (_isDeletedUser(data)) {
+        deletedIds.add(doc.id);
+        continue;
+      }
+      final summary = AdminInvestorSummary.fromFirestore(doc.id, data);
       final role = summary.role.toLowerCase();
       if (role == "admin" || role == "team" || role == "crm") continue;
       byId[summary.userId] = summary;
@@ -30,7 +42,7 @@ class AdminInvestorService {
     final txSnap = await _transactions.get();
     for (final doc in txSnap.docs) {
       final uid = (doc.data()["userId"] as String? ?? "").trim();
-      if (uid.isNotEmpty && !byId.containsKey(uid)) {
+      if (uid.isNotEmpty && !byId.containsKey(uid) && !deletedIds.contains(uid)) {
         byId[uid] = AdminInvestorSummary(
           userId: uid,
           name: "",
@@ -46,7 +58,7 @@ class AdminInvestorService {
     final kycSnap = await _kyc.get();
     for (final doc in kycSnap.docs) {
       final uid = doc.id.trim();
-      if (uid.isNotEmpty && !byId.containsKey(uid)) {
+      if (uid.isNotEmpty && !byId.containsKey(uid) && !deletedIds.contains(uid)) {
         final kycStatus = (doc.data()["status"] as String? ?? "pending").trim();
         byId[uid] = AdminInvestorSummary(
           userId: uid,
@@ -71,6 +83,9 @@ class AdminInvestorService {
 
   Future<AdminInvestorDetail?> fetchInvestorDetail(String userId) async {
     final userDoc = await _users.doc(userId).get();
+    if (userDoc.exists && _isDeletedUser(userDoc.data())) {
+      return null;
+    }
     final summary = userDoc.exists && userDoc.data() != null
         ? AdminInvestorSummary.fromFirestore(userDoc.id, userDoc.data()!)
         : AdminInvestorSummary(

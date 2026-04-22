@@ -184,6 +184,14 @@ const _en = <String, String>{
       "Uploading {uploaded} MB / {total} MB ({percent}%)",
   "admin_updates_retry_upload": "Retry upload",
   "admin_updates_upload_failed_detail": "Upload failed: {detail}",
+  "admin_investor_delete_title": "Delete investor account",
+  "admin_investor_delete_action": "Delete investor",
+  "admin_investor_delete_confirm_body":
+      "Are you sure you want to delete this investor account? This removes sign-in access, while transactions and wallet history stay preserved for audit.",
+  "admin_investor_delete_in_progress": "Deleting investor…",
+  "admin_investor_delete_success": "Investor account deleted.",
+  "admin_investor_delete_error": "Failed to delete investor account.",
+  "admin_investor_not_found": "Investor not found.",
   "update_banner_days_left": "Please update the app — {days} days left",
   "update_popup_title": "Update available",
   "update_popup_body":
@@ -850,6 +858,14 @@ const _ur = <String, String>{
       "{uploaded} MB / {total} MB اپ لوڈ ہو چکی ہے ({percent}%)",
   "admin_updates_retry_upload": "اپ لوڈ دوبارہ کریں",
   "admin_updates_upload_failed_detail": "اپ لوڈ ناکام: {detail}",
+  "admin_investor_delete_title": "سرمایہ کار اکاؤنٹ حذف کریں",
+  "admin_investor_delete_action": "سرمایہ کار حذف کریں",
+  "admin_investor_delete_confirm_body":
+      "کیا آپ واقعی اس سرمایہ کار کا اکاؤنٹ حذف کرنا چاہتے ہیں؟ لاگ اِن رسائی ختم ہو جائے گی جبکہ آڈٹ کے لیے لین دین اور والیٹ ہسٹری محفوظ رہے گی۔",
+  "admin_investor_delete_in_progress": "سرمایہ کار حذف ہو رہا ہے…",
+  "admin_investor_delete_success": "سرمایہ کار اکاؤنٹ حذف ہو گیا۔",
+  "admin_investor_delete_error": "سرمایہ کار اکاؤنٹ حذف نہیں ہو سکا۔",
+  "admin_investor_not_found": "سرمایہ کار نہیں ملا۔",
   "update_banner_days_left": "براہِ کرم ایپ اپڈیٹ کریں — {days} دن باقی",
   "update_popup_title": "اپڈیٹ دستیاب ہے",
   "update_popup_body":

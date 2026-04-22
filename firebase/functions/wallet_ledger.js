@@ -1405,6 +1405,84 @@ exports.uploadAndroidReleaseApkHttp = onRequest(
 );
 
 /**
+ * Admin: disable investor account access while preserving financial history.
+ * Deletes Firebase Auth user and marks users/{uid} as deleted/anonymized.
+ */
+exports.deleteInvestorAccount = onCall(
+  { region: "us-central1", invoker: "public" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const userId = String(request.data?.userId || "").trim();
+    const reason = String(request.data?.reason || "").trim();
+    if (!userId) {
+      throw new HttpsError("invalid-argument", "userId required.");
+    }
+    if (userId === request.auth.uid) {
+      throw new HttpsError(
+        "failed-precondition",
+        "You cannot delete your own admin account.",
+      );
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const userRef = db().collection("users").doc(userId);
+    const userSnap = await userRef.get();
+    const existing = userSnap.data() || {};
+    const existingRole = String(existing.role || "").toLowerCase();
+    if (existingRole === "admin" || existingRole === "crm" || existingRole === "team") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Staff accounts cannot be deleted from investor panel.",
+      );
+    }
+
+    try {
+      await admin.auth().deleteUser(userId);
+    } catch (e) {
+      const code = e.errorInfo?.code || e.code || "";
+      if (code !== "auth/user-not-found") {
+        logger.error("deleteInvestorAccount_deleteUser_failed", {
+          userId,
+          err: String(e),
+          code,
+        });
+        throw new HttpsError("internal", "Failed to delete auth user.");
+      }
+    }
+
+    const anonymizedEmail = `deleted_${userId}@deleted.local`;
+    await userRef.set(
+      {
+        deleted: true,
+        deletedAt: now,
+        deletedBy: request.auth.uid,
+        deleteReason: reason,
+        name: "Deleted investor",
+        email: anonymizedEmail,
+        phone: "",
+      },
+      { merge: true },
+    );
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "deleteInvestorAccount",
+      "user",
+      userId,
+      null,
+      { reason: reason || null },
+    );
+
+    return { ok: true, userId };
+  },
+);
+
+/**
  * Admin-only: create a Firebase Auth user and Firestore profile with role "crm".
  * invoker: "public" — required for 2nd gen callables on Flutter Web so Cloud Run
  * accepts OPTIONS/POST (browser preflight); auth is still enforced via request.auth.

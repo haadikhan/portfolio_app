@@ -1,20 +1,87 @@
+import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../../core/i18n/app_translations.dart";
 import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
 import "../providers/admin_providers.dart";
 
-class AdminInvestorDetailScreen extends ConsumerWidget {
+class AdminInvestorDetailScreen extends ConsumerStatefulWidget {
   const AdminInvestorDetailScreen({super.key, required this.userId});
 
   final String userId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(investorDetailProvider(userId));
+  ConsumerState<AdminInvestorDetailScreen> createState() =>
+      _AdminInvestorDetailScreenState();
+}
+
+class _AdminInvestorDetailScreenState
+    extends ConsumerState<AdminInvestorDetailScreen> {
+  bool _isDeleting = false;
+
+  Future<void> _deleteInvestor(AdminInvestorDetail detail) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr("admin_investor_delete_title")),
+        content: Text(context.tr("admin_investor_delete_confirm_body")),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr("cancel")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: Text(context.tr("admin_investor_delete_action")),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      final fn = FirebaseFunctions.instanceFor(region: "us-central1");
+      await fn.httpsCallable("deleteInvestorAccount").call({
+        "userId": detail.summary.userId,
+      });
+      ref.invalidate(allInvestorsProvider);
+      ref.invalidate(investorDetailProvider(detail.summary.userId));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("admin_investor_delete_success"))),
+      );
+      context.go("/investors");
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      final message = e.message?.trim().isNotEmpty == true
+          ? e.message!
+          : context.tr("admin_investor_delete_error");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("admin_investor_delete_error"))),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
+    final async = ref.watch(investorDetailProvider(widget.userId));
     return Padding(
       padding: const EdgeInsets.all(24),
       child: async.when(
@@ -22,10 +89,12 @@ class AdminInvestorDetailScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text("Error: $e")),
         data: (detail) {
           if (detail == null) {
-            return const Center(child: Text("Investor not found."));
+            return Center(child: Text(context.tr("admin_investor_not_found")));
           }
           return _InvestorDetailBody(
             detail: detail,
+            isDeleting: _isDeleting,
+            onDelete: () => _deleteInvestor(detail),
           );
         },
       ),
@@ -34,9 +103,15 @@ class AdminInvestorDetailScreen extends ConsumerWidget {
 }
 
 class _InvestorDetailBody extends ConsumerWidget {
-  const _InvestorDetailBody({required this.detail});
+  const _InvestorDetailBody({
+    required this.detail,
+    required this.isDeleting,
+    required this.onDelete,
+  });
 
   final AdminInvestorDetail detail;
+  final bool isDeleting;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,6 +141,28 @@ class _InvestorDetailBody extends ConsumerWidget {
           Text("UID: ${user.userId}", style: Theme.of(context).textTheme.bodySmall),
           Text("Email: ${user.email.isEmpty ? "—" : user.email}"),
           Text("Phone: ${user.phone.isEmpty ? "—" : user.phone}"),
+          if (isAdmin) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: isDeleting ? null : onDelete,
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              icon: isDeleting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_outline),
+              label: Text(
+                isDeleting
+                    ? context.tr("admin_investor_delete_in_progress")
+                    : context.tr("admin_investor_delete_action"),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Wrap(
             spacing: 16,
