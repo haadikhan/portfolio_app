@@ -191,6 +191,48 @@ async function sendCustomerTransactionAlerts(userId, payload) {
   return result;
 }
 
+/**
+ * Investor-only login email alert.
+ * Sends a simple "you just logged in" email through the mail queue.
+ */
+exports.sendInvestorLoginAlert = onCall(
+  {
+    region: "us-central1",
+    invoker: "public",
+    memory: "256MiB",
+    cpu: 0.08,
+    concurrency: 1,
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+
+    const uid = request.auth.uid;
+    const userSnap = await db().collection("users").doc(uid).get();
+    const user = userSnap.data() || {};
+    const role = String(user.role || "").toLowerCase().trim();
+    if (role && role !== "investor") {
+      return { ok: true, skipped: "non-investor" };
+    }
+
+    const at = new Date();
+    const displayTime = at.toLocaleString("en-PK", { timeZone: "Asia/Karachi" });
+    await queueTransactionEmail(uid, {
+      title: "Login alert",
+      body: `You just logged in to your account on ${displayTime}.`,
+      type: "security_login",
+      category: "security",
+      action: "none",
+      refId: null,
+      amount: null,
+      currency: "PKR",
+    });
+
+    return { ok: true };
+  },
+);
+
 /** Notify every user doc with role "admin" (same inbox model). */
 async function notifyAllAdmins(payload) {
   const snap = await db().collection("users").where("role", "==", "admin").get();

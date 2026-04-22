@@ -147,6 +147,11 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final u = credential.user;
       if (u != null) {
         await _firestore.waitUntilUserDocAccessible(u);
+        try {
+          await _auth.sendInvestorLoginAlert();
+        } catch (_) {
+          // Login must succeed even if optional login-alert email fails.
+        }
       }
     });
   }

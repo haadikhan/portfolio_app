@@ -1,9 +1,12 @@
 import "package:firebase_auth/firebase_auth.dart";
+import "package:cloud_functions/cloud_functions.dart";
 
 class AuthService {
   AuthService(this._auth);
 
   final FirebaseAuth _auth;
+  final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: "us-central1");
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
@@ -54,6 +57,16 @@ class AuthService {
       await _auth.signOut();
     } catch (_) {
       throw Exception("Could not logout. Please try again.");
+    }
+  }
+
+  Future<void> sendInvestorLoginAlert() async {
+    try {
+      await _functions.httpsCallable("sendInvestorLoginAlert").call();
+    } on FirebaseFunctionsException catch (_) {
+      rethrow;
+    } catch (_) {
+      rethrow;
     }
   }
 
