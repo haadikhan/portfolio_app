@@ -8,7 +8,10 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
 const { recalculateWallet, appendAudit } = require("./wallet_helpers");
-const { createUserNotification, notifyAllAdmins } = require("./notifications");
+const {
+  notifyAllAdmins,
+  sendCustomerTransactionAlerts,
+} = require("./notifications");
 
 const db = () => admin.firestore();
 
@@ -205,6 +208,18 @@ exports.createDepositRequest = onCall(
         currency: "PKR",
       }),
     );
+    await safeNotify(() =>
+      sendCustomerTransactionAlerts(uid, {
+        title: "Deposit request submitted",
+        body: `Your deposit request of PKR ${amt.toFixed(0)} is pending review.`,
+        type: "deposit",
+        category: "wallet",
+        action: "open_wallet",
+        refId: reqRef.id,
+        amount: amt,
+        currency: "PKR",
+      }),
+    );
 
     return { requestId: reqRef.id, transactionId: tid };
   },
@@ -284,6 +299,18 @@ exports.createWithdrawalRequest = onCall(
         currency: "PKR",
       }),
     );
+    await safeNotify(() =>
+      sendCustomerTransactionAlerts(uid, {
+        title: "Withdrawal request submitted",
+        body: `Your withdrawal request of PKR ${amt.toFixed(0)} is pending review.`,
+        type: "withdrawal",
+        category: "wallet",
+        action: "open_wallet",
+        refId: reqRef.id,
+        amount: amt,
+        currency: "PKR",
+      }),
+    );
 
     return { requestId: reqRef.id, transactionId: tid };
   },
@@ -337,7 +364,7 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
 
   const amt = Number(req.amount) || 0;
   await safeNotify(() =>
-    createUserNotification(req.userId, {
+    sendCustomerTransactionAlerts(req.userId, {
       title: "Deposit approved",
       body: `Your deposit of PKR ${amt.toFixed(0)} has been approved.`,
       type: "deposit",
@@ -399,6 +426,23 @@ exports.rejectDeposit = onCall({ region: "us-central1" }, async (request) => {
     },
   );
 
+  const rejAmt = Number(req.amount) || 0;
+  const rejReason = reason ? String(reason).trim() : "";
+  await safeNotify(() =>
+    sendCustomerTransactionAlerts(req.userId, {
+      title: "Deposit rejected",
+      body: rejReason.length
+        ? `Your deposit of PKR ${rejAmt.toFixed(0)} was rejected. ${rejReason}`
+        : `Your deposit of PKR ${rejAmt.toFixed(0)} was rejected.`,
+      type: "deposit",
+      category: "wallet",
+      action: "open_wallet",
+      refId: requestId,
+      amount: rejAmt,
+      currency: "PKR",
+    }),
+  );
+
   return { ok: true };
 });
 
@@ -455,7 +499,7 @@ exports.approveWithdrawal = onCall(
 
     const wAmt = Number(req.amount) || 0;
     await safeNotify(() =>
-      createUserNotification(req.userId, {
+      sendCustomerTransactionAlerts(req.userId, {
         title: "Withdrawal approved",
         body: `Your withdrawal of PKR ${wAmt.toFixed(0)} has been approved.`,
         type: "withdrawal",
@@ -527,7 +571,7 @@ exports.completeWithdrawal = onCall(
 
     const cAmt = Number(req.amount) || 0;
     await safeNotify(() =>
-      createUserNotification(req.userId, {
+      sendCustomerTransactionAlerts(req.userId, {
         title: "Withdrawal completed",
         body: `Your withdrawal of PKR ${cAmt.toFixed(0)} has been completed.`,
         type: "withdrawal",
@@ -599,7 +643,7 @@ exports.rejectWithdrawal = onCall(
     const rAmt = Number(req.amount) || 0;
     const rNote = reason ? String(reason).trim() : "";
     await safeNotify(() =>
-      createUserNotification(req.userId, {
+      sendCustomerTransactionAlerts(req.userId, {
         title: "Withdrawal cancelled",
         body: rNote.length
           ? `Your withdrawal of PKR ${rAmt.toFixed(0)} was cancelled. ${rNote}`
@@ -654,7 +698,7 @@ exports.addProfitEntry = onCall({ region: "us-central1" }, async (request) => {
   );
 
   await safeNotify(() =>
-    createUserNotification(userId, {
+    sendCustomerTransactionAlerts(userId, {
       title: "Profit credited",
       body: `PKR ${amt.toFixed(0)} has been added to your wallet.`,
       type: "profit",
@@ -719,6 +763,19 @@ exports.addAdjustmentEntry = onCall(
         userId,
         amount: amt,
       },
+    );
+
+    await safeNotify(() =>
+      sendCustomerTransactionAlerts(userId, {
+        title: "Wallet adjustment applied",
+        body: `An adjustment of PKR ${Math.abs(amt).toFixed(0)} has been applied to your wallet.`,
+        type: "adjustment",
+        category: "wallet",
+        action: "open_wallet",
+        refId: tid,
+        amount: amt,
+        currency: "PKR",
+      }),
     );
 
     return { transactionId: tid };
@@ -841,7 +898,7 @@ exports.adminApproveTransaction = onCall(
           ? `Your withdrawal of PKR ${amount.toFixed(0)} has been approved.`
           : `A transaction of PKR ${amount.toFixed(0)} was approved.`;
     await safeNotify(() =>
-      createUserNotification(userId, {
+      sendCustomerTransactionAlerts(userId, {
         title: label,
         body,
         type: type || "transaction",
@@ -908,7 +965,7 @@ exports.adminRejectTransaction = onCall(
     const txType = (txData.type || "").toLowerCase();
     const note = rejectionNote ? String(rejectionNote).trim() : "";
     await safeNotify(() =>
-      createUserNotification(userId, {
+      sendCustomerTransactionAlerts(userId, {
         title: "Transaction not approved",
         body: note.length
           ? `Your ${txType || "transaction"} of PKR ${txAmt.toFixed(0)} was not approved. ${note}`
@@ -1002,7 +1059,7 @@ exports.applyMonthlyReturns = onCall(
         totalProfit += profit;
         successCount++;
         await safeNotify(() =>
-          createUserNotification(uid, {
+          sendCustomerTransactionAlerts(uid, {
             title: "Monthly return applied",
             body: `PKR ${profit.toFixed(0)} credited (${returnPct}% return).`,
             type: "profit_entry",

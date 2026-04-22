@@ -114,6 +114,83 @@ async function createUserNotification(userId, payload) {
   return id;
 }
 
+function formatAmountLine(amount, currency) {
+  if (amount == null || Number.isNaN(Number(amount))) return null;
+  const code = String(currency || "PKR").toUpperCase();
+  return `${code} ${Number(amount).toFixed(0)}`;
+}
+
+/**
+ * Queues a transactional email in Firestore `mail` collection for
+ * Firebase Trigger Email extension.
+ * Best-effort helper, throws only on Firestore write failures.
+ */
+async function queueTransactionEmail(userId, payload) {
+  const userSnap = await db().collection("users").doc(userId).get();
+  const user = userSnap.data() || {};
+  const email = String(user.email || "").trim();
+  if (!email) {
+    return { queued: false, reason: "missing_email" };
+  }
+
+  const name = String(user.name || "").trim() || "Customer";
+  const title = String(payload.title || "Transaction update").slice(0, 200);
+  const body = String(payload.body || "").slice(0, 2000);
+  const amountLine = formatAmountLine(payload.amount, payload.currency);
+  const refId = payload.refId != null ? String(payload.refId).trim() : "";
+  const type = String(payload.type || "transaction").trim();
+
+  const lines = [
+    `Dear ${name},`,
+    "",
+    body || "There is an update on your account transaction.",
+    amountLine ? `Amount: ${amountLine}` : null,
+    refId ? `Reference: ${refId}` : null,
+    `Type: ${type}`,
+    "",
+    "If this activity does not look familiar, please contact support immediately.",
+    "",
+    "Wakalat Invest",
+  ].filter(Boolean);
+
+  await db().collection("mail").add({
+    to: [email],
+    message: {
+      subject: title,
+      text: lines.join("\n"),
+    },
+  });
+
+  return { queued: true, email };
+}
+
+/**
+ * Unified customer alert dispatcher (push/inbox + email queue).
+ * Never throws; logs channel-specific failures.
+ */
+async function sendCustomerTransactionAlerts(userId, payload) {
+  const result = {
+    pushSent: false,
+    emailQueued: false,
+  };
+
+  try {
+    await createUserNotification(userId, payload);
+    result.pushSent = true;
+  } catch (e) {
+    logger.warn("customer_push_failed", { userId, error: String(e) });
+  }
+
+  try {
+    const queued = await queueTransactionEmail(userId, payload);
+    result.emailQueued = queued.queued === true;
+  } catch (e) {
+    logger.warn("customer_email_queue_failed", { userId, error: String(e) });
+  }
+
+  return result;
+}
+
 /** Notify every user doc with role "admin" (same inbox model). */
 async function notifyAllAdmins(payload) {
   const snap = await db().collection("users").where("role", "==", "admin").get();
@@ -222,3 +299,5 @@ exports.broadcastAnnouncement = onCall(
 
 exports.createUserNotification = createUserNotification;
 exports.notifyAllAdmins = notifyAllAdmins;
+exports.queueTransactionEmail = queueTransactionEmail;
+exports.sendCustomerTransactionAlerts = sendCustomerTransactionAlerts;
