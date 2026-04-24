@@ -1,4 +1,4 @@
-# Wakalat Invest
+# Wakalat Invest...
 
 Digital investment tracking and reporting platform (Flutter + Firebase-first).
 
