@@ -15,6 +15,8 @@ class AppReleaseInfo {
     required this.title,
     required this.message,
     required this.isActive,
+    this.packageId,
+    this.releaseRef,
     this.apkStoragePath,
     this.apkUrl,
   });
@@ -22,16 +24,18 @@ class AppReleaseInfo {
   final String versionName;
   final int versionCode;
   final int requiredAfterDays;
-  final DateTime publishedAt;
+  final DateTime? publishedAt;
   final String title;
   final String message;
   final bool isActive;
+  final String? packageId;
+  final String? releaseRef;
   final String? apkStoragePath;
   final String? apkUrl;
 
   factory AppReleaseInfo.fromMap(Map<String, dynamic> map) {
     final ts = map["publishedAt"];
-    final date = ts is Timestamp ? ts.toDate() : DateTime.now();
+    final date = ts is Timestamp ? ts.toDate() : null;
     return AppReleaseInfo(
       versionName: (map["versionName"] ?? "").toString(),
       versionCode: (map["versionCode"] as num?)?.toInt() ?? 0,
@@ -40,6 +44,8 @@ class AppReleaseInfo {
       title: (map["title"] ?? "").toString(),
       message: (map["message"] ?? "").toString(),
       isActive: map["isActive"] == true,
+      packageId: (map["packageId"] as String?)?.trim(),
+      releaseRef: (map["releaseRef"] as String?)?.trim(),
       apkStoragePath: (map["apkStoragePath"] as String?)?.trim(),
       apkUrl: (map["apkUrl"] as String?)?.trim(),
     );
@@ -136,14 +142,26 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
   }
 
   final isOutdated = installedCode < release.versionCode;
-  final deadline = release.publishedAt.add(
-    Duration(days: release.requiredAfterDays.clamp(1, 365)),
-  );
+  final publishedAt = release.publishedAt;
+  if (!isOutdated || publishedAt == null) {
+    return AsyncData(
+      AppUpdateGateState(
+        installedVersionCode: installedCode,
+        installedVersionName: installedName,
+        release: release,
+        isOutdated: isOutdated,
+        isBlocked: false,
+        daysLeft: isOutdated ? release.requiredAfterDays.clamp(1, 365) : 0,
+      ),
+    );
+  }
+  final graceDays = release.requiredAfterDays.clamp(1, 365);
+  final deadline = publishedAt.add(Duration(days: graceDays));
   final now = DateTime.now();
   final remaining = deadline.difference(now);
   final rawDays = (remaining.inHours / 24).ceil();
-  final daysLeft = rawDays.clamp(0, release.requiredAfterDays);
-  final isBlocked = isOutdated && now.isAfter(deadline);
+  final daysLeft = rawDays.clamp(0, graceDays);
+  final isBlocked = now.isAfter(deadline);
 
   return AsyncData(
     AppUpdateGateState(

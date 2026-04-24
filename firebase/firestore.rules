@@ -230,6 +230,11 @@ service cloud.firestore {
     match /app_releases/{releaseId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isAdmin();
+
+      match /{document=**} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin();
+      }
     }
 
     match /market_companies/{companyId} {

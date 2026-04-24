@@ -16,9 +16,11 @@ const { notifyAllAdmins } = require("./notifications");
 const walletLedger = require("./wallet_ledger");
 const notifications = require("./notifications");
 const marketData = require("./market_data");
+const appUpdates = require("./app_updates");
 Object.assign(exports, walletLedger);
 Object.assign(exports, notifications);
 Object.assign(exports, marketData);
+Object.assign(exports, appUpdates);
 
 exports.onKycSubmittedForReview = onDocumentUpdated(
   {

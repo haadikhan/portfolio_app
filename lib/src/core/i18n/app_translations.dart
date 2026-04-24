@@ -44,7 +44,8 @@ const _en = <String, String>{
   "qa_my_profile": "My profile",
   "my_account": "My account",
   "nav_wallet_ledger": "Wallet & ledger",
-  "nav_wallet_ledger_subtitle": "Balances, transactions, deposits & withdrawals",
+  "nav_wallet_ledger_subtitle":
+      "Balances, transactions, deposits & withdrawals",
   "nav_kyc": "KYC verification",
   "kyc_subtitle_approved": "Verified — full access enabled",
   "kyc_subtitle_under_review": "Under review by our team",
@@ -184,6 +185,22 @@ const _en = <String, String>{
       "Uploading {uploaded} MB / {total} MB ({percent}%)",
   "admin_updates_retry_upload": "Retry upload",
   "admin_updates_upload_failed_detail": "Upload failed: {detail}",
+  "admin_updates_required_after_days": "Force update after days",
+  "admin_updates_grace_days_invalid": "Grace days must be between 1 and 365.",
+  "admin_updates_parsed_heading": "Detected APK metadata",
+  "admin_updates_parsed_package": "Package: {package}",
+  "admin_updates_parsed_version": "APK version: {name} ({code})",
+  "admin_updates_package_mismatch":
+      "This APK is not the investor app. Expected {expected}, found {found}.",
+  "admin_updates_version_not_greater":
+      "Version code must be greater than current release ({current}).",
+  "admin_updates_mismatch_title": "Version mismatch warning",
+  "admin_updates_mismatch_body":
+      "APK metadata is {parsedName} ({parsedCode}) but form values are {enteredName} ({enteredCode}). Continue anyway?",
+  "admin_updates_continue_anyway": "Continue anyway",
+  "admin_updates_publish_cancelled": "Publish cancelled.",
+  "admin_updates_current_release":
+      "Current release: {name} ({code}) • Active: {active}",
   "admin_investor_delete_title": "Delete investor account",
   "admin_investor_delete_action": "Delete investor",
   "admin_investor_delete_confirm_body":
@@ -667,7 +684,8 @@ const _en = <String, String>{
   "gold_unit_troy_oz": "Per oz",
   "gold_unit_tola": "Per tola",
   "gold_price_pkr_per_tola": "PKR / tola",
-  "gold_unit_hint": "1 Pakistani tola = 11.664 g (PKR shown for selected unit).",
+  "gold_unit_hint":
+      "1 Pakistani tola = 11.664 g (PKR shown for selected unit).",
   "market_high_optional": "High (optional)",
   "market_low_optional": "Low (optional)",
   "admin_market_title": "Market index administration",
@@ -858,6 +876,22 @@ const _ur = <String, String>{
       "{uploaded} MB / {total} MB اپ لوڈ ہو چکی ہے ({percent}%)",
   "admin_updates_retry_upload": "اپ لوڈ دوبارہ کریں",
   "admin_updates_upload_failed_detail": "اپ لوڈ ناکام: {detail}",
+  "admin_updates_required_after_days": "لازمی اپڈیٹ دن",
+  "admin_updates_grace_days_invalid": "گریس دن 1 سے 365 کے درمیان ہونے چاہییں۔",
+  "admin_updates_parsed_heading": "APK میٹاڈیٹا",
+  "admin_updates_parsed_package": "پیکیج: {package}",
+  "admin_updates_parsed_version": "APK ورژن: {name} ({code})",
+  "admin_updates_package_mismatch":
+      "یہ سرمایہ کار ایپ APK نہیں ہے۔ متوقع {expected}، ملا {found}۔",
+  "admin_updates_version_not_greater":
+      "ورژن کوڈ موجودہ ریلیز ({current}) سے بڑا ہونا چاہیے۔",
+  "admin_updates_mismatch_title": "ورژن عدم مطابقت",
+  "admin_updates_mismatch_body":
+      "APK میٹاڈیٹا {parsedName} ({parsedCode}) ہے جبکہ فارم میں {enteredName} ({enteredCode}) ہے۔ پھر بھی جاری رکھیں؟",
+  "admin_updates_continue_anyway": "پھر بھی جاری رکھیں",
+  "admin_updates_publish_cancelled": "شائع کرنا منسوخ کر دیا گیا۔",
+  "admin_updates_current_release":
+      "موجودہ ریلیز: {name} ({code}) • فعال: {active}",
   "admin_investor_delete_title": "سرمایہ کار اکاؤنٹ حذف کریں",
   "admin_investor_delete_action": "سرمایہ کار حذف کریں",
   "admin_investor_delete_confirm_body":
@@ -1124,8 +1158,7 @@ const _ur = <String, String>{
   "submit_request": "درخواست جمع کریں",
   "available_pkrf": "دستیاب: {amount} PKR",
   "reserved_pkrf": "زیر التواء: {amount} PKR",
-  "withdrawable_money_market_pkrf":
-      "قابلِ نکاسی (منی مارکیٹ 5%): {amount} PKR",
+  "withdrawable_money_market_pkrf": "قابلِ نکاسی (منی مارکیٹ 5%): {amount} PKR",
   "wallet_prefix": "والیٹ:",
   "sign_in": "سائن ان",
   "login_no_account":

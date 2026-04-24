@@ -78,9 +78,9 @@ service firebase.storage {
     // Admin-uploaded Android APK releases for in-app updates.
     match /releases/{allPaths=**} {
       allow read: if isSignedIn();
-      // Allow signed-in uploads for release files to avoid resumable
-      // finalize denials caused by role lookups in this path.
-      allow write: if isSignedIn();
+      allow write: if isAdmin()
+        && request.resource.size < 250 * 1024 * 1024
+        && request.resource.contentType == "application/vnd.android.package-archive";
     }
 
     match /crm_attachments/{investorUid}/{allPaths=**} {
