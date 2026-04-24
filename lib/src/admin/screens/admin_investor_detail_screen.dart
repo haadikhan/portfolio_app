@@ -1,4 +1,6 @@
 import "package:cloud_functions/cloud_functions.dart";
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
@@ -102,7 +104,7 @@ class _AdminInvestorDetailScreenState
   }
 }
 
-class _InvestorDetailBody extends ConsumerWidget {
+class _InvestorDetailBody extends ConsumerStatefulWidget {
   const _InvestorDetailBody({
     required this.detail,
     required this.isDeleting,
@@ -114,10 +116,70 @@ class _InvestorDetailBody extends ConsumerWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = detail.summary;
-    final wallet = detail.wallet;
-    final tx = detail.transactions;
+  ConsumerState<_InvestorDetailBody> createState() =>
+      _InvestorDetailBodyState();
+}
+
+class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
+  final _overrideRateController = TextEditingController();
+  bool _savingOverride = false;
+
+  @override
+  void dispose() {
+    _overrideRateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveOverride({
+    required String uid,
+    required bool enabled,
+  }) async {
+    final rate = double.tryParse(_overrideRateController.text.trim());
+    if (rate == null || rate < 0 || rate > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter a valid investor annual rate (0–100)."),
+        ),
+      );
+      return;
+    }
+    setState(() => _savingOverride = true);
+    try {
+      final adminUid =
+          FirebaseAuth.instance.currentUser?.uid ?? "unknown_admin";
+      await FirebaseFirestore.instance
+          .collection("settings")
+          .doc("returns_projection_overrides")
+          .collection("items")
+          .doc(uid)
+          .set({
+            "annualRatePct": rate,
+            "enabled": enabled,
+            "updatedAt": FieldValue.serverTimestamp(),
+            "updatedBy": adminUid,
+          }, SetOptions(merge: true));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Investor projection override saved.")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save override: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingOverride = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.detail.summary;
+    final wallet = widget.detail.wallet;
+    final tx = widget.detail.transactions;
     final currency = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
     final dt = DateFormat.yMMMd().add_Hm();
     final role = ref.watch(adminRoleProvider).valueOrNull ?? "";
@@ -138,18 +200,21 @@ class _InvestorDetailBody extends ConsumerWidget {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 6),
-          Text("UID: ${user.userId}", style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            "UID: ${user.userId}",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           Text("Email: ${user.email.isEmpty ? "—" : user.email}"),
           Text("Phone: ${user.phone.isEmpty ? "—" : user.phone}"),
           if (isAdmin) ...[
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: isDeleting ? null : onDelete,
+              onPressed: widget.isDeleting ? null : widget.onDelete,
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.error,
                 foregroundColor: Theme.of(context).colorScheme.onError,
               ),
-              icon: isDeleting
+              icon: widget.isDeleting
                   ? const SizedBox(
                       width: 16,
                       height: 16,
@@ -157,7 +222,7 @@ class _InvestorDetailBody extends ConsumerWidget {
                     )
                   : const Icon(Icons.delete_outline),
               label: Text(
-                isDeleting
+                widget.isDeleting
                     ? context.tr("admin_investor_delete_in_progress")
                     : context.tr("admin_investor_delete_action"),
               ),
@@ -195,20 +260,111 @@ class _InvestorDetailBody extends ConsumerWidget {
               ),
               _MetricCard(
                 title: "Invested (from ledger)",
-                value: currency.format(detail.totalInvestedFromTransactions),
+                value: currency.format(
+                  widget.detail.totalInvestedFromTransactions,
+                ),
                 icon: Icons.analytics_outlined,
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection("settings")
+                .doc("returns_projection_overrides")
+                .collection("items")
+                .doc(user.userId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              final data = snapshot.data?.data();
+              final enabled = data?["enabled"] == true;
+              final rate = (data?["annualRatePct"] as num?)?.toDouble() ?? 0.0;
+              if (_overrideRateController.text.isEmpty) {
+                _overrideRateController.text = rate.toStringAsFixed(2);
+              }
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Live projection override",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Set investor-specific annual projection rate. "
+                        "When enabled, this overrides global live projection.",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 280,
+                        child: TextField(
+                          controller: _overrideRateController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: "Investor annual %",
+                            hintText: "e.g. 30",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text("Enable investor override"),
+                        value: enabled,
+                        onChanged: _savingOverride
+                            ? null
+                            : (v) =>
+                                  _saveOverride(uid: user.userId, enabled: v),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton.icon(
+                          onPressed: _savingOverride
+                              ? null
+                              : () => _saveOverride(
+                                  uid: user.userId,
+                                  enabled: enabled,
+                                ),
+                          icon: _savingOverride
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.save_outlined),
+                          label: Text(
+                            _savingOverride
+                                ? "Saving…"
+                                : "Save investor override",
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           if (isAdmin) ...[
             const SizedBox(height: 24),
             CrmAssignmentSection(investorUid: user.userId),
           ],
           const SizedBox(height: 28),
-          Text(
-            "Transactions",
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text("Transactions", style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           if (tx.isEmpty)
             const Text("No transactions found.")
@@ -223,7 +379,9 @@ class _InvestorDetailBody extends ConsumerWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(Colors.grey.shade100),
+                  headingRowColor: WidgetStateProperty.all(
+                    Colors.grey.shade100,
+                  ),
                   columns: const [
                     DataColumn(label: Text("Date")),
                     DataColumn(label: Text("Type")),
@@ -235,15 +393,19 @@ class _InvestorDetailBody extends ConsumerWidget {
                     for (final t in tx)
                       DataRow(
                         cells: [
-                          DataCell(Text(
-                            t.createdAt != null
-                                ? dt.format(t.createdAt!.toLocal())
-                                : "—",
-                          )),
+                          DataCell(
+                            Text(
+                              t.createdAt != null
+                                  ? dt.format(t.createdAt!.toLocal())
+                                  : "—",
+                            ),
+                          ),
                           DataCell(Text(t.type)),
                           DataCell(Text(t.status)),
                           DataCell(Text(currency.format(t.amount))),
-                          DataCell(Text(t.notes?.isNotEmpty == true ? t.notes! : "—")),
+                          DataCell(
+                            Text(t.notes?.isNotEmpty == true ? t.notes! : "—"),
+                          ),
                         ],
                       ),
                   ],

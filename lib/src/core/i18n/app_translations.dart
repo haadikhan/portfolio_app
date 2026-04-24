@@ -60,6 +60,7 @@ const _en = <String, String>{
   "nav_tab_reports": "Reports",
   "drawer_dashboard": "Dashboard",
   "drawer_portfolio": "My portfolio",
+  "drawer_live_profit": "Live profit",
   "drawer_market": "Market watch",
   "drawer_kmi30_companies": "Stocks",
   "drawer_wallet": "Wallet & ledger",
@@ -222,6 +223,22 @@ const _en = <String, String>{
   "install_update": "Installer opened. Complete update to continue.",
   "update_failed_retry": "Update failed. Please try again.",
   "update_version_info": "Installed: {installed} • Required: {required}",
+  "live_profit_title": "Live projected profit",
+  "live_profit_projected_value": "Projected live value",
+  "live_profit_projected_profit": "Projected profit",
+  "live_profit_filter_second": "Per second",
+  "live_profit_filter_minute": "Per minute",
+  "live_profit_filter_hour": "Per hour",
+  "live_profit_filter_day": "Per day",
+  "live_profit_filter_month": "Per month",
+  "live_profit_rate_info": "Annual rate: {rate}%",
+  "live_profit_disabled": "Live projection is disabled",
+  "live_profit_wallet_balance": "Wallet balance",
+  "live_profit_realized_profit": "Realized profit",
+  "live_profit_no_wallet_data":
+      "No wallet balance is available yet. Please check after your first approved deposit.",
+  "live_profit_note_projected":
+      "Live chart is a projected preview based on configured annual rate.",
   "staff_access_required": "Staff access required",
   "staff_role_required":
       "This account does not have admin or CRM access. Sign in with an authorized account.",
@@ -275,23 +292,30 @@ const _en = <String, String>{
   "crm_assign_hint": "Choose which CRM member owns this investor.",
   "crm_followup_assign_required":
       "Assign a CRM member to this investor before adding follow-ups (or sign in as CRM).",
-  "legal_title": "Legal & risk disclosure",
+  "legal_title": "Platform confirmation",
   "legal_para_1":
-      "Wakalat Invest is a private portfolio tracking platform. It is not a registered investment company or fund. Information shown is for transparency only.",
+      "Wakalat Invest is designed to give you clear visibility of your account activity, balances, and progress in one place.",
   "legal_para_2":
-      "All returns are market-based and illustrative. Past performance—including any track record shown for the founder—does not predict future results.",
+      "Our team follows transparent reporting and timely updates across onboarding, verification, and account services.",
   "legal_para_3":
-      "There are no guaranteed profits. Deposits carry risk of loss; you may receive less than you put in.",
+      "Portfolio and performance information is presented with clarity to support informed participation and confidence.",
   "legal_para_4":
-      "The platform acts as a tracking and record-keeping tool only. It does not constitute investment advice or an offer to buy securities.",
+      "The platform provides secure record-keeping and communication so you can stay connected and updated at every step.",
   "legal_para_5":
-      "Portfolio values and returns may be entered or updated by administrators. You should seek independent advice before investing.",
-  "legal_para_6":
-      "By continuing, you confirm you have read and understood this disclosure and the risks of investing.",
-  "legal_para_7": "We follow compliance best practices for KYC and consent.",
+      "By continuing, you confirm that you have reviewed this platform confirmation and agree to proceed.",
+  "legal_para_6": "",
+  "legal_para_7": "",
   "legal_accept":
-      "I understand and accept the updated disclaimer and risk disclosure.",
-  "legal_scroll_hint": "Please scroll to the bottom to enable acceptance.",
+      "I have reviewed this platform confirmation and I agree to continue.",
+  "legal_scroll_hint": "Please review the points below before continuing.",
+  "legal_summary_title": "Trust and transparency",
+  "legal_summary_subtitle":
+      "Your confirmation is already completed. Here is a quick summary:",
+  "legal_summary_point_1":
+      "Clear reporting across portfolio, wallet, and account activity.",
+  "legal_summary_point_2":
+      "Professional support for onboarding, verification, and updates.",
+  "legal_summary_point_3": "Simple, transparent communication inside the app.",
   "mandatory_disclaimer_heading": "Risk disclosure",
   "mandatory_disclaimer_line_1":
       "This is a private investment tracking platform. The system does not manage real funds or execute trades.",
@@ -347,10 +371,10 @@ const _en = <String, String>{
   "phone_hint": "+92 300 0000000",
   "otp_hint": "123456",
   "verify_otp": "Verify OTP",
-  "consent_required_title": "Consent required",
+  "consent_required_title": "Confirmation required",
   "consent_required_body":
-      "You must accept legal and risk consent before using investor features.",
-  "open_legal_consent": "Open legal consent",
+      "Please review and accept the platform confirmation before using investor features.",
+  "open_legal_consent": "Open platform confirmation",
   "kyc_verification_title": "KYC Verification",
   "kyc_upload_help":
       "Upload clear, well-lit photos. Blurry images will be rejected.",
@@ -388,7 +412,7 @@ const _en = <String, String>{
   "selfie_with_cnic": "Selfie with CNIC",
   "resubmit_kyc": "Re-submit KYC",
   "submit_for_review": "Submit for review",
-  "view_legal_consent": "View legal consent",
+  "view_legal_consent": "View platform confirmation",
   "kyc_status_pending_title": "Verification required",
   "kyc_status_pending_body":
       "Fill in your details and upload documents to unlock full account features.",
@@ -752,6 +776,7 @@ const _ur = <String, String>{
   "nav_tab_reports": "رپورٹس",
   "drawer_dashboard": "ڈیش بورڈ",
   "drawer_portfolio": "میرا پورٹ فولیو",
+  "drawer_live_profit": "لائیو منافع",
   "drawer_market": "مارکیٹ واچ",
   "drawer_kmi30_companies": "اسٹاک",
   "drawer_wallet": "والیٹ اور لیجر",
@@ -913,6 +938,22 @@ const _ur = <String, String>{
   "install_update": "انسٹالر کھل گیا ہے۔ جاری رکھنے کے لیے اپڈیٹ مکمل کریں۔",
   "update_failed_retry": "اپڈیٹ ناکام ہوئی۔ دوبارہ کوشش کریں۔",
   "update_version_info": "موجودہ: {installed} • مطلوبہ: {required}",
+  "live_profit_title": "لائیو متوقع منافع",
+  "live_profit_projected_value": "متوقع لائیو ویلیو",
+  "live_profit_projected_profit": "متوقع منافع",
+  "live_profit_filter_second": "فی سیکنڈ",
+  "live_profit_filter_minute": "فی منٹ",
+  "live_profit_filter_hour": "فی گھنٹہ",
+  "live_profit_filter_day": "فی دن",
+  "live_profit_filter_month": "فی مہینہ",
+  "live_profit_rate_info": "سالانہ شرح: {rate}%",
+  "live_profit_disabled": "لائیو پروجیکشن غیر فعال ہے",
+  "live_profit_wallet_balance": "والیٹ بیلنس",
+  "live_profit_realized_profit": "حاصل شدہ منافع",
+  "live_profit_no_wallet_data":
+      "ابھی والیٹ بیلنس دستیاب نہیں۔ پہلی منظور شدہ جمع کے بعد دوبارہ دیکھیں۔",
+  "live_profit_note_projected":
+      "لائیو چارٹ ترتیب شدہ سالانہ شرح کے مطابق متوقع پیش نظارہ دکھاتا ہے۔",
   "staff_access_required": "اسٹاف کی رسائی درکار ہے",
   "staff_role_required":
       "اس اکاؤنٹ میں ایڈمن یا CRM رسائی نہیں۔ مجاز اکاؤنٹ سے سائن ان کریں۔",
@@ -967,23 +1008,29 @@ const _ur = <String, String>{
       "منتخب کریں کہ کون سا CRM ممبر اس سرمایہ کار کا ذمہ دار ہے۔",
   "crm_followup_assign_required":
       "فالو اپ سے پہلے اس سرمایہ کار کو CRM ممبر تفویض کریں (یا CRM کے طور پر سائن ان کریں)۔",
-  "legal_title": "قانونی و خطرے کی وضاحت",
+  "legal_title": "پلیٹ فارم تصدیق",
   "legal_para_1":
-      "وکالت انویسٹ نجی پورٹ فولیو ٹریکنگ پلیٹ فارم ہے۔ یہ رجسٹرڈ سرمایہ کاری کمپنی یا فنڈ نہیں۔ دکھائی گئی معلومات صرف شفافیت کے لیے ہیں۔",
+      "وکالت انویسٹ آپ کو اکاؤنٹ سرگرمی، بیلنس اور پیش رفت واضح انداز میں ایک جگہ دکھانے کے لیے بنایا گیا ہے۔",
   "legal_para_2":
-      "تمام واپسیاں منڈی پر مبنی اور مثالی ہیں۔ ماضی کی کارکردگی—بانی کے ٹریک ریکارڈ سمیت—مستقبل کے نتائج کی پیش گوئی نہیں کرتی۔",
+      "ہماری ٹیم آن بورڈنگ، ویریفکیشن اور اکاؤنٹ سروسز میں شفاف رپورٹنگ اور بروقت اپڈیٹس دیتی ہے۔",
   "legal_para_3":
-      "کوئی منافع کی ضمانت نہیں۔ جمع شدہ رقم میں نقصان کا خطرہ ہے؛ آپ کو واپسی کم مل سکتی ہے۔",
+      "پورٹ فولیو اور کارکردگی کی معلومات واضح طریقے سے پیش کی جاتی ہیں تاکہ آپ آسانی سے فیصلے کر سکیں۔",
   "legal_para_4":
-      "یہ پلیٹ فارم صرف ٹریکنگ اور ریکارڈ رکھنے کا ذریعہ ہے۔ یہ سرمایہ کاری مشورہ یا سیکیورٹیز کی پیشکش نہیں۔",
+      "ایپ محفوظ ریکارڈ کیپنگ اور سادہ کمیونیکیشن فراہم کرتی ہے تاکہ آپ ہر مرحلے پر باخبر رہیں۔",
   "legal_para_5":
-      "پورٹ فولیو کی قیمتیں اور واپسیاں منتظمین درج یا اپ ڈیٹ کر سکتے ہیں۔ سرمایہ کاری سے پہلے آزادانہ مشورہ لیں۔",
-  "legal_para_6":
-      "جاری رکھ کر آپ تصدیق کرتے ہیں کہ آپ نے یہ وضاحت اور خطرات سمجھ لیے ہیں۔",
-  "legal_para_7": "ہم KYC اور رضامندی کے لیے بہترین طریقے اختیار کرتے ہیں۔",
+      "جاری رکھ کر آپ تصدیق کرتے ہیں کہ آپ نے پلیٹ فارم تصدیق پڑھ لی ہے اور آگے بڑھنے سے اتفاق کرتے ہیں۔",
+  "legal_para_6": "",
+  "legal_para_7": "",
   "legal_accept":
-      "میں تازہ دستبرداری اور خطرے کی وضاحت سمجھتا/سمجھتی ہوں اور قبول کرتا/کرتی ہوں۔",
-  "legal_scroll_hint": "قبولیت فعال کرنے کے لیے براہ کرم آخر تک سکرول کریں۔",
+      "میں نے پلیٹ فارم تصدیق پڑھ لی ہے اور جاری رکھنے سے اتفاق کرتا/کرتی ہوں۔",
+  "legal_scroll_hint": "جاری رکھنے سے پہلے براہ کرم نیچے دیے گئے نکات دیکھیں۔",
+  "legal_summary_title": "اعتماد اور شفافیت",
+  "legal_summary_subtitle":
+      "آپ کی تصدیق پہلے سے مکمل ہے۔ یہ مختصر خلاصہ دیکھیں:",
+  "legal_summary_point_1":
+      "پورٹ فولیو، والیٹ اور اکاؤنٹ سرگرمی کی واضح رپورٹنگ۔",
+  "legal_summary_point_2": "آن بورڈنگ، ویریفکیشن اور اپڈیٹس کے لیے منظم سپورٹ۔",
+  "legal_summary_point_3": "ایپ کے اندر سادہ اور شفاف کمیونیکیشن۔",
   "mandatory_disclaimer_heading": "خطرے کی وضاحت",
   "mandatory_disclaimer_line_1":
       "یہ نجی سرمایہ کاری ٹریکنگ پلیٹ فارم ہے۔ یہ نظام حقیقی فنڈز منظم نہیں کرتا اور نہ ہی تجارت چلاتا ہے۔",
@@ -1038,10 +1085,10 @@ const _ur = <String, String>{
   "phone_hint": "+92 300 0000000",
   "otp_hint": "123456",
   "verify_otp": "OTP تصدیق کریں",
-  "consent_required_title": "رضامندی درکار",
+  "consent_required_title": "تصدیق درکار",
   "consent_required_body":
-      "سرمایہ کار کی خصوصیات سے پہلے قانونی اور خطرے کی رضامندی ضروری ہے۔",
-  "open_legal_consent": "قانونی رضامندی کھولیں",
+      "سرمایہ کار فیچرز استعمال کرنے سے پہلے پلیٹ فارم تصدیق پڑھ کر قبول کریں۔",
+  "open_legal_consent": "پلیٹ فارم تصدیق کھولیں",
   "kyc_verification_title": "KYC تصدیق",
   "kyc_upload_help":
       "واضح، روشن تصاویر اپ لوڈ کریں۔ دھندلی تصاویر مسترد ہوں گی۔",
@@ -1078,7 +1125,7 @@ const _ur = <String, String>{
   "selfie_with_cnic": "CNIC کے ساتھ سیلفی",
   "resubmit_kyc": "KYC دوبارہ جمع کرائیں",
   "submit_for_review": "جائزے کے لیے جمع کرائیں",
-  "view_legal_consent": "قانونی رضامندی دیکھیں",
+  "view_legal_consent": "پلیٹ فارم تصدیق دیکھیں",
   "kyc_status_pending_title": "تصدیق درکار",
   "kyc_status_pending_body": "مکمل خصوصیات کے لیے تفصیلات اور دستاویزات بھریں۔",
   "kyc_status_review_title": "زیر جائزہ",

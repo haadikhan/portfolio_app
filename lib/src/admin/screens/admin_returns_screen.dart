@@ -1,4 +1,5 @@
 import "package:cloud_functions/cloud_functions.dart";
+import "package:cloud_firestore/cloud_firestore.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
@@ -11,20 +12,68 @@ class AdminReturnsScreen extends ConsumerStatefulWidget {
   const AdminReturnsScreen({super.key});
 
   @override
-  ConsumerState<AdminReturnsScreen> createState() =>
-      _AdminReturnsScreenState();
+  ConsumerState<AdminReturnsScreen> createState() => _AdminReturnsScreenState();
 }
 
 class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
   final _pctController = TextEditingController();
+  final _globalAnnualRateController = TextEditingController();
   bool _processing = false;
+  bool _savingProjectionConfig = false;
 
   final _fn = FirebaseFunctions.instanceFor(region: "us-central1");
+  final _db = FirebaseFirestore.instance;
 
   @override
   void dispose() {
     _pctController.dispose();
+    _globalAnnualRateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveProjectionConfig() async {
+    final rate = double.tryParse(_globalAnnualRateController.text.trim());
+    if (rate == null || rate < 0 || rate > 100) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter a valid annual projection rate (0–100)."),
+        ),
+      );
+      return;
+    }
+    setState(() => _savingProjectionConfig = true);
+    try {
+      await _fn.httpsCallable("saveReturnsProjectionConfig").call({
+        "globalAnnualRatePct": rate,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Live projection configuration saved.")),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      final message = switch (e.code) {
+        "internal" || "not-found" || "unavailable" =>
+          "Server config is not updated yet. Deploy/restart Cloud Functions and try again.",
+        _ => e.message ?? e.code,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save projection settings: $message"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save projection settings: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingProjectionConfig = false);
+    }
   }
 
   Future<void> _apply() async {
@@ -32,7 +81,8 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
     if (pct == null || pct <= 0 || pct > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Enter a valid return percentage (0–100).")),
+          content: Text("Enter a valid return percentage (0–100)."),
+        ),
       );
       return;
     }
@@ -48,11 +98,13 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Confirm & apply")),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Confirm & apply"),
+          ),
         ],
       ),
     );
@@ -60,27 +112,24 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
 
     setState(() => _processing = true);
     try {
-      final result = await _fn
-          .httpsCallable("applyMonthlyReturns")
-          .call({"returnPct": pct});
+      final result = await _fn.httpsCallable("applyMonthlyReturns").call({
+        "returnPct": pct,
+      });
 
       final data = Map<String, dynamic>.from(result.data as Map);
       if (!mounted) return;
 
-      final currency =
-          NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
+      final currency = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
       final successCount = data["successCount"] as int? ?? 0;
       final failCount = data["failCount"] as int? ?? 0;
-      final totalProfit =
-          (data["totalProfit"] as num?)?.toDouble() ?? 0.0;
+      final totalProfit = (data["totalProfit"] as num?)?.toDouble() ?? 0.0;
 
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.check_circle_rounded,
-                  color: Colors.green, size: 22),
+              Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
               SizedBox(width: 8),
               Text("Return applied"),
             ],
@@ -96,14 +145,17 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               const SizedBox(height: 4),
-              Text("Total profit distributed: "
-                  "${currency.format(totalProfit)}"),
+              Text(
+                "Total profit distributed: "
+                "${currency.format(totalProfit)}",
+              ),
             ],
           ),
           actions: [
             FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Done")),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Done"),
+            ),
           ],
         ),
       );
@@ -119,8 +171,7 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -134,8 +185,10 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Returns & profit entry",
-              style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "Returns & profit entry",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 8),
           Text(
             "Apply monthly returns to all investor portfolios.",
@@ -169,7 +222,8 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
                     child: TextField(
                       controller: _pctController,
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: "Monthly return %",
                         hintText: "e.g. 5.0",
@@ -186,17 +240,99 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.send_rounded, size: 18),
-                    label: Text(_processing
-                        ? "Processing…"
-                        : "Apply to all users"),
+                    label: Text(
+                      _processing ? "Processing…" : "Apply to all users",
+                    ),
                   ),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 20),
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: _db
+                .collection("settings")
+                .doc("returns_projection")
+                .snapshots(),
+            builder: (context, snapshot) {
+              final data = snapshot.data?.data();
+              final currentRate =
+                  (data?["globalAnnualRatePct"] as num?)?.toDouble() ?? 0.0;
+              if (_globalAnnualRateController.text.isEmpty) {
+                _globalAnnualRateController.text = currentRate.toStringAsFixed(
+                  2,
+                );
+              }
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Live projected profit rate",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Set annual projected rate used for live investor "
+                        "profit preview. This does not write ledger entries.",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: 320,
+                        child: TextField(
+                          controller: _globalAnnualRateController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: "Annual projection %",
+                            hintText: "e.g. 25",
+                            prefixIcon: Icon(Icons.timeline_rounded),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton.icon(
+                          onPressed: _savingProjectionConfig
+                              ? null
+                              : _saveProjectionConfig,
+                          icon: _savingProjectionConfig
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.save_outlined, size: 18),
+                          label: Text(
+                            _savingProjectionConfig
+                                ? "Saving…"
+                                : "Save projection settings",
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           Card(
@@ -210,15 +346,17 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
               padding: EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded,
-                      color: Colors.blue, size: 20),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       "For per-user manual profit entry, use the Apply "
                       "Returns console in the main admin app.",
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.blue),
+                      style: TextStyle(fontSize: 13, color: Colors.blue),
                     ),
                   ),
                 ],

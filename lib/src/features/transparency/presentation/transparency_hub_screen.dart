@@ -108,9 +108,9 @@ class _FounderTabState extends State<_FounderTab>
         children: [
           Text(
             context.tr("founder_name_full"),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
@@ -125,7 +125,8 @@ class _FounderTabState extends State<_FounderTab>
             borderRadius: BorderRadius.circular(14),
             child: YoutubePlayer(
               controller: _yt,
-              gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+              gestureRecognizers:
+                  const <Factory<OneSequenceGestureRecognizer>>{},
             ),
           ),
           const SizedBox(height: 8),
@@ -203,9 +204,9 @@ class _PerformanceTab extends StatelessWidget {
         children: [
           Text(
             context.tr("performance_title"),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           _Paragraph(text: context.tr("performance_founder_note")),
@@ -215,12 +216,18 @@ class _PerformanceTab extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.warning.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+              border: Border.all(
+                color: AppColors.warning.withValues(alpha: 0.35),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline_rounded, color: scheme.onSurface, size: 20),
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: scheme.onSurface,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -301,10 +308,7 @@ class _MetricTile extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -321,7 +325,7 @@ class _LegalReadonlyTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        for (var i = 1; i <= 7; i++) ...[
+        for (var i = 1; i <= 5; i++) ...[
           _Paragraph(text: context.tr("legal_para_$i")),
           const SizedBox(height: 12),
         ],

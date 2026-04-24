@@ -303,10 +303,7 @@ class _DashboardAppBar extends ConsumerWidget {
           ),
         ],
       ),
-      actions: const [
-        AppBarPreferenceActions(),
-        SizedBox(width: 8),
-      ],
+      actions: const [AppBarPreferenceActions(), SizedBox(width: 8)],
     );
   }
 }
@@ -423,6 +420,14 @@ class _AppDrawer extends ConsumerWidget {
                     onTap: () {
                       Navigator.pop(context);
                       context.push("/portfolio");
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.trending_up_rounded,
+                    label: context.tr("drawer_live_profit"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/profit-live");
                     },
                   ),
                   _DrawerItem(
@@ -711,10 +716,11 @@ class _WalletCard extends ConsumerWidget {
     final allocationTotalPkr = wallet == null
         ? 0.0
         : ((wallet!["availableBalance"] as num?)?.toDouble() ??
-            (wallet!["currentBalance"] as num?)?.toDouble() ??
-            0);
-    final moneyMarketPkr =
-        moneyMarketAmountFromAllocationTotal(allocationTotalPkr);
+              (wallet!["currentBalance"] as num?)?.toDouble() ??
+              0);
+    final moneyMarketPkr = moneyMarketAmountFromAllocationTotal(
+      allocationTotalPkr,
+    );
     final avail = (wallet?["availableBalance"] as num?)?.toDouble() ?? 0;
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
@@ -728,10 +734,7 @@ class _WalletCard extends ConsumerWidget {
 
     final totalAllocationDisplay = wallet == null
         ? dash
-        : _dashboardMoneyDisplay(
-            hideMoney,
-            _money.format(allocationTotalPkr),
-          );
+        : _dashboardMoneyDisplay(hideMoney, _money.format(allocationTotalPkr));
 
     return Container(
       decoration: BoxDecoration(
@@ -830,7 +833,9 @@ class _WalletCard extends ConsumerWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.22),
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.30 : 0.22,
+                          ),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -900,7 +905,9 @@ class _WalletCard extends ConsumerWidget {
                       Container(
                         width: 1,
                         height: 32,
-                        color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.2),
+                        color: Colors.white.withValues(
+                          alpha: isDark ? 0.28 : 0.2,
+                        ),
                       ),
                       Expanded(
                         child: _WalletStat(
@@ -917,7 +924,9 @@ class _WalletCard extends ConsumerWidget {
                       Container(
                         width: 1,
                         height: 32,
-                        color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.2),
+                        color: Colors.white.withValues(
+                          alpha: isDark ? 0.28 : 0.2,
+                        ),
                       ),
                       Expanded(
                         child: _WalletStat(
@@ -1132,7 +1141,9 @@ class _ActionButton extends StatelessWidget {
             boxShadow: enabled
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.04),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.24 : 0.04,
+                      ),
                       blurRadius: isDark ? 10 : 8,
                       offset: Offset(0, isDark ? 3 : 2),
                     ),
@@ -1287,7 +1298,9 @@ class _QuickAccessTile extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: isDark ? 0.26 : 0.22),
+                            color: Colors.white.withValues(
+                              alpha: isDark ? 0.26 : 0.22,
+                            ),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(icon, color: Colors.white, size: 22),
@@ -1367,9 +1380,7 @@ class _NavTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: scheme.surface.withValues(
-            alpha: isDark ? 0.98 : 1,
-          ),
+          color: scheme.surface.withValues(alpha: isDark ? 0.98 : 1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: scheme.outlineVariant.withValues(alpha: isDark ? 0.72 : 1),

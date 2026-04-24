@@ -135,6 +135,215 @@ async function safeAppendAudit(...args) {
   }
 }
 
+function toMonthKey(date) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function isCalendarMonthEnd(date) {
+  const utc = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+  const tomorrow = new Date(utc);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return tomorrow.getUTCMonth() !== utc.getUTCMonth();
+}
+
+function normalizeRate(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
+function readAnnualRate(data) {
+  if (!data || typeof data !== "object") return 0;
+  const candidates = [
+    data.globalAnnualRatePct,
+    data.annualRatePct,
+    data.annualRate,
+    data.yearlyRatePct,
+  ];
+  for (const raw of candidates) {
+    if (typeof raw === "string") {
+      const parsed = Number(raw.replace("%", "").trim());
+      if (Number.isFinite(parsed)) return normalizeRate(parsed);
+    } else if (Number.isFinite(Number(raw))) {
+      return normalizeRate(raw);
+    }
+  }
+  return 0;
+}
+
+async function getGlobalAnnualRatePct() {
+  const snap = await db().collection("settings").doc("returns_projection").get();
+  return readAnnualRate(snap.data());
+}
+
+async function runMonthEndProfitCredit({
+  dryRun = false,
+  requestedBy = "system_scheduler",
+  now = new Date(),
+  forceMonthKey,
+}) {
+  const annualRatePct = await getGlobalAnnualRatePct();
+  const monthlyPct = annualRatePct / 12;
+  const monthKey = forceMonthKey || toMonthKey(now);
+  const jobDocId = `monthly_profit_credit_${monthKey}`;
+  const jobRef = db()
+    .collection("settings")
+    .doc("system_jobs")
+    .collection("runs")
+    .doc(jobDocId);
+  const nowTs = admin.firestore.FieldValue.serverTimestamp();
+
+  if (!dryRun) {
+    const lock = await db().runTransaction(async (tx) => {
+      const snap = await tx.get(jobRef);
+      const data = snap.data() || {};
+      if (snap.exists && data.status === "completed") {
+        return { shouldRun: false, reason: "already_completed" };
+      }
+      tx.set(
+        jobRef,
+        {
+          kind: "monthly_profit_credit",
+          monthKey,
+          status: "running",
+          requestedBy,
+          annualRatePct,
+          monthlyPct,
+          startedAt: nowTs,
+          updatedAt: nowTs,
+        },
+        { merge: true },
+      );
+      return { shouldRun: true, reason: "running" };
+    });
+    if (!lock.shouldRun) {
+      return {
+        ok: true,
+        skipped: true,
+        reason: lock.reason,
+        monthKey,
+        annualRatePct,
+        monthlyPct,
+      };
+    }
+  }
+
+  const portfoliosSnap = await db().collection("portfolios").get();
+  let successCount = 0;
+  let failCount = 0;
+  let totalProfit = 0;
+  const errors = [];
+
+  for (const portfolioDoc of portfoliosSnap.docs) {
+    const uid = portfolioDoc.id;
+    try {
+      const data = portfolioDoc.data();
+      const previousValue = Number(data.currentValue) || 0;
+      if (previousValue <= 0 || monthlyPct <= 0) continue;
+
+      const profit = previousValue * (monthlyPct / 100);
+      const newValue = previousValue + profit;
+
+      if (!dryRun) {
+        const batch = db().batch();
+        batch.update(portfolioDoc.ref, {
+          currentValue: newValue,
+          lastMonthlyReturnPct: monthlyPct,
+          lastUpdated: nowTs,
+        });
+        const histRef = db()
+          .collection("portfolios")
+          .doc(uid)
+          .collection("returnHistory")
+          .doc();
+        batch.set(histRef, {
+          returnPct: monthlyPct,
+          profitAmount: profit,
+          previousValue,
+          newValue,
+          appliedAt: nowTs,
+          appliedBy: requestedBy,
+          mode: "month_end_annual_converted",
+          periodKey: monthKey,
+        });
+        const txRef = db().collection("transactions").doc();
+        batch.set(txRef, {
+          userId: uid,
+          type: "profit_entry",
+          amount: profit,
+          status: "approved",
+          createdAt: nowTs,
+          notes: `Month-end profit credit (${monthKey}) from annual rate ${annualRatePct.toFixed(2)}%`,
+          approvedBy: requestedBy,
+          periodKey: monthKey,
+        });
+        await batch.commit();
+        await recalculateWallet(uid);
+      }
+
+      totalProfit += profit;
+      successCount++;
+    } catch (e) {
+      failCount++;
+      errors.push(`${uid}: ${String(e)}`);
+      logger.error("runMonthEndProfitCredit_user_failed", {
+        uid,
+        error: String(e),
+      });
+    }
+  }
+
+  if (!dryRun) {
+    await jobRef.set(
+      {
+        status: "completed",
+        successCount,
+        failCount,
+        totalProfit,
+        errors: errors.slice(0, 50),
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  await safeAppendAudit(
+    requestedBy,
+    requestedBy === "system_scheduler" ? "system" : "admin",
+    dryRun ? "monthEndProfitCreditDryRun" : "monthEndProfitCredit",
+    "portfolios",
+    "all",
+    null,
+    {
+      monthKey,
+      annualRatePct,
+      monthlyPct,
+      successCount,
+      failCount,
+      totalProfit,
+      dryRun,
+    },
+  );
+
+  return {
+    ok: true,
+    skipped: false,
+    dryRun,
+    monthKey,
+    annualRatePct,
+    monthlyPct,
+    successCount,
+    failCount,
+    totalProfit,
+    errors,
+  };
+}
+
 /** Investor: create deposit request + pending transaction */
 exports.createDepositRequest = onCall(
   { region: "us-central1" },
@@ -1099,6 +1308,87 @@ exports.applyMonthlyReturns = onCall(
   },
 );
 
+/** Admin: save live projection configuration used by investor live profit UI */
+exports.saveReturnsProjectionConfig = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    try {
+      if (!request.auth?.uid) {
+        throw new HttpsError("unauthenticated", "Sign in required.");
+      }
+      await assertAdmin(request.auth.uid);
+
+      const rate = Number(request.data?.globalAnnualRatePct);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        throw new HttpsError(
+          "invalid-argument",
+          "globalAnnualRatePct must be between 0 and 100.",
+        );
+      }
+
+      await db().collection("settings").doc("returns_projection").set(
+        {
+          globalAnnualRatePct: rate,
+          isEnabled: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedBy: request.auth.uid,
+        },
+        { merge: true },
+      );
+
+      return { ok: true };
+    } catch (error) {
+      logger.error("saveReturnsProjectionConfig_failed", {
+        uid: request.auth?.uid || null,
+        error: String(error),
+      });
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      throw new HttpsError(
+        "internal",
+        "Unable to save projection settings. Check function deployment and admin access.",
+      );
+    }
+  },
+);
+
+/** Investor/Admin: read live projection configuration via Admin SDK */
+exports.getReturnsProjectionConfig = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    const snap = await db().collection("settings").doc("returns_projection").get();
+    const data = snap.data() || {};
+    const rate = Number(data.globalAnnualRatePct ?? data.annualRatePct ?? 0);
+    return {
+      globalAnnualRatePct: Number.isFinite(rate) ? rate : 0,
+      isEnabled: data.isEnabled === true,
+      exists: snap.exists,
+    };
+  },
+);
+
+/** Admin: manual trigger or dry-run for month-end profit automation. */
+exports.triggerMonthEndProfitCredit = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+    const dryRun = request.data?.dryRun !== false;
+    const monthKey = String(request.data?.monthKey || "").trim();
+    return runMonthEndProfitCredit({
+      dryRun,
+      requestedBy: request.auth.uid,
+      forceMonthKey: monthKey || undefined,
+    });
+  },
+);
+
 /**
  * Admin: one-time repair — recalculates every user's wallet from their
  * transaction ledger and writes corrected values to wallets/{uid}.
@@ -1213,6 +1503,19 @@ exports.reconcileWalletsDaily = onSchedule("0 3 * * *", async () => {
 
     cursor = usersSnap.docs[usersSnap.docs.length - 1];
   }
+});
+
+/** Calendar month-end automation: credits monthly profit from annual rate. */
+exports.applyMonthEndProfitCredits = onSchedule("10 0 * * *", async () => {
+  const now = new Date();
+  if (!isCalendarMonthEnd(now)) {
+    return;
+  }
+  await runMonthEndProfitCredit({
+    dryRun: false,
+    requestedBy: "system_scheduler",
+    now,
+  });
 });
 
 /** One-time: set CORS on the Storage bucket so Flutter Web can load images. */

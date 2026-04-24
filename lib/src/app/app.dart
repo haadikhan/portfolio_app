@@ -14,6 +14,7 @@ import "../features/crm/presentation/crm_dashboard_screen.dart";
 import "../features/home/presentation/home_screen.dart";
 import "../features/investment/presentation/investment_portfolio_screen.dart";
 import "../features/investment/presentation/investor_dashboard_screen.dart";
+import "../features/investment/presentation/live_profit_screen.dart";
 import "../features/investor/screens/investor_profile_screen.dart";
 import "../features/kyc/presentation/kyc_screen.dart";
 import "../features/legal/presentation/legal_consent_screen.dart";
@@ -82,9 +83,12 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(path: "/kyc", builder: (_, __) => const KycScreen()),
         GoRoute(path: "/legal", builder: (_, __) => const LegalConsentScreen()),
         StatefulShellRoute.indexedStack(
-          builder: (BuildContext context, GoRouterState state,
-                  StatefulNavigationShell navigationShell) =>
-              InvestorShellWithConsent(navigationShell: navigationShell),
+          builder:
+              (
+                BuildContext context,
+                GoRouterState state,
+                StatefulNavigationShell navigationShell,
+              ) => InvestorShellWithConsent(navigationShell: navigationShell),
           branches: <StatefulShellBranch>[
             StatefulShellBranch(
               routes: <RouteBase>[
@@ -156,6 +160,13 @@ class WakalatInvestApp extends ConsumerWidget {
           ),
         ),
         GoRoute(
+          path: "/profit-live",
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: LiveProfitScreen(),
+          ),
+        ),
+        GoRoute(
           path: "/wallet-ledger/deposit",
           parentNavigatorKey: _rootNavigatorKey,
           builder: (_, __) => const KycApprovedGateScreen(
@@ -180,7 +191,8 @@ class WakalatInvestApp extends ConsumerWidget {
         ),
         GoRoute(
           path: "/market",
-          builder: (_, __) => const ConsentGateScreen(child: MarketOverviewScreen()),
+          builder: (_, __) =>
+              const ConsentGateScreen(child: MarketOverviewScreen()),
         ),
         GoRoute(
           path: "/market/gold",
@@ -193,7 +205,9 @@ class WakalatInvestApp extends ConsumerWidget {
           parentNavigatorKey: _rootNavigatorKey,
           builder: (_, state) => ConsentGateScreen(
             child: Kmi30CompanyChartScreen(
-              symbol: (state.pathParameters["symbol"] ?? "").trim().toUpperCase(),
+              symbol: (state.pathParameters["symbol"] ?? "")
+                  .trim()
+                  .toUpperCase(),
             ),
           ),
         ),
@@ -229,7 +243,9 @@ class WakalatInvestApp extends ConsumerWidget {
           child: UpdateNoticeHost(
             navigatorKey: _rootNavigatorKey,
             child: Directionality(
-              textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
+              textDirection: code == "ur"
+                  ? TextDirection.rtl
+                  : TextDirection.ltr,
               child: child ?? const SizedBox.shrink(),
             ),
           ),

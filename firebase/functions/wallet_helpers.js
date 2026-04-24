@@ -38,7 +38,10 @@ async function recalculateWallet(userId) {
       if (st === "completed") {
         totalWithdrawn += amt;
       }
-    } else if (ty === "profit" && (st === "approved" || st === "completed")) {
+    } else if (
+      (ty === "profit" || ty === "profit_entry") &&
+      (st === "approved" || st === "completed")
+    ) {
       totalProfit += amt;
     } else if (ty === "adjustment" && (st === "approved" || st === "completed")) {
       totalAdjustments += amt;
