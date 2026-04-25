@@ -53,7 +53,7 @@ class WakalatInvestApp extends ConsumerWidget {
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final useUrduFont = locale.languageCode == "ur";
-    final appUpdateGate = ref.watch(appUpdateGateProvider);
+    final appUpdateGate = ref.watch(stableAppUpdateGateProvider);
 
     final router = GoRouter(
       navigatorKey: _rootNavigatorKey,

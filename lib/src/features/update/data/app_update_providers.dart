@@ -175,6 +175,27 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
   );
 });
 
+final _lastKnownAppUpdateGateProvider = StateProvider<AppUpdateGateState?>(
+  (ref) => null,
+);
+
+final stableAppUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((
+  ref,
+) {
+  final raw = ref.watch(appUpdateGateProvider);
+  final lastKnown = ref.watch(_lastKnownAppUpdateGateProvider);
+  ref.listen<AsyncValue<AppUpdateGateState>>(appUpdateGateProvider, (_, next) {
+    next.whenData((gate) {
+      ref.read(_lastKnownAppUpdateGateProvider.notifier).state = gate;
+    });
+  });
+
+  if ((raw.isLoading || raw.hasError) && lastKnown != null) {
+    return AsyncData(lastKnown);
+  }
+  return raw;
+});
+
 final updatePopupShownThisLaunchProvider = StateProvider<bool>((ref) => false);
 
 final resolvedApkDownloadUrlProvider =

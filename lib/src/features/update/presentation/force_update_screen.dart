@@ -37,7 +37,7 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final gate = ref.watch(appUpdateGateProvider).valueOrNull;
+    final gate = ref.watch(stableAppUpdateGateProvider).valueOrNull;
     final release = gate?.release;
     return Scaffold(
       body: Center(

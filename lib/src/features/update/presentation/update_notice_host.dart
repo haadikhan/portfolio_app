@@ -17,7 +17,7 @@ class UpdateNoticeHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gateAsync = ref.watch(appUpdateGateProvider);
+    final gateAsync = ref.watch(stableAppUpdateGateProvider);
 
     gateAsync.whenData((gate) {
       if (!gate.showGraceBanner) return;

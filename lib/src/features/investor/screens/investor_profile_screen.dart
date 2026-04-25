@@ -120,86 +120,138 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ) ??
           "",
     );
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.tr("update_bank_title")),
-        content: SizedBox(
-          width: 340,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline_rounded,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          context.tr("bank_approval_note"),
-                          style: const TextStyle(fontSize: 11, height: 1.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _DialogField(
-                    label: context.tr("bank_name"), controller: bankCtrl),
-                const SizedBox(height: 10),
-                _DialogField(
-                    label: context.tr("account_number"), controller: acctCtrl),
-                const SizedBox(height: 10),
-                _DialogField(
-                    label: context.tr("account_title"), controller: titleCtrl),
-              ],
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+            title: Text(
+              context.tr("update_bank_title"),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
+            scrollable: true,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context.tr("bank_approval_note"),
+                            style: const TextStyle(fontSize: 11, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _DialogField(
+                    label: context.tr("bank_name"),
+                    controller: bankCtrl,
+                  ),
+                  const SizedBox(height: 10),
+                  _DialogField(
+                    label: context.tr("account_number"),
+                    controller: acctCtrl,
+                  ),
+                  const SizedBox(height: 10),
+                  _DialogField(
+                    label: context.tr("account_title"),
+                    controller: titleCtrl,
+                  ),
+                ],
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(
+                  context.tr("cancel"),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(
+                  context.tr("submit_for_review_btn"),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      final bankName = bankCtrl.text.trim();
+      final accountNumber = acctCtrl.text.trim();
+      final accountTitle = titleCtrl.text.trim();
+      if (confirmed != true || !mounted) return;
+
+      await ref.read(profileUpdateProvider.notifier).submitPendingChange({
+        "bankName": bankName,
+        "accountNumber": accountNumber,
+        "accountTitle": accountTitle,
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("bank_request_submitted")),
+          backgroundColor: AppColors.success,
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(context.tr("cancel"))),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(context.tr("submit_for_review_btn"))),
-        ],
-      ),
-    );
-
-    final bankName = bankCtrl.text.trim();
-    final accountNumber = acctCtrl.text.trim();
-    final accountTitle = titleCtrl.text.trim();
-    bankCtrl.dispose();
-    acctCtrl.dispose();
-    titleCtrl.dispose();
-
-    if (confirmed != true || !mounted) return;
-
-    await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-      "bankName": bankName,
-      "accountNumber": accountNumber,
-      "accountTitle": accountTitle,
-    });
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr("bank_request_submitted")),
-        backgroundColor: AppColors.success,
-      ),
-    );
+      );
+    } finally {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        bankCtrl.dispose();
+        acctCtrl.dispose();
+        titleCtrl.dispose();
+      });
+    }
   }
 
   Future<void> _openNomineeEditDialog() async {
@@ -222,85 +274,137 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ) ??
           "",
     );
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.tr("update_nominee_title")),
-        content: SizedBox(
-          width: 340,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline_rounded,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          context.tr("nominee_approval_note"),
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _DialogField(
-                    label: context.tr("nominee_name"), controller: nameCtrl),
-                const SizedBox(height: 10),
-                _DialogField(
-                    label: context.tr("nominee_cnic"), controller: cnicCtrl),
-                const SizedBox(height: 10),
-                _DialogField(
-                    label: context.tr("relationship"), controller: relCtrl),
-              ],
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+            title: Text(
+              context.tr("update_nominee_title"),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
+            scrollable: true,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context.tr("nominee_approval_note"),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _DialogField(
+                    label: context.tr("nominee_name"),
+                    controller: nameCtrl,
+                  ),
+                  const SizedBox(height: 10),
+                  _DialogField(
+                    label: context.tr("nominee_cnic"),
+                    controller: cnicCtrl,
+                  ),
+                  const SizedBox(height: 10),
+                  _DialogField(
+                    label: context.tr("relationship"),
+                    controller: relCtrl,
+                  ),
+                ],
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(
+                  context.tr("cancel"),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(
+                  context.tr("submit_for_review_btn"),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      final nomineeName = nameCtrl.text.trim();
+      final nomineeCnic = cnicCtrl.text.trim();
+      final nomineeRelation = relCtrl.text.trim();
+      if (confirmed != true || !mounted) return;
+
+      await ref.read(profileUpdateProvider.notifier).submitPendingChange({
+        "nomineeName": nomineeName,
+        "nomineeCnic": nomineeCnic,
+        "nomineeRelation": nomineeRelation,
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("bank_request_submitted")),
+          backgroundColor: AppColors.success,
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(context.tr("cancel"))),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(context.tr("submit_for_review_btn"))),
-        ],
-      ),
-    );
-
-    final nomineeName = nameCtrl.text.trim();
-    final nomineeCnic = cnicCtrl.text.trim();
-    final nomineeRelation = relCtrl.text.trim();
-    nameCtrl.dispose();
-    cnicCtrl.dispose();
-    relCtrl.dispose();
-
-    if (confirmed != true || !mounted) return;
-
-    await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-      "nomineeName": nomineeName,
-      "nomineeCnic": nomineeCnic,
-      "nomineeRelation": nomineeRelation,
-    });
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr("bank_request_submitted")),
-        backgroundColor: AppColors.success,
-      ),
-    );
+      );
+    } finally {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        nameCtrl.dispose();
+        cnicCtrl.dispose();
+        relCtrl.dispose();
+      });
+    }
   }
 
   void _openChangePasswordDialog() {
@@ -951,13 +1055,31 @@ class _DialogField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: const TextStyle(fontSize: 14),
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(
+        fontSize: 14,
+        color: AppColors.heading,
+        fontWeight: FontWeight.w500,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        filled: true,
+        fillColor: AppColors.surfaceMuted,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
     );
   }

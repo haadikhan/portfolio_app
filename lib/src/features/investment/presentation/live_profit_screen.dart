@@ -242,18 +242,6 @@ class _HeroCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                context.trParams("live_profit_rate_info", {
-                  "rate": annualRatePct.toStringAsFixed(2),
-                }),
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-            ],
-          ),
         ],
       ),
     );

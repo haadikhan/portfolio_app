@@ -317,8 +317,8 @@ class _AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final updateGate = ref.watch(appUpdateGateProvider).valueOrNull;
-    final showUpdateItem = updateGate?.release != null;
+    final updateGate = ref.watch(stableAppUpdateGateProvider).valueOrNull;
+    final showUpdateItem = updateGate?.showGraceBanner == true;
     final initials = profile.name.isNotEmpty
         ? profile.name
               .trim()

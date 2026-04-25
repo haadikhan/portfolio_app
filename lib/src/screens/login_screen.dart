@@ -40,7 +40,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     if (state.hasValue) {
-      context.go("/investor");
+      // Route through AuthGate to avoid post-login stream churn/flicker.
+      context.go("/");
     }
   }
 
