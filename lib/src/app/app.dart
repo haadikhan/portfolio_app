@@ -37,6 +37,7 @@ import "../screens/consent_gate_screen.dart";
 import "../screens/kyc_approved_gate_screen.dart";
 import "../screens/forgot_password_screen.dart";
 import "../screens/login_screen.dart";
+import "../screens/setup_fingerprint_screen.dart";
 import "../screens/signup_screen.dart";
 import "investor_shell_scaffold.dart";
 
@@ -77,6 +78,11 @@ class WakalatInvestApp extends ConsumerWidget {
           builder: (_, __) => const ForgotPasswordScreen(),
         ),
         GoRoute(path: "/signup", builder: (_, __) => const SignupScreen()),
+        GoRoute(
+          path: "/setup-fingerprint",
+          builder: (_, state) =>
+              SetupFingerprintScreen(email: state.uri.queryParameters["email"]),
+        ),
         GoRoute(path: "/home", redirect: (_, __) => "/investor"),
         GoRoute(path: "/landing", builder: (_, __) => const HomeScreen()),
         GoRoute(path: "/auth", builder: (_, __) => const AuthScreen()),

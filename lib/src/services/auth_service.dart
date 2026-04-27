@@ -1,12 +1,14 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:cloud_functions/cloud_functions.dart";
+import "package:flutter/foundation.dart";
 
 class AuthService {
   AuthService(this._auth);
 
   final FirebaseAuth _auth;
-  final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: "us-central1");
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(
+    region: "us-central1",
+  );
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
@@ -39,16 +41,43 @@ class AuthService {
       // Never call fetchSignInMethodsForEmail before sign-in: with Firebase email
       // enumeration protection it often returns [] for real users, which made us show
       // "no account" before wrong-password / invalid-credential could run.
-      final credential = await _auth.signInWithEmailAndPassword(
+      final credential = await _signInWithRetry(
         email: trimmed,
         password: password,
       );
       await credential.user?.getIdToken(true);
       return credential;
     } on FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          "[AUTH][login] FirebaseAuthException code=${e.code} message=${e.message}",
+        );
+      }
       throw Exception(_messageForCode(e.code, fallback: e.message));
     } catch (_) {
       throw Exception("Unable to login right now. Please try again.");
+    }
+  }
+
+  Future<UserCredential> _signInWithRetry({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      final shouldRetry = _isTransientAuthError(e);
+      if (!shouldRetry) rethrow;
+      if (kDebugMode) {
+        debugPrint(
+          "[AUTH][login] transient error; retrying once. code=${e.code} message=${e.message}",
+        );
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      return _auth.signInWithEmailAndPassword(email: email, password: password);
     }
   }
 
@@ -116,6 +145,17 @@ class AuthService {
   }
 
   String _messageForCode(String code, {String? fallback}) {
+    final normalizedFallback = fallback?.trim() ?? "";
+    final lowerFallback = normalizedFallback.toLowerCase();
+    final looksLikeTransientTransport =
+        lowerFallback.contains("unexpected end of stream") ||
+        lowerFallback.contains("com.android.okhttp") ||
+        lowerFallback.contains("failed to connect") ||
+        lowerFallback.contains("connection reset");
+    if (looksLikeTransientTransport) {
+      return "Network connection was interrupted. Please try again.";
+    }
+
     switch (code) {
       case "email-already-in-use":
         return "This email is already registered.";
@@ -145,9 +185,23 @@ class AuthService {
       case "invalid-verification-id":
         return "Current password is incorrect.";
       default:
-        return fallback?.trim().isNotEmpty == true
-            ? fallback!
+        return normalizedFallback.isNotEmpty
+            ? normalizedFallback
             : "Authentication failed. Please try again.";
     }
+  }
+
+  bool _isTransientAuthError(FirebaseAuthException e) {
+    final code = e.code.trim().toLowerCase();
+    if (code == "network-request-failed" ||
+        code == "internal-error" ||
+        code == "unknown") {
+      return true;
+    }
+    final message = (e.message ?? "").toLowerCase();
+    return message.contains("unexpected end of stream") ||
+        message.contains("com.android.okhttp") ||
+        message.contains("timeout") ||
+        message.contains("connection reset");
   }
 }

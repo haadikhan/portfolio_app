@@ -10,6 +10,7 @@ import "../../../core/theme/theme_provider.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
+import "../../../providers/biometric_providers.dart";
 import "../../../providers/profile_providers.dart";
 
 /// Prefer `users/{uid}` field when set; otherwise show value from KYC doc.
@@ -42,8 +43,10 @@ class InvestorProfileScreen extends ConsumerWidget {
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text("${context.tr("error_prefix")} $e",
-              style: const TextStyle(color: AppColors.error)),
+          child: Text(
+            "${context.tr("error_prefix")} $e",
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
         data: (profile) {
           if (profile == null) {
@@ -107,14 +110,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       text: _preferProfileThenKyc(widget.profile.bankName, kyc?.bankName) ?? "",
     );
     final acctCtrl = TextEditingController(
-      text: _preferProfileThenKyc(
+      text:
+          _preferProfileThenKyc(
             widget.profile.accountNumber,
             kyc?.ibanOrAccountNumber,
           ) ??
           "",
     );
     final titleCtrl = TextEditingController(
-      text: _preferProfileThenKyc(
+      text:
+          _preferProfileThenKyc(
             widget.profile.accountTitle,
             kyc?.accountTitle,
           ) ??
@@ -125,17 +130,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
             titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
             title: Text(
               context.tr("update_bank_title"),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             scrollable: true,
             content: ConstrainedBox(
@@ -193,8 +197,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               TextButton(
                 style: TextButton.styleFrom(
                   minimumSize: const Size(0, 34),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -209,8 +215,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               FilledButton(
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 34),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -257,18 +265,18 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   Future<void> _openNomineeEditDialog() async {
     final kyc = ref.read(userKycProvider).valueOrNull;
     final nameCtrl = TextEditingController(
-      text: _preferProfileThenKyc(widget.profile.nomineeName, kyc?.nomineeName) ??
+      text:
+          _preferProfileThenKyc(widget.profile.nomineeName, kyc?.nomineeName) ??
           "",
     );
     final cnicCtrl = TextEditingController(
-      text: _preferProfileThenKyc(
-            widget.profile.nomineeCnic,
-            kyc?.nomineeCnic,
-          ) ??
+      text:
+          _preferProfileThenKyc(widget.profile.nomineeCnic, kyc?.nomineeCnic) ??
           "",
     );
     final relCtrl = TextEditingController(
-      text: _preferProfileThenKyc(
+      text:
+          _preferProfileThenKyc(
             widget.profile.nomineeRelation,
             kyc?.nomineeRelation,
           ) ??
@@ -279,17 +287,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
             titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
             title: Text(
               context.tr("update_nominee_title"),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             scrollable: true,
             content: ConstrainedBox(
@@ -346,8 +353,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               TextButton(
                 style: TextButton.styleFrom(
                   minimumSize: const Size(0, 34),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -362,8 +371,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               FilledButton(
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 34),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -419,12 +430,18 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final updateState = ref.watch(profileUpdateProvider);
     final kycAsync = ref.watch(userKycProvider);
     final kycRecord = kycAsync.valueOrNull;
-    final displayPhone =
-        _preferProfileThenKyc(widget.profile.phone, kycRecord?.phone);
-    final displayCnic =
-        _preferProfileThenKyc(widget.profile.cnic, kycRecord?.cnicNumber);
-    final displayBankName =
-        _preferProfileThenKyc(widget.profile.bankName, kycRecord?.bankName);
+    final displayPhone = _preferProfileThenKyc(
+      widget.profile.phone,
+      kycRecord?.phone,
+    );
+    final displayCnic = _preferProfileThenKyc(
+      widget.profile.cnic,
+      kycRecord?.cnicNumber,
+    );
+    final displayBankName = _preferProfileThenKyc(
+      widget.profile.bankName,
+      kycRecord?.bankName,
+    );
     final displayAccountNumber = _preferProfileThenKyc(
       widget.profile.accountNumber,
       kycRecord?.ibanOrAccountNumber,
@@ -445,8 +462,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       widget.profile.nomineeRelation,
       kycRecord?.nomineeRelation,
     );
-    final hasPasswordProvider = FirebaseAuth.instance.currentUser?.providerData
-            .any((p) => p.providerId == "password") ??
+    final hasPasswordProvider =
+        FirebaseAuth.instance.currentUser?.providerData.any(
+          (p) => p.providerId == "password",
+        ) ??
         false;
 
     return SingleChildScrollView(
@@ -473,18 +492,21 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed:
-                      updateState.isLoading ? null : _saveDirectFields,
+                  onPressed: updateState.isLoading ? null : _saveDirectFields,
                   icon: updateState.isLoading
                       ? const SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Icon(Icons.save_rounded, size: 16),
                   label: Text(context.tr("save_btn")),
                   style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary),
+                    backgroundColor: AppColors.primary,
+                  ),
                 ),
               ] else
                 OutlinedButton.icon(
@@ -534,9 +556,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       label: context.tr("profile_phone_number"),
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     )
                   : _ProfileFieldTile(
                       label: context.tr("profile_phone_number"),
@@ -568,26 +588,32 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             trailingAction: TextButton.icon(
               onPressed: _openBankEditDialog,
               icon: const Icon(Icons.edit_rounded, size: 14),
-              label: Text(context.tr("edit_short"),
-                  style: const TextStyle(fontSize: 12)),
+              label: Text(
+                context.tr("edit_short"),
+                style: const TextStyle(fontSize: 12),
+              ),
               style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                foregroundColor: AppColors.primary,
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
             children: [
               _ProfileFieldTile(
-                  label: context.tr("bank_name"),
-                  value: displayBankName),
+                label: context.tr("bank_name"),
+                value: displayBankName,
+              ),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: context.tr("account_number"),
-                  value: displayAccountNumber),
+                label: context.tr("account_number"),
+                value: displayAccountNumber,
+              ),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: context.tr("account_title"),
-                  value: displayAccountTitle),
+                label: context.tr("account_title"),
+                value: displayAccountTitle,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -599,26 +625,32 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             trailingAction: TextButton.icon(
               onPressed: _openNomineeEditDialog,
               icon: const Icon(Icons.edit_rounded, size: 14),
-              label: Text(context.tr("edit_short"),
-                  style: const TextStyle(fontSize: 12)),
+              label: Text(
+                context.tr("edit_short"),
+                style: const TextStyle(fontSize: 12),
+              ),
               style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                foregroundColor: AppColors.primary,
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
             children: [
               _ProfileFieldTile(
-                  label: context.tr("nominee_name"),
-                  value: displayNomineeName),
+                label: context.tr("nominee_name"),
+                value: displayNomineeName,
+              ),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: context.tr("nominee_cnic"),
-                  value: displayNomineeCnic),
+                label: context.tr("nominee_cnic"),
+                value: displayNomineeCnic,
+              ),
               const Divider(height: 1),
               _ProfileFieldTile(
-                  label: context.tr("relationship"),
-                  value: displayNomineeRelation),
+                label: context.tr("relationship"),
+                value: displayNomineeRelation,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -659,8 +691,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               icon: Icons.lock_outline_rounded,
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -678,7 +712,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             const SizedBox(height: 14),
           ],
-          _AppPreferencesCard(),
+          _AppPreferencesCard(hasPasswordProvider: hasPasswordProvider),
 
           const SizedBox(height: 20),
 
@@ -692,8 +726,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded,
-                    size: 15, color: AppColors.bodyMuted),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: AppColors.bodyMuted,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -715,12 +752,23 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 }
 
 class _AppPreferencesCard extends ConsumerWidget {
+  const _AppPreferencesCard({required this.hasPasswordProvider});
+
+  final bool hasPasswordProvider;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
-    final locale = ref.watch(languageProvider).valueOrNull ?? const Locale("en");
+    final locale =
+        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final isDark = themeMode == ThemeMode.dark;
     final isUrdu = locale.languageCode == "ur";
+    final biometricEnabled =
+        ref.watch(biometricEnabledProvider).valueOrNull ?? false;
+    final biometricCapability = ref
+        .watch(biometricCapabilityProvider)
+        .valueOrNull;
+    final biometricAvailable = biometricCapability?.isAvailable == true;
 
     return _ProfileCard(
       title: context.tr("app_preferences"),
@@ -743,23 +791,28 @@ class _AppPreferencesCard extends ConsumerWidget {
                     Text(
                       context.tr("dark_mode"),
                       style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.heading),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.heading,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       isDark
                           ? context.tr("dark_mode")
                           : context.tr("light_mode"),
-                      style: const TextStyle(fontSize: 11, color: AppColors.bodyMuted),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.bodyMuted,
+                      ),
                     ),
                   ],
                 ),
               ),
               Switch(
                 value: isDark,
-                onChanged: (_) => ref.read(themeProvider.notifier).toggleTheme(),
+                onChanged: (_) =>
+                    ref.read(themeProvider.notifier).toggleTheme(),
               ),
             ],
           ),
@@ -769,7 +822,11 @@ class _AppPreferencesCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.language_rounded, size: 18, color: AppColors.primary),
+              const Icon(
+                Icons.language_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -778,14 +835,18 @@ class _AppPreferencesCard extends ConsumerWidget {
                     Text(
                       context.tr("language"),
                       style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.heading),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.heading,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       isUrdu ? context.tr("urdu") : context.tr("english"),
-                      style: const TextStyle(fontSize: 11, color: AppColors.bodyMuted),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.bodyMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -797,13 +858,87 @@ class _AppPreferencesCard extends ConsumerWidget {
                 ],
                 selected: {locale.languageCode == "ur" ? "ur" : "en"},
                 showSelectedIcon: false,
-                onSelectionChanged: (v) => ref
-                    .read(languageProvider.notifier)
-                    .setLanguage(v.first),
+                onSelectionChanged: (v) =>
+                    ref.read(languageProvider.notifier).setLanguage(v.first),
               ),
             ],
           ),
         ),
+        if (hasPasswordProvider) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.fingerprint_rounded,
+                  size: 18,
+                  color: biometricAvailable
+                      ? AppColors.primary
+                      : AppColors.bodyMuted,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr("biometric_login_label"),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.heading,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        biometricAvailable
+                            ? context.tr("biometric_login_enabled_hint")
+                            : context.tr("fingerprint_not_setup"),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.bodyMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: biometricEnabled,
+                  onChanged: (v) async {
+                    if (!v) {
+                      await ref
+                          .read(biometricControllerProvider.notifier)
+                          .disable();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            context.tr("biometric_disabled_success"),
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    final ok = await ref
+                        .read(biometricControllerProvider.notifier)
+                        .enableForCurrentUser();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ok
+                              ? context.tr("biometric_enabled_success")
+                              : context.tr("biometric_enable_failed"),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -819,11 +954,11 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final initials = profile.name.isNotEmpty
         ? profile.name
-            .trim()
-            .split(" ")
-            .map((w) => w[0].toUpperCase())
-            .take(2)
-            .join()
+              .trim()
+              .split(" ")
+              .map((w) => w[0].toUpperCase())
+              .take(2)
+              .join()
         : "?";
 
     return Container(
@@ -856,7 +991,9 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile.name.isNotEmpty ? profile.name : context.tr("investor_label"),
+                  profile.name.isNotEmpty
+                      ? profile.name
+                      : context.tr("investor_label"),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -866,8 +1003,7 @@ class _ProfileHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   profile.email,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -949,8 +1085,9 @@ class _ProfileFieldTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayValue =
-        (value != null && value!.isNotEmpty) ? value! : "Not added";
+    final displayValue = (value != null && value!.isNotEmpty)
+        ? value!
+        : "Not added";
     final isEmpty = value == null || value!.isEmpty;
 
     return Padding(
@@ -975,19 +1112,19 @@ class _ProfileFieldTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isEmpty
-                        ? AppColors.bodyMuted
-                        : AppColors.heading,
-                    fontStyle:
-                        isEmpty ? FontStyle.italic : FontStyle.normal,
+                    color: isEmpty ? AppColors.bodyMuted : AppColors.heading,
+                    fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
               ],
             ),
           ),
           if (locked)
-            const Icon(Icons.lock_outline_rounded,
-                size: 16, color: AppColors.bodyMuted),
+            const Icon(
+              Icons.lock_outline_rounded,
+              size: 16,
+              color: AppColors.bodyMuted,
+            ),
         ],
       ),
     );
@@ -1020,19 +1157,19 @@ class _EditableField extends StatelessWidget {
         style: const TextStyle(fontSize: 14, color: AppColors.heading),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(
-              fontSize: 12, color: AppColors.bodyMuted),
+          labelStyle: const TextStyle(fontSize: 12, color: AppColors.bodyMuted),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(color: AppColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 2),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 10),
+            horizontal: 12,
+            vertical: 10,
+          ),
           isDense: true,
         ),
       ),
@@ -1043,10 +1180,7 @@ class _EditableField extends StatelessWidget {
 // ── Dialog text field ─────────────────────────────────────────────────────────
 
 class _DialogField extends StatelessWidget {
-  const _DialogField({
-    required this.label,
-    required this.controller,
-  });
+  const _DialogField({required this.label, required this.controller});
 
   final String label;
   final TextEditingController controller;
@@ -1079,7 +1213,10 @@ class _DialogField extends StatelessWidget {
           borderSide: const BorderSide(color: AppColors.border),
         ),
         isDense: false,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -1119,9 +1256,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
             ? context.tr("password_visibility_show")
             : context.tr("password_visibility_hide"),
         icon: Icon(
-          obscure
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined,
+          obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
         ),
         onPressed: onToggleVisibility,
       ),
@@ -1155,10 +1290,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       setState(() => _localError = context.tr("password_min_chars"));
       return;
     }
-    await ref.read(passwordChangeProvider.notifier).changePassword(
-          currentPassword: _current.text,
-          newPassword: _new.text,
-        );
+    await ref
+        .read(passwordChangeProvider.notifier)
+        .changePassword(currentPassword: _current.text, newPassword: _new.text);
     if (!mounted) return;
     final asyncState = ref.read(passwordChangeProvider);
     asyncState.whenOrNull(
@@ -1211,9 +1345,8 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   context,
                   labelText: context.tr("current_password_label"),
                   obscure: _obscureCurrent,
-                  onToggleVisibility: () => setState(
-                    () => _obscureCurrent = !_obscureCurrent,
-                  ),
+                  onToggleVisibility: () =>
+                      setState(() => _obscureCurrent = !_obscureCurrent),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1236,9 +1369,8 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   context,
                   labelText: context.tr("confirm_password_label"),
                   obscure: _obscureConfirm,
-                  onToggleVisibility: () => setState(
-                    () => _obscureConfirm = !_obscureConfirm,
-                  ),
+                  onToggleVisibility: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
               ),
             ],

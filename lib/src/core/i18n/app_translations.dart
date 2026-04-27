@@ -616,6 +616,22 @@ const _en = <String, String>{
   "enter_valid_email": "Enter valid email",
   "password_min_chars": "Minimum 6 characters",
   "login_btn": "Login",
+  "login_with_fingerprint": "Login with Fingerprint",
+  "fingerprint_not_setup": "Fingerprint not set up on this device.",
+  "biometric_auth_failed": "Fingerprint authentication failed or cancelled.",
+  "setup_fingerprint_title": "Setup Fingerprint",
+  "setup_fingerprint_heading": "Enable fingerprint login?",
+  "setup_fingerprint_subtitle":
+      "Use your device biometrics to quickly unlock your account.",
+  "enable_fingerprint_button": "Enable Fingerprint",
+  "skip_for_now": "Skip for now",
+  "biometric_enabled_success": "Fingerprint login has been enabled.",
+  "biometric_disabled_success": "Fingerprint login has been disabled.",
+  "biometric_enable_failed":
+      "Could not enable fingerprint login. Please try again.",
+  "biometric_login_label": "Fingerprint login",
+  "biometric_login_enabled_hint":
+      "Use biometrics as a convenience layer on this device.",
   "forgot_password_link": "Forgot password?",
   "reset_password_title": "Reset password",
   "reset_password_subtitle":
@@ -1320,6 +1336,22 @@ const _ur = <String, String>{
   "enter_valid_email": "درست ای میل درج کریں",
   "password_min_chars": "کم از کم 6 حروف",
   "login_btn": "لاگ ان",
+  "login_with_fingerprint": "فنگر پرنٹ سے لاگ ان",
+  "fingerprint_not_setup": "اس ڈیوائس پر فنگر پرنٹ سیٹ اپ نہیں ہے۔",
+  "biometric_auth_failed": "فنگر پرنٹ تصدیق ناکام یا منسوخ ہو گئی۔",
+  "setup_fingerprint_title": "فنگر پرنٹ سیٹ اپ",
+  "setup_fingerprint_heading": "فنگر پرنٹ لاگ ان فعال کریں؟",
+  "setup_fingerprint_subtitle":
+      "اپنے اکاؤنٹ کو تیزی سے کھولنے کے لیے ڈیوائس بایومیٹرک استعمال کریں۔",
+  "enable_fingerprint_button": "فنگر پرنٹ فعال کریں",
+  "skip_for_now": "ابھی چھوڑیں",
+  "biometric_enabled_success": "فنگر پرنٹ لاگ ان فعال ہو گیا ہے۔",
+  "biometric_disabled_success": "فنگر پرنٹ لاگ ان بند کر دیا گیا ہے۔",
+  "biometric_enable_failed":
+      "فنگر پرنٹ لاگ ان فعال نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
+  "biometric_login_label": "فنگر پرنٹ لاگ ان",
+  "biometric_login_enabled_hint":
+      "اس ڈیوائس پر سہولت کے لیے بایومیٹرک استعمال کریں۔",
   "forgot_password_link": "پاس ورڈ بھول گئے؟",
   "reset_password_title": "پاس ورڈ ری سیٹ",
   "reset_password_subtitle":

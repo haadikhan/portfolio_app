@@ -1,5 +1,8 @@
+import "dart:async";
+
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/foundation.dart";
 
 import "../core/compliance/consent_version.dart";
 import "../models/app_user.dart";
@@ -38,25 +41,54 @@ class FirestoreService {
   /// `request.auth` on reads. Retries a server [get] on [users] until rules accept it
   /// (matches login → immediate navigation → `permission-denied` on listeners).
   Future<void> waitUntilUserDocAccessible(User user) async {
-    for (var attempt = 0; attempt < 15; attempt++) {
-      await user.getIdToken(true);
+    const maxAttempts = 8;
+    const perAttemptTimeout = Duration(seconds: 3);
+    const maxTotalWait = Duration(seconds: 12);
+    final stopwatch = Stopwatch()..start();
+    FirebaseException? lastRetryable;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (stopwatch.elapsed >= maxTotalWait) {
+        break;
+      }
       try {
-        await _users.doc(user.uid).get(
-              const GetOptions(source: Source.server),
-            );
+        await user.getIdToken(true).timeout(perAttemptTimeout);
+        await _users
+            .doc(user.uid)
+            .get(const GetOptions(source: Source.server))
+            .timeout(perAttemptTimeout);
         return;
+      } on TimeoutException {
+        lastRetryable = FirebaseException(
+          plugin: "cloud_firestore",
+          code: "deadline-exceeded",
+          message: "Timed out while waiting for Firestore access.",
+        );
       } on FirebaseException catch (e) {
-        final retryable = e.code == "permission-denied" ||
+        final retryable =
+            e.code == "permission-denied" ||
             e.code == "unavailable" ||
             e.code == "deadline-exceeded";
-        if (retryable && attempt < 14) {
+        if (!retryable) {
+          rethrow;
+        }
+        lastRetryable = e;
+        if (attempt < maxAttempts - 1) {
           await Future<void>.delayed(
-            Duration(milliseconds: 50 * (attempt + 1)),
+            Duration(milliseconds: 120 * (attempt + 1)),
           );
           continue;
         }
-        rethrow;
       }
+    }
+
+    // Avoid blocking login indefinitely on unstable/offline networks.
+    if (kDebugMode) {
+      debugPrint(
+        "[AUTH][Firestore] Continuing without server accessibility confirmation. "
+        "elapsed=${stopwatch.elapsed.inMilliseconds}ms "
+        "lastCode=${lastRetryable?.code} lastMessage=${lastRetryable?.message}",
+      );
     }
   }
 
@@ -95,7 +127,8 @@ class FirestoreService {
     final fallbackName = user.displayName?.trim();
     final email = user.email?.trim() ?? "";
     // Use auth creation timestamp so concurrent bootstrap writes stay identical.
-    final createdAtIso = user.metadata.creationTime?.toIso8601String() ??
+    final createdAtIso =
+        user.metadata.creationTime?.toIso8601String() ??
         DateTime.now().toIso8601String();
     await ref.set({
       "email": email,
@@ -199,18 +232,13 @@ class FirestoreService {
       throw Exception("Consent must be accepted.");
     }
     final batch = _db.batch();
-    batch.set(
-      _consents.doc(userId),
-      {
-        "userId": userId,
-        "accepted": true,
-        "acceptedAt": FieldValue.serverTimestamp(),
-        "version": kConsentDocumentVersion,
-      },
-      SetOptions(merge: true),
-    );
-    final eventRef =
-        _users.doc(userId).collection("consent_events").doc();
+    batch.set(_consents.doc(userId), {
+      "userId": userId,
+      "accepted": true,
+      "acceptedAt": FieldValue.serverTimestamp(),
+      "version": kConsentDocumentVersion,
+    }, SetOptions(merge: true));
+    final eventRef = _users.doc(userId).collection("consent_events").doc();
     batch.set(eventRef, {
       "userId": userId,
       "version": kConsentDocumentVersion,

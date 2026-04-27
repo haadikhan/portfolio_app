@@ -31,7 +31,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).signUp(
+    await ref
+        .read(authControllerProvider.notifier)
+        .signUp(
           name: _nameController.text,
           email: _emailController.text,
           password: _passwordController.text,
@@ -43,7 +45,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       return;
     }
     if (state.hasValue) {
-      context.go("/investor");
+      final encodedEmail = Uri.encodeComponent(_emailController.text.trim());
+      context.go("/setup-fingerprint?email=$encodedEmail");
     }
   }
 
@@ -77,14 +80,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             ),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 32,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 460),
                   child: Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2223) : AppColors.surface,
+                      color: isDark
+                          ? const Color(0xFF1F2223)
+                          : AppColors.surface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: isDark
@@ -124,7 +131,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           const SizedBox(height: 18),
                           TextFormField(
                             controller: _nameController,
-                            decoration: InputDecoration(labelText: context.tr("name")),
+                            decoration: InputDecoration(
+                              labelText: context.tr("name"),
+                            ),
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? context.tr("enter_your_name")
                                 : null,
@@ -132,7 +141,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _emailController,
-                            decoration: InputDecoration(labelText: context.tr("email")),
+                            decoration: InputDecoration(
+                              labelText: context.tr("email"),
+                            ),
                             validator: (v) => (v == null || !v.contains("@"))
                                 ? context.tr("enter_valid_email")
                                 : null,
@@ -170,7 +181,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                   ? const SizedBox(
                                       height: 18,
                                       width: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : Text(context.tr("sign_up_btn")),
                             ),
@@ -178,10 +191,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           if (authState.hasError) ...[
                             const SizedBox(height: 12),
                             Text(
-                              formatAppErrorMessage(
-                                context,
-                                authState.error!,
-                              ),
+                              formatAppErrorMessage(context, authState.error!),
                               style: const TextStyle(color: AppColors.error),
                             ),
                           ],
