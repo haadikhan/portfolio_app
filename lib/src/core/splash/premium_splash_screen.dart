@@ -61,7 +61,7 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
         curve: const Interval(0.58, 0.86, curve: Curves.easeOutCubic),
       ),
     );
-    _glowPulse = Tween<double>(begin: 0.32, end: 0.95).animate(
+    _glowPulse = Tween<double>(begin: 0.42, end: 0.8).animate(
       CurvedAnimation(
         parent: _main,
         curve: const Interval(0.08, 1.0, curve: Curves.easeInOut),
@@ -116,6 +116,8 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
       animation: _main,
       builder: (context, _) {
         final pulse = _glowPulse.value;
+        final size = MediaQuery.sizeOf(context);
+        final isTall = size.height / size.width > 1.9;
         return Scaffold(
           backgroundColor: AppColors.primaryDark,
           body: Stack(
@@ -125,12 +127,28 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                 child: Image.asset(
                   kSplashBackgroundAsset,
                   fit: BoxFit.cover,
-                  // Slight positive X: crop favors the right side of the asset so the
-                  // scene reads shifted left on screen (portrait phones).
-                  alignment: const Alignment(0.2, 0),
+                  alignment: const Alignment(0.08, -0.03),
                   filterQuality: FilterQuality.medium,
+                  color: Colors.black.withValues(alpha: 0.14),
+                  colorBlendMode: BlendMode.darken,
                   errorBuilder: (_, __, ___) => const ColoredBox(
                     color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: size.width * 0.035,
+                    vertical: isTall ? size.height * 0.055 : size.height * 0.04,
+                  ),
+                  child: Image.asset(
+                    kSplashBackgroundAsset,
+                    fit: BoxFit.contain,
+                    alignment: const Alignment(0, -0.05),
+                    filterQuality: FilterQuality.high,
+                    opacity: const AlwaysStoppedAnimation<double>(0.92),
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
               ),
@@ -138,20 +156,36 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                       colors: [
                         Color.lerp(
                           const Color(0xFF118038),
                           AppColors.primary,
-                          0.35 + pulse * 0.2,
-                        )!.withValues(alpha: 0.46),
+                          0.22 + pulse * 0.12,
+                        )!.withValues(alpha: 0.28),
                         Color.lerp(
                           AppColors.primaryDark,
                           const Color(0xFF073818),
-                          pulse * 0.15,
-                        )!.withValues(alpha: 0.54),
+                          pulse * 0.1,
+                        )!.withValues(alpha: 0.44),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.12),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.18),
+                      ],
+                      stops: const [0.0, 0.45, 1.0],
                     ),
                   ),
                 ),
@@ -161,7 +195,7 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                 top: -40,
                 child: IgnorePointer(
                   child: Opacity(
-                    opacity: 0.28 + pulse * 0.14,
+                    opacity: 0.17 + pulse * 0.08,
                     child: Container(
                       width: 220,
                       height: 220,
@@ -178,7 +212,7 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                 bottom: 64,
                 child: IgnorePointer(
                   child: Opacity(
-                    opacity: 0.22 + pulse * 0.12,
+                    opacity: 0.14 + pulse * 0.08,
                     child: Container(
                       width: 180,
                       height: 180,
@@ -193,23 +227,23 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
               SafeArea(
                 child: Column(
                   children: [
-                    const Spacer(flex: 2),
+                    const Spacer(flex: 3),
                     SizedBox(
-                      height: 240,
+                      height: isTall ? 220 : 232,
                       width: MediaQuery.sizeOf(context).width,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: CustomPaint(
                           painter: _PremiumGrowthWavePainter(
                             progress: _strokeProgress.value,
                             motionT: _accentBreath.value,
-                            lineCore: Colors.white.withValues(alpha: 0.96),
-                            lineGlow: Colors.white.withValues(alpha: 0.22),
+                            lineCore: Colors.white.withValues(alpha: 0.92),
+                            lineGlow: Colors.white.withValues(alpha: 0.16),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     Opacity(
                       opacity: _titleOpacity.value,
                       child: Text(
@@ -217,42 +251,42 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 23,
+                          fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -0.35,
+                          letterSpacing: -0.2,
                           height: 1.25,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Opacity(
                       opacity: _taglineOpacity.value,
                       child: Text(
                         "Growth · Transparency · Trust",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          fontSize: 13.5,
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          letterSpacing: 0.35,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
-                    const Spacer(flex: 3),
+                    const Spacer(flex: 2),
                     Opacity(
-                      opacity: _taglineOpacity.value * 0.85,
+                      opacity: _taglineOpacity.value * 0.72,
                       child: SizedBox(
-                        width: 32,
-                        height: 32,
+                        width: 30,
+                        height: 30,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.75),
+                            Colors.white.withValues(alpha: 0.68),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
                   ],
                 ),
               ),
