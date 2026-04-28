@@ -731,6 +731,49 @@ const _en = <String, String>{
   "admin_market_title": "Market index administration",
   "admin_market_subtitle":
       "Add companies and daily opening/closing values. API sync is optional.",
+  "mpin_security_card_title": "Withdrawal MPIN",
+  "mpin_security_card_subtitle":
+      "Protect every withdrawal with a 4-digit PIN, like JazzCash and EasyPaisa.",
+  "mpin_setup_cta": "Set up withdrawal MPIN",
+  "mpin_change_cta": "Change MPIN",
+  "mpin_forgot_cta": "Forgot MPIN?",
+  "mpin_remove_cta": "Remove MPIN",
+  "mpin_require_for_withdrawals": "Require MPIN for withdrawals",
+  "mpin_require_for_withdrawals_subtitle":
+      "When on, every withdrawal will ask for your 4-digit MPIN.",
+  "mpin_enter_current": "Enter current MPIN",
+  "mpin_enter_new": "Choose a 4-digit MPIN",
+  "mpin_confirm_new": "Re-enter your new MPIN",
+  "mpin_prompt_title": "Confirm withdrawal",
+  "mpin_prompt_subtitle": "Enter your 4-digit MPIN to authorize this withdrawal.",
+  "mpin_mismatch": "MPINs do not match. Try again.",
+  "mpin_wrong": "Wrong MPIN. Please try again.",
+  "mpin_locked":
+      "Too many wrong attempts. MPIN is locked, try again at {time}.",
+  "mpin_locked_short": "MPIN locked. Try again later.",
+  "mpin_invalid_format": "MPIN must be exactly 4 digits.",
+  "mpin_set_success": "MPIN saved.",
+  "mpin_changed_success": "MPIN changed.",
+  "mpin_cleared_success": "MPIN removed.",
+  "mpin_required_to_withdraw":
+      "Withdrawal MPIN required. Set it up from your Profile.",
+  "mpin_reauth_title": "Confirm your password",
+  "mpin_reauth_subtitle":
+      "Enter your account password to reset your MPIN.",
+  "mpin_reauth_password_label": "Password",
+  "mpin_reauth_failed":
+      "Password could not be verified. Please try again.",
+  "mpin_setup_step_choose": "Step 1 of 2",
+  "mpin_setup_step_confirm": "Step 2 of 2",
+  "mpin_change_step_current": "Step 1 of 3",
+  "mpin_change_step_new": "Step 2 of 3",
+  "mpin_change_step_confirm": "Step 3 of 3",
+  "mpin_remove_confirm_title": "Remove MPIN?",
+  "mpin_remove_confirm_body":
+      "This disables MPIN protection for withdrawals. Enter your current MPIN to confirm.",
+  "mpin_toggle_currentpin_title": "Confirm with MPIN",
+  "mpin_toggle_currentpin_body":
+      "Enter your current MPIN to change this setting.",
 };
 
 const _ur = <String, String>{
@@ -1451,6 +1494,50 @@ const _ur = <String, String>{
   "admin_market_title": "مارکیٹ انڈیکس انتظام",
   "admin_market_subtitle":
       "کمپنیاں اور روزانہ اوپن/کلوز اقدار شامل کریں۔ API سنک اختیاری ہے۔",
+  "mpin_security_card_title": "نکاسی کا ایم پن",
+  "mpin_security_card_subtitle":
+      "JazzCash اور EasyPaisa کی طرح، 4 ہندسوں کے پن سے ہر نکاسی محفوظ کریں۔",
+  "mpin_setup_cta": "نکاسی کے لیے ایم پن سیٹ کریں",
+  "mpin_change_cta": "ایم پن تبدیل کریں",
+  "mpin_forgot_cta": "ایم پن بھول گئے؟",
+  "mpin_remove_cta": "ایم پن ہٹائیں",
+  "mpin_require_for_withdrawals": "ہر نکاسی پر ایم پن لازمی",
+  "mpin_require_for_withdrawals_subtitle":
+      "آن ہونے پر، ہر نکاسی کے وقت آپ کا 4 ہندسوں کا ایم پن مانگا جائے گا۔",
+  "mpin_enter_current": "موجودہ ایم پن درج کریں",
+  "mpin_enter_new": "4 ہندسوں کا ایم پن منتخب کریں",
+  "mpin_confirm_new": "نیا ایم پن دوبارہ درج کریں",
+  "mpin_prompt_title": "نکاسی کی تصدیق",
+  "mpin_prompt_subtitle":
+      "اس نکاسی کی اجازت کے لیے 4 ہندسوں کا ایم پن درج کریں۔",
+  "mpin_mismatch": "ایم پن میچ نہیں ہوا۔ دوبارہ کوشش کریں۔",
+  "mpin_wrong": "غلط ایم پن۔ دوبارہ کوشش کریں۔",
+  "mpin_locked":
+      "بہت زیادہ غلط کوششیں۔ ایم پن لاک ہے، {time} پر دوبارہ کوشش کریں۔",
+  "mpin_locked_short": "ایم پن لاک ہے۔ تھوڑی دیر بعد کوشش کریں۔",
+  "mpin_invalid_format": "ایم پن لازمی 4 ہندسوں پر مشتمل ہو۔",
+  "mpin_set_success": "ایم پن محفوظ ہو گیا۔",
+  "mpin_changed_success": "ایم پن تبدیل ہو گیا۔",
+  "mpin_cleared_success": "ایم پن ہٹا دیا گیا۔",
+  "mpin_required_to_withdraw":
+      "نکاسی کے لیے ایم پن درکار ہے۔ پروفائل سے سیٹ کریں۔",
+  "mpin_reauth_title": "اپنا پاس ورڈ کنفرم کریں",
+  "mpin_reauth_subtitle":
+      "ایم پن دوبارہ ترتیب دینے کے لیے اپنا اکاؤنٹ پاس ورڈ درج کریں۔",
+  "mpin_reauth_password_label": "پاس ورڈ",
+  "mpin_reauth_failed":
+      "پاس ورڈ کی تصدیق نہیں ہو سکی۔ دوبارہ کوشش کریں۔",
+  "mpin_setup_step_choose": "مرحلہ 1 از 2",
+  "mpin_setup_step_confirm": "مرحلہ 2 از 2",
+  "mpin_change_step_current": "مرحلہ 1 از 3",
+  "mpin_change_step_new": "مرحلہ 2 از 3",
+  "mpin_change_step_confirm": "مرحلہ 3 از 3",
+  "mpin_remove_confirm_title": "ایم پن ہٹائیں؟",
+  "mpin_remove_confirm_body":
+      "نکاسی کے لیے ایم پن کی حفاظت ختم ہو جائے گی۔ تصدیق کے لیے موجودہ ایم پن درج کریں۔",
+  "mpin_toggle_currentpin_title": "ایم پن سے تصدیق",
+  "mpin_toggle_currentpin_body":
+      "اس سیٹنگ کو تبدیل کرنے کے لیے موجودہ ایم پن درج کریں۔",
 };
 
 extension AppTranslations on BuildContext {

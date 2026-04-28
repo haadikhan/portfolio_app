@@ -6,8 +6,10 @@ import "package:go_router/go_router.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
-import "../../investment/data/allocation_money_market.dart";
+import "../../../providers/mpin_providers.dart";
 import "../../../providers/wallet_providers.dart";
+import "../../investment/data/allocation_money_market.dart";
+import "../../mpin/presentation/mpin_prompt_dialog.dart";
 
 class WithdrawalRequestScreen extends ConsumerStatefulWidget {
   const WithdrawalRequestScreen({super.key});
@@ -32,6 +34,12 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     if (message == null || message.isEmpty) return false;
     final m = message.toLowerCase();
     return m.contains("insufficient") && m.contains("balance");
+  }
+
+  String _formatTime(DateTime t) {
+    final h = t.hour.toString().padLeft(2, "0");
+    final m = t.minute.toString().padLeft(2, "0");
+    return "$h:$m";
   }
 
   void _showFailure(String message) {
@@ -86,9 +94,33 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
       return;
     }
 
+    // MPIN gate: prompt the user when their MPIN is configured AND enabled.
+    // No prompt for users who never set one (full backward-compat).
+    String? mpin;
+    final mpinStatus = ref.read(mpinStatusStreamProvider).value;
+    if (mpinStatus != null && mpinStatus.hasMpin && mpinStatus.enabled) {
+      if (mpinStatus.isLockedNow) {
+        _showFailure(
+          context.trParams("mpin_locked", {
+            "time": _formatTime(mpinStatus.lockedUntil!),
+          }),
+        );
+        return;
+      }
+      mpin = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const MpinPromptDialog(),
+      );
+      if (!mounted) return;
+      if (mpin == null) return; // user cancelled
+    }
+
     setState(() => _busy = true);
     try {
-      await ref.read(walletLedgerFunctionsProvider).createWithdrawalRequest(amount: amount);
+      await ref
+          .read(walletLedgerFunctionsProvider)
+          .createWithdrawalRequest(amount: amount, mpin: mpin);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -100,11 +132,23 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       debugPrint("[withdraw] FirebaseFunctionsException code=${e.code} message=${e.message}");
-      final text = _isInsufficientBalanceMessage(e.message)
-          ? context.tr("withdrawal_exceeds_money_market")
-          : (e.message?.trim().isNotEmpty == true
-              ? "${e.message!} (${e.code})"
-              : e.code);
+      final raw = e.message?.trim() ?? "";
+      String text;
+      if (raw == "MPIN_WRONG") {
+        text = context.tr("mpin_wrong");
+      } else if (raw == "MPIN_LOCKED") {
+        // Lockout was just applied by server; the stream will refresh shortly,
+        // but we surface a friendly message immediately.
+        text = context.tr("mpin_locked_short");
+      } else if (raw == "MPIN_INVALID_FORMAT") {
+        text = context.tr("mpin_invalid_format");
+      } else if (_isInsufficientBalanceMessage(e.message)) {
+        text = context.tr("withdrawal_exceeds_money_market");
+      } else {
+        text = e.message?.trim().isNotEmpty == true
+            ? "${e.message!} (${e.code})"
+            : e.code;
+      }
       _showFailure(text);
     } catch (e) {
       if (!mounted) return;

@@ -12,6 +12,7 @@ const {
   notifyAllAdmins,
   sendCustomerTransactionAlerts,
 } = require("./notifications");
+const { verifyMpinOrThrow } = require("./mpin");
 
 const db = () => admin.firestore();
 
@@ -471,6 +472,8 @@ exports.createWithdrawalRequest = onCall(
     if (!amt || amt <= 0)
       throw new HttpsError("invalid-argument", "Invalid amount.");
     await assertKycApproved(uid);
+    // Gate sensitive action on MPIN if user has enabled it. No-op otherwise.
+    await verifyMpinOrThrow(uid, request.data?.mpin);
     const reqRef = db().collection("withdrawal_requests").doc();
     const tid = txId();
     const tRef = db().collection("transactions").doc(tid);

@@ -23,10 +23,14 @@ class WalletLedgerFunctionsService {
 
   Future<Map<String, dynamic>> createWithdrawalRequest({
     required double amount,
+    String? mpin,
   }) async {
-    final result = await _f.httpsCallable("createWithdrawalRequest").call(<String, dynamic>{
-      "amount": amount,
-    });
+    final result = await _f
+        .httpsCallable("createWithdrawalRequest")
+        .call(<String, dynamic>{
+          "amount": amount,
+          if (mpin != null && mpin.isNotEmpty) "mpin": mpin,
+        });
     return Map<String, dynamic>.from(result.data as Map);
   }
 

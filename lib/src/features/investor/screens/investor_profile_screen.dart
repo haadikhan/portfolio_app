@@ -11,7 +11,12 @@ import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/biometric_providers.dart";
+import "../../../providers/mpin_providers.dart";
 import "../../../providers/profile_providers.dart";
+import "../../mpin/data/mpin_service.dart";
+import "../../mpin/data/mpin_status.dart";
+import "../../mpin/presentation/mpin_keypad.dart";
+import "../../mpin/presentation/mpin_setup_screen.dart";
 
 /// Prefer `users/{uid}` field when set; otherwise show value from KYC doc.
 String? _preferProfileThenKyc(String? profileField, String? kycField) {
@@ -425,6 +430,162 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
+  Future<String?> _promptMpin({
+    required String title,
+    String? subtitle,
+  }) async {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _MpinCurrentPinDialog(title: title, subtitle: subtitle),
+    );
+  }
+
+  Future<void> _openMpinSetup() async {
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const MpinSetupScreen(mode: MpinSetupMode.setup),
+      ),
+    );
+    if (ok == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("mpin_set_success")),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openMpinChange() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const MpinSetupScreen(mode: MpinSetupMode.change),
+      ),
+    );
+  }
+
+  Future<void> _toggleMpinEnabled(bool desired) async {
+    final pin = await _promptMpin(
+      title: context.tr("mpin_toggle_currentpin_title"),
+      subtitle: context.tr("mpin_toggle_currentpin_body"),
+    );
+    if (pin == null || !mounted) return;
+    try {
+      await ref.read(mpinServiceProvider).setMpinEnabled(
+        enabled: desired,
+        currentPin: pin,
+      );
+    } on MpinException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_describeMpinError(e)),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeMpin() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.tr("mpin_remove_confirm_title")),
+        content: Text(context.tr("mpin_remove_confirm_body")),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr("cancel")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(context.tr("mpin_remove_cta")),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    final pin = await _promptMpin(title: context.tr("mpin_enter_current"));
+    if (pin == null || !mounted) return;
+    try {
+      await ref.read(mpinServiceProvider).clearMpin(currentPin: pin);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("mpin_cleared_success")),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } on MpinException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_describeMpinError(e)),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  /// Forgot MPIN flow: re-authenticate with the current Firebase Auth password
+  /// to refresh `auth_time`, then push the setup screen. The backend's
+  /// `setMpin` accepts a missing `currentPin` only when `auth_time` is fresh.
+  Future<void> _forgotMpin() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("mpin_reauth_failed")),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    final password = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _ReauthPasswordDialog(),
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+    try {
+      final cred = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(cred);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr("mpin_reauth_failed")),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    await _openMpinSetup();
+  }
+
+  String _describeMpinError(MpinException e) {
+    switch (e.kind) {
+      case MpinErrorKind.wrong:
+        return context.tr("mpin_wrong");
+      case MpinErrorKind.locked:
+        return context.tr("mpin_locked_short");
+      case MpinErrorKind.invalidFormat:
+        return context.tr("mpin_invalid_format");
+      case MpinErrorKind.needsCurrentPin:
+        return context.tr("mpin_enter_current");
+      case MpinErrorKind.notSet:
+      case MpinErrorKind.unauthenticated:
+      case MpinErrorKind.generic:
+        return e.message ?? e.code ?? context.tr("error_alert_title");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final updateState = ref.watch(profileUpdateProvider);
@@ -712,6 +873,14 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             const SizedBox(height: 14),
           ],
+          _MpinSecurityCard(
+            onSetup: _openMpinSetup,
+            onChange: _openMpinChange,
+            onToggleEnabled: _toggleMpinEnabled,
+            onForgot: hasPasswordProvider ? _forgotMpin : null,
+            onRemove: _removeMpin,
+          ),
+          const SizedBox(height: 14),
           _AppPreferencesCard(hasPasswordProvider: hasPasswordProvider),
 
           const SizedBox(height: 20),
@@ -1391,6 +1560,268 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Text(context.tr("change_password_btn")),
+        ),
+      ],
+    );
+  }
+}
+
+class _MpinSecurityCard extends ConsumerWidget {
+  const _MpinSecurityCard({
+    required this.onSetup,
+    required this.onChange,
+    required this.onToggleEnabled,
+    required this.onForgot,
+    required this.onRemove,
+  });
+
+  final VoidCallback onSetup;
+  final VoidCallback onChange;
+  final ValueChanged<bool> onToggleEnabled;
+  final VoidCallback? onForgot;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(mpinStatusStreamProvider);
+    final status = statusAsync.maybeWhen(
+      data: (s) => s,
+      orElse: () => MpinStatus.empty,
+    );
+
+    return _ProfileCard(
+      title: context.tr("mpin_security_card_title"),
+      icon: Icons.pin_outlined,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Text(
+            context.tr("mpin_security_card_subtitle"),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.bodyMuted,
+              height: 1.4,
+            ),
+          ),
+        ),
+        if (!status.hasMpin)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSetup,
+                icon: const Icon(Icons.lock_open_rounded, size: 18),
+                label: Text(context.tr("mpin_setup_cta")),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+          )
+        else ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(context.tr("mpin_require_for_withdrawals")),
+              subtitle: Text(
+                context.tr("mpin_require_for_withdrawals_subtitle"),
+                style: const TextStyle(fontSize: 11, height: 1.3),
+              ),
+              value: status.enabled,
+              onChanged: onToggleEnabled,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onChange,
+                    icon: const Icon(Icons.password_rounded, size: 18),
+                    label: Text(context.tr("mpin_change_cta")),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onRemove,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    label: Text(context.tr("mpin_remove_cta")),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: BorderSide(
+                        color: AppColors.error.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onForgot != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: onForgot,
+                  icon: const Icon(Icons.help_outline_rounded, size: 16),
+                  label: Text(context.tr("mpin_forgot_cta")),
+                ),
+              ),
+            ),
+          if (status.lockedUntil != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  context.trParams("mpin_locked", {
+                    "time": _formatTime(status.lockedUntil!),
+                  }),
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+        ],
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+
+  String _formatTime(DateTime t) {
+    final h = t.hour.toString().padLeft(2, "0");
+    final m = t.minute.toString().padLeft(2, "0");
+    return "$h:$m";
+  }
+}
+
+/// Modal that asks for the *current* MPIN, used by toggle/remove flows where
+/// the full setup screen would be overkill. Pops the entered PIN string or
+/// `null` on cancel.
+class _MpinCurrentPinDialog extends StatelessWidget {
+  const _MpinCurrentPinDialog({required this.title, this.subtitle});
+
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            if (subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                subtitle!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 18),
+            MpinKeypad(
+              headerText: context.tr("mpin_enter_current"),
+              onCompleted: (pin) => Navigator.of(context).pop(pin),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: Text(context.tr("cancel")),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Reauth dialog used by the "Forgot MPIN" flow. Returns the entered password
+/// string when the user proceeds, `null` on cancel. The actual
+/// `reauthenticateWithCredential` call lives in [_ProfileBodyState].
+class _ReauthPasswordDialog extends StatefulWidget {
+  const _ReauthPasswordDialog();
+
+  @override
+  State<_ReauthPasswordDialog> createState() => _ReauthPasswordDialogState();
+}
+
+class _ReauthPasswordDialogState extends State<_ReauthPasswordDialog> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(context.tr("mpin_reauth_title")),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.tr("mpin_reauth_subtitle"),
+            style: const TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            obscureText: _obscure,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: context.tr("mpin_reauth_password_label"),
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: Text(context.tr("cancel")),
+        ),
+        FilledButton(
+          onPressed: () {
+            final v = _ctrl.text;
+            if (v.isEmpty) return;
+            Navigator.of(context).pop(v);
+          },
+          child: Text(context.tr("continue_btn")),
         ),
       ],
     );

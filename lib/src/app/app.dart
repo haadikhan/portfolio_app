@@ -22,6 +22,7 @@ import "../features/admin/presentation/admin_finance_console_screen.dart";
 import "../features/ledger/presentation/deposit_request_screen.dart";
 import "../features/ledger/presentation/wallet_ledger_screen.dart";
 import "../features/ledger/presentation/withdrawal_request_screen.dart";
+import "../features/mpin/presentation/mpin_setup_screen.dart";
 import "../features/notifications/presentation/notifications_screen.dart";
 import "../features/market/presentation/market_overview_screen.dart";
 import "../features/market/presentation/gold_price_chart_screen.dart";
@@ -187,6 +188,16 @@ class WakalatInvestApp extends ConsumerWidget {
             featureName: "withdrawals",
             child: WithdrawalRequestScreen(),
           ),
+        ),
+        GoRoute(
+          path: "/mpin/setup",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const MpinSetupScreen(mode: MpinSetupMode.setup),
+        ),
+        GoRoute(
+          path: "/mpin/change",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const MpinSetupScreen(mode: MpinSetupMode.change),
         ),
         GoRoute(
           path: "/notifications",

@@ -17,10 +17,12 @@ const walletLedger = require("./wallet_ledger");
 const notifications = require("./notifications");
 const marketData = require("./market_data");
 const appUpdates = require("./app_updates");
+const mpin = require("./mpin");
 Object.assign(exports, walletLedger);
 Object.assign(exports, notifications);
 Object.assign(exports, marketData);
 Object.assign(exports, appUpdates);
+Object.assign(exports, mpin);
 
 exports.onKycSubmittedForReview = onDocumentUpdated(
   {
