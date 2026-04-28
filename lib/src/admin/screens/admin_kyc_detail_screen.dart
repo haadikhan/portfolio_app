@@ -72,32 +72,20 @@ class _KycDetailBodyState extends ConsumerState<_KycDetailBody> {
   Future<void> _reject() async {
     final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) {
-        final c = TextEditingController();
-        return AlertDialog(
-          title: const Text("Reject KYC"),
-          content: TextField(
-            controller: c,
-            decoration: const InputDecoration(
-              labelText: "Reason (visible to investor)",
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 3,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancel"),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, c.text.trim()),
-              child: const Text("Reject"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => const _KycRejectReasonDialog(),
     );
-    if (reason == null || reason.isEmpty) return;
+    // Cancel returns null silently. The new dialog disables the Reject button
+    // while the field is empty, so an empty string should be unreachable —
+    // surface a SnackBar if it ever happens so the failure stays visible.
+    if (reason == null) return;
+    if (reason.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Rejection reason is required.")),
+        );
+      }
+      return;
+    }
     setState(() => _busy = true);
     try {
       await ref.read(adminKycServiceProvider).rejectKyc(widget.userId, reason);
@@ -433,6 +421,86 @@ class _InfoTable extends StatelessWidget {
               ),
             ],
           ),
+      ],
+    );
+  }
+}
+
+/// Dialog used by the KYC reject flow. Owns its `TextEditingController`
+/// lifecycle and keeps the Reject button disabled until the trimmed text is
+/// non-empty, so the previous silent failure path (empty-reason → caller
+/// returns silently) is no longer reachable.
+class _KycRejectReasonDialog extends StatefulWidget {
+  const _KycRejectReasonDialog();
+
+  @override
+  State<_KycRejectReasonDialog> createState() => _KycRejectReasonDialogState();
+}
+
+class _KycRejectReasonDialogState extends State<_KycRejectReasonDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _canSubmit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final next = _controller.text.trim().isNotEmpty;
+    if (next != _canSubmit) {
+      setState(() => _canSubmit = next);
+    }
+  }
+
+  void _submit() {
+    final reason = _controller.text.trim();
+    if (reason.isEmpty) return;
+    Navigator.of(context).pop(reason);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Reject KYC"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              labelText: "Reason (visible to investor)",
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Reason is required so the investor knows what to fix before re-submitting.",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text("Cancel"),
+        ),
+        FilledButton(
+          onPressed: _canSubmit ? _submit : null,
+          child: const Text("Reject"),
+        ),
       ],
     );
   }
