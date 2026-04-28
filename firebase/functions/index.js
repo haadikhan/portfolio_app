@@ -26,6 +26,8 @@ exports.onKycSubmittedForReview = onDocumentUpdated(
   {
     document: "kyc/{userId}",
     region: "us-central1",
+    memory: "256MiB",
+    cpu: 0.08,
   },
   async (event) => {
     const before = event.data?.before?.data();

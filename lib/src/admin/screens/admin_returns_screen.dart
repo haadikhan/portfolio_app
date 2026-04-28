@@ -20,6 +20,8 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
   final _globalAnnualRateController = TextEditingController();
   bool _processing = false;
   bool _savingProjectionConfig = false;
+  bool _repairingWithdrawals = false;
+  bool _recalcingWallets = false;
 
   final _fn = FirebaseFunctions.instanceFor(region: "us-central1");
   final _db = FirebaseFirestore.instance;
@@ -175,6 +177,135 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
       );
     } finally {
       if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _repairWithdrawals() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Repair legacy approved withdrawals"),
+        content: const Text(
+          "This settles any withdrawal that is still in 'approved' status (no "
+          "explicit completion record) by transitioning it to 'completed' and "
+          "recalculating the affected investor wallets.\n\n"
+          "Run this once after the canonical withdrawal contract change. Safe "
+          "to re-run — already-settled records are skipped.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Run repair"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _repairingWithdrawals = true);
+    try {
+      final result = await _fn
+          .httpsCallable("repairApprovedWithdrawals")
+          .call({"dryRun": false});
+      if (!mounted) return;
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final updated = data["updated"] as int? ?? 0;
+      final scanned = data["scanned"] as int? ?? 0;
+      final users = (data["affectedUsers"] as List?)?.length ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Repair done — scanned $scanned, updated $updated, "
+            "users affected: $users.",
+          ),
+          backgroundColor: Colors.green.shade700,
+        ),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Repair failed: ${e.message ?? e.code}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Repair failed: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _repairingWithdrawals = false);
+    }
+  }
+
+  Future<void> _recalcAllWallets() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Recalculate all wallets"),
+        content: const Text(
+          "Recomputes every investor wallet from their transaction ledger and "
+          "writes back canonical fields including the new money-market bucket "
+          "fields (moneyMarketCreditedTotal / moneyMarketAvailable). Safe to "
+          "re-run.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Recalculate"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _recalcingWallets = true);
+    try {
+      final result =
+          await _fn.httpsCallable("repairUserBalances").call(<String, dynamic>{});
+      if (!mounted) return;
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final fixed = data["fixedCount"] as int? ?? 0;
+      final total = data["totalUsers"] as int? ?? 0;
+      final errors = data["errorCount"] as int? ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Recalculated $total wallets. Adjusted: $fixed. Errors: $errors.",
+          ),
+          backgroundColor: Colors.green.shade700,
+        ),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Recalc failed: ${e.message ?? e.code}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Recalc failed: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _recalcingWallets = false);
     }
   }
 
@@ -358,6 +489,85 @@ class _AdminReturnsScreenState extends ConsumerState<AdminReturnsScreen> {
                       "Returns console in the main admin app.",
                       style: TextStyle(fontSize: 13, color: Colors.blue),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.orange.shade200),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.build_circle_outlined,
+                        color: Colors.orange.shade800,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Wallet maintenance",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "One-time repair tools to align legacy data with the "
+                    "current wallet & money-market projection contract.",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _repairingWithdrawals
+                            ? null
+                            : _repairWithdrawals,
+                        icon: _repairingWithdrawals
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.history_rounded, size: 18),
+                        label: Text(
+                          _repairingWithdrawals
+                              ? "Repairing…"
+                              : "Repair legacy approved withdrawals",
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _recalcingWallets ? null : _recalcAllWallets,
+                        icon: _recalcingWallets
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.calculate_outlined, size: 18),
+                        label: Text(
+                          _recalcingWallets
+                              ? "Recalculating…"
+                              : "Recalculate all wallets",
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

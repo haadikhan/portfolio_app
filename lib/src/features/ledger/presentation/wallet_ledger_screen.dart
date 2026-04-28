@@ -176,12 +176,8 @@ class _WalletTab extends ConsumerWidget {
                   ),
                 );
               }
-              final allocationTotalPkr = (w["availableBalance"] as num?)
-                      ?.toDouble() ??
-                  (w["currentBalance"] as num?)?.toDouble() ??
-                  0;
-              final moneyMarketPkr =
-                  moneyMarketAmountFromAllocationTotal(allocationTotalPkr);
+              final allocationTotalPkr = allocationTotalFromWallet(w);
+              final moneyMarketPkr = moneyMarketAvailableFromWallet(w);
               final avail =
                   (w["availableBalance"] as num?)?.toDouble() ?? 0;
               final reserved =

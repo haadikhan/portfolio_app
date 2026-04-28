@@ -8,6 +8,7 @@ import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/portfolio_model.dart";
 import "../../../providers/portfolio_providers.dart";
 import "../../../providers/wallet_providers.dart";
+import "../data/allocation_money_market.dart";
 import "widgets/allocation_pie_chart_widget.dart";
 import "widgets/performance_metrics_widget.dart";
 import "widgets/return_history_list_widget.dart";
@@ -125,11 +126,7 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
 }
 
 double _readAvailableBalance(Map<String, dynamic>? wallet) {
-  final raw = wallet?["availableBalance"];
-  if (raw is num && raw.isFinite && raw > 0) {
-    return raw.toDouble();
-  }
-  return 0;
+  return allocationTotalFromWallet(wallet);
 }
 
 // ── Portfolio value hero card ────────────────────────────────────────────────

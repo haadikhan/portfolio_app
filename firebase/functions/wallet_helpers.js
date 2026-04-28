@@ -22,6 +22,9 @@ async function recalculateWallet(userId) {
   let totalProfit = 0;
   let totalAdjustments = 0;
   let reservedAmount = 0;
+  let moneyMarketCreditedTotal = 0;
+  let moneyMarketWithdrawnTotal = 0;
+  let moneyMarketReserved = 0;
 
   snap.forEach((doc) => {
     const d = doc.data();
@@ -31,12 +34,19 @@ async function recalculateWallet(userId) {
 
     if (ty === "deposit" && st === "approved") {
       totalDeposited += amt;
+      moneyMarketCreditedTotal += amt * 0.05;
     } else if (ty === "withdrawal") {
+      // Canonical withdrawal lifecycle used across wallet projections:
+      // pending  -> reserved only
+      // approved -> reserved only (awaiting settlement)
+      // completed -> counted as withdrawn (settled)
       if (st === "pending" || st === "approved") {
         reservedAmount += amt;
+        moneyMarketReserved += amt;
       }
       if (st === "completed") {
         totalWithdrawn += amt;
+        moneyMarketWithdrawnTotal += amt;
       }
     } else if (
       (ty === "profit" || ty === "profit_entry") &&
@@ -50,6 +60,11 @@ async function recalculateWallet(userId) {
 
   const availableBalance =
     totalDeposited + totalProfit + totalAdjustments - totalWithdrawn - reservedAmount;
+  const moneyMarketBalance = Math.max(
+    0,
+    moneyMarketCreditedTotal - moneyMarketWithdrawnTotal,
+  );
+  const moneyMarketAvailable = Math.max(0, moneyMarketBalance - moneyMarketReserved);
 
   await db()
     .collection("wallets")
@@ -62,6 +77,11 @@ async function recalculateWallet(userId) {
         totalProfit,
         totalAdjustments,
         reservedAmount,
+        moneyMarketCreditedTotal,
+        moneyMarketWithdrawnTotal,
+        moneyMarketReserved,
+        moneyMarketBalance,
+        moneyMarketAvailable,
         availableBalance,
         currentBalance: availableBalance,
         lastRecalculatedAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -9,6 +9,7 @@ import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/portfolio_providers.dart";
 import "../../../providers/wallet_providers.dart";
+import "../data/allocation_money_market.dart";
 import "../data/live_profit_providers.dart";
 import "../domain/projected_profit_engine.dart";
 
@@ -250,23 +251,7 @@ class _HeroCard extends StatelessWidget {
 
 double _readWalletBalance(Map<String, dynamic>? wallet) {
   if (wallet == null) return 0;
-  final available = (wallet["availableBalance"] as num?)?.toDouble() ?? 0;
-  if (available > 0) return available;
-  final current = (wallet["currentBalance"] as num?)?.toDouble() ?? 0;
-  if (current > 0) return current;
-  final totalDeposited = (wallet["totalDeposited"] as num?)?.toDouble() ?? 0;
-  final totalProfit = (wallet["totalProfit"] as num?)?.toDouble() ?? 0;
-  final totalAdjustments =
-      (wallet["totalAdjustments"] as num?)?.toDouble() ?? 0;
-  final totalWithdrawn = (wallet["totalWithdrawn"] as num?)?.toDouble() ?? 0;
-  final reserved = (wallet["reservedAmount"] as num?)?.toDouble() ?? 0;
-  final computed =
-      totalDeposited +
-      totalProfit +
-      totalAdjustments -
-      totalWithdrawn -
-      reserved;
-  return computed.clamp(0, double.infinity);
+  return allocationTotalFromWallet(wallet);
 }
 
 class _RangeChip extends StatelessWidget {

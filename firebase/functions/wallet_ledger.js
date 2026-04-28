@@ -96,6 +96,9 @@ function deriveWalletFromTransactions(docs) {
   let totalProfit = 0;
   let totalAdjustments = 0;
   let reservedAmount = 0;
+  let moneyMarketCreditedTotal = 0;
+  let moneyMarketWithdrawnTotal = 0;
+  let moneyMarketReserved = 0;
 
   for (const doc of docs) {
     const d = doc.data ? doc.data() : doc;
@@ -103,11 +106,22 @@ function deriveWalletFromTransactions(docs) {
     const st = (d.status || "").toLowerCase();
     const ty = (d.type || "").toLowerCase();
 
-    if (ty === "deposit" && st === "approved") totalDeposited += amt;
+    if (ty === "deposit" && st === "approved") {
+      totalDeposited += amt;
+      moneyMarketCreditedTotal += amt * 0.05;
+    }
     if (ty === "withdrawal") {
-      // Only "pending" withdrawals are reserved; "approved"/"completed" are fully settled
-      if (st === "pending") reservedAmount += amt;
-      else if (st === "approved" || st === "completed") totalWithdrawn += amt;
+      // Canonical withdrawal lifecycle used across wallet projections:
+      // pending  -> reserved only
+      // approved -> reserved only (awaiting settlement)
+      // completed -> counted as withdrawn (settled)
+      if (st === "pending" || st === "approved") {
+        reservedAmount += amt;
+        moneyMarketReserved += amt;
+      } else if (st === "completed") {
+        totalWithdrawn += amt;
+        moneyMarketWithdrawnTotal += amt;
+      }
     }
     if (
       (ty === "profit" || ty === "profit_entry") &&
@@ -124,7 +138,19 @@ function deriveWalletFromTransactions(docs) {
     totalAdjustments -
     totalWithdrawn -
     reservedAmount;
-  return { availableBalance };
+  const moneyMarketBalance = Math.max(
+    0,
+    moneyMarketCreditedTotal - moneyMarketWithdrawnTotal,
+  );
+  const moneyMarketAvailable = Math.max(0, moneyMarketBalance - moneyMarketReserved);
+  return {
+    availableBalance,
+    moneyMarketCreditedTotal,
+    moneyMarketWithdrawnTotal,
+    moneyMarketReserved,
+    moneyMarketBalance,
+    moneyMarketAvailable,
+  };
 }
 
 async function safeAppendAudit(...args) {
@@ -459,6 +485,12 @@ exports.createWithdrawalRequest = onCall(
         throw new HttpsError(
           "failed-precondition",
           "Insufficient available balance.",
+        );
+      }
+      if (wallet.moneyMarketAvailable < amt) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Insufficient money market withdrawable balance.",
         );
       }
 
@@ -1005,7 +1037,11 @@ exports.recalculateWalletForUser = onCall(
   },
 );
 
-/** Admin: approve a transaction (deposit or withdrawal) */
+/** Admin: approve a transaction (deposit or withdrawal).
+ * Legacy queue compatibility:
+ * - deposits: pending -> approved
+ * - withdrawals: pending -> completed (legacy queue has no separate settle step)
+ */
 exports.adminApproveTransaction = onCall(
   {
     region: "us-central1",
@@ -1044,11 +1080,20 @@ exports.adminApproveTransaction = onCall(
 
     const batch = db().batch();
 
-    // Mark transaction approved
+    // Legacy behavior is type-specific:
+    // deposit -> approved, withdrawal -> completed.
+    const nextStatus = type === "withdrawal" ? "completed" : "approved";
     batch.update(txRef, {
-      status: "approved",
+      status: nextStatus,
       approvedAt: now,
       approvedBy: adminUid,
+      ...(type === "withdrawal"
+        ? {
+            completedAt: now,
+            completedBy: adminUid,
+            notes: "completed_via_legacy_admin_approve",
+          }
+        : {}),
     });
 
     const userRef = db().collection("users").doc(userId);
@@ -1091,20 +1136,20 @@ exports.adminApproveTransaction = onCall(
       "transaction",
       txnId,
       { status: "pending" },
-      { status: "approved", type, amount },
+      { status: nextStatus, type, amount },
     );
 
     const label =
       type === "deposit"
         ? "Deposit approved"
         : type === "withdrawal"
-          ? "Withdrawal approved"
+          ? "Withdrawal completed"
           : "Transaction approved";
     const body =
       type === "deposit"
         ? `Your deposit of PKR ${amount.toFixed(0)} has been approved.`
         : type === "withdrawal"
-          ? `Your withdrawal of PKR ${amount.toFixed(0)} has been approved.`
+          ? `Your withdrawal of PKR ${amount.toFixed(0)} has been completed.`
           : `A transaction of PKR ${amount.toFixed(0)} was approved.`;
     await safeNotify(() =>
       sendCustomerTransactionAlerts(userId, {
@@ -1120,6 +1165,107 @@ exports.adminApproveTransaction = onCall(
     );
 
     return { ok: true };
+  },
+);
+
+/** Admin: repair legacy approved-withdrawal records that should be completed. */
+exports.repairApprovedWithdrawals = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const dryRun = request.data?.dryRun !== false;
+    const maxCandidatesRaw = Number(request.data?.maxCandidates);
+    const maxCandidates =
+      Number.isFinite(maxCandidatesRaw) && maxCandidatesRaw > 0
+        ? Math.min(Math.floor(maxCandidatesRaw), 2000)
+        : 500;
+
+    const txSnap = await db()
+      .collection("transactions")
+      .where("type", "==", "withdrawal")
+      .where("status", "==", "approved")
+      .limit(maxCandidates)
+      .get();
+
+    const candidates = txSnap.docs.filter((doc) => {
+      const d = doc.data() || {};
+      // Skip records that already look explicitly settled.
+      return !d.settlementRef && !d.completedAt && !d.completedBy;
+    });
+
+    const affectedUsers = new Set();
+    for (const doc of candidates) {
+      const uid = String(doc.data()?.userId || "").trim();
+      if (uid) affectedUsers.add(uid);
+    }
+
+    if (dryRun) {
+      await safeAppendAudit(
+        request.auth.uid,
+        "admin",
+        "repairApprovedWithdrawalsDryRun",
+        "transaction",
+        "bulk",
+        null,
+        {
+          scanned: txSnap.size,
+          candidates: candidates.length,
+          affectedUsers: affectedUsers.size,
+        },
+      );
+      return {
+        ok: true,
+        dryRun: true,
+        scanned: txSnap.size,
+        candidates: candidates.length,
+        candidateTxnIds: candidates.map((d) => d.id),
+        affectedUsers: [...affectedUsers],
+      };
+    }
+
+    let updatedCount = 0;
+    for (const doc of candidates) {
+      await doc.ref.update({
+        status: "completed",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        completedBy: request.auth.uid,
+        notes: "completed_via_repairApprovedWithdrawals",
+      });
+      updatedCount++;
+    }
+
+    for (const uid of affectedUsers) {
+      await recalculateWallet(uid);
+    }
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "repairApprovedWithdrawals",
+      "transaction",
+      "bulk",
+      null,
+      {
+        scanned: txSnap.size,
+        candidates: candidates.length,
+        updated: updatedCount,
+        affectedUsers: affectedUsers.size,
+      },
+    );
+
+    return {
+      ok: true,
+      dryRun: false,
+      scanned: txSnap.size,
+      candidates: candidates.length,
+      updated: updatedCount,
+      affectedUsers: [...affectedUsers],
+    };
   },
 );
 

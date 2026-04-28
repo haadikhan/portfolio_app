@@ -124,19 +124,6 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
             fit: StackFit.expand,
             children: [
               Positioned.fill(
-                child: Image.asset(
-                  kSplashBackgroundAsset,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0.08, -0.03),
-                  filterQuality: FilterQuality.medium,
-                  color: Colors.black.withValues(alpha: 0.14),
-                  colorBlendMode: BlendMode.darken,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-              ),
-              Positioned.fill(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: size.width * 0.035,
@@ -148,7 +135,9 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
                     alignment: const Alignment(0, -0.05),
                     filterQuality: FilterQuality.high,
                     opacity: const AlwaysStoppedAnimation<double>(0.92),
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorBuilder: (_, __, ___) => const ColoredBox(
+                      color: AppColors.primaryDark,
+                    ),
                   ),
                 ),
               ),

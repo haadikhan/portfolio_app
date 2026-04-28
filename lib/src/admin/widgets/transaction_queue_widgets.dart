@@ -272,13 +272,16 @@ class _RequestSheetState extends ConsumerState<_RequestSheet> {
     setState(() => _busy = false);
     final state = ref.read(transactionActionProvider);
     Navigator.pop(context);
+    final actionLabel = widget.txnType == "withdrawal"
+        ? "${_capitalize(widget.txnType)} completed."
+        : "${_capitalize(widget.txnType)} approved.";
     ScaffoldMessenger.of(context).showSnackBar(
       state.hasError
           ? SnackBar(
               content: Text("Error: ${state.error}"),
               backgroundColor: Colors.red)
           : SnackBar(
-              content: Text("${_capitalize(widget.txnType)} approved."),
+              content: Text(actionLabel),
               backgroundColor: Colors.green.shade700),
     );
   }
@@ -506,7 +509,11 @@ class _RequestSheetState extends ConsumerState<_RequestSheet> {
                             )
                           : const Icon(Icons.check_rounded, size: 18),
                       label: Text(
-                          _busy ? "Processing…" : "Approve",
+                          _busy
+                              ? "Processing…"
+                              : widget.txnType == "withdrawal"
+                                  ? "Approve & Complete"
+                                  : "Approve",
                           style: const TextStyle(
                               fontWeight: FontWeight.w700)),
                     ),

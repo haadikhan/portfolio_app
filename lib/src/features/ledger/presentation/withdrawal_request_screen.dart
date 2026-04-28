@@ -20,6 +20,7 @@ class WithdrawalRequestScreen extends ConsumerStatefulWidget {
 class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScreen> {
   final _amountController = TextEditingController();
   bool _busy = false;
+  String? _inlineError;
 
   @override
   void dispose() {
@@ -33,10 +34,25 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     return m.contains("insufficient") && m.contains("balance");
   }
 
+  void _showFailure(String message) {
+    setState(() => _inlineError = message);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+    showAppErrorMessageDialog(context, message);
+  }
+
   Future<void> _submit() async {
+    setState(() => _inlineError = null);
     final parsed = double.tryParse(_amountController.text.trim());
     if (parsed == null || parsed <= 0) {
-      await showAppErrorMessageDialog(context, context.tr("enter_valid_amount"));
+      _showFailure(context.tr("enter_valid_amount"));
       return;
     }
 
@@ -44,31 +60,29 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
 
     final walletState = ref.read(userWalletStreamProvider);
     if (walletState.isLoading) {
-      await showAppErrorMessageDialog(
-        context,
-        context.tr("wallet_balance_still_loading"),
-      );
+      _showFailure(context.tr("wallet_balance_still_loading"));
       return;
     }
     if (walletState.hasError) {
-      await showAppErrorMessageDialog(
-        context,
-        context.tr("wallet_balance_unavailable"),
-      );
+      _showFailure(context.tr("wallet_balance_unavailable"));
       return;
     }
 
     final w = walletState.value;
-    final availRaw = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
-    final available = double.parse(availRaw.toStringAsFixed(2));
     final moneyMarketWithdrawable = double.parse(
-      moneyMarketAmountFromAllocationTotal(available).toStringAsFixed(2),
+      moneyMarketAvailableFromWallet(w).toStringAsFixed(2),
+    );
+    debugPrint(
+      "[withdraw] submit amount=$amount mmAvailable=$moneyMarketWithdrawable "
+      "wallet.mmCredited=${w?["moneyMarketCreditedTotal"]} "
+      "wallet.mmWithdrawn=${w?["moneyMarketWithdrawnTotal"]} "
+      "wallet.mmReserved=${w?["moneyMarketReserved"]} "
+      "wallet.totalDeposited=${w?["totalDeposited"]} "
+      "wallet.totalWithdrawn=${w?["totalWithdrawn"]} "
+      "wallet.reservedAmount=${w?["reservedAmount"]}",
     );
     if (amount > moneyMarketWithdrawable) {
-      await showAppErrorMessageDialog(
-        context,
-        context.tr("withdrawal_exceeds_money_market"),
-      );
+      _showFailure(context.tr("withdrawal_exceeds_money_market"));
       return;
     }
 
@@ -77,17 +91,25 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
       await ref.read(walletLedgerFunctionsProvider).createWithdrawalRequest(amount: amount);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("withdrawal_submitted"))),
+        SnackBar(
+          content: Text(context.tr("withdrawal_submitted")),
+          backgroundColor: Colors.green.shade700,
+        ),
       );
       context.pop();
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
+      debugPrint("[withdraw] FirebaseFunctionsException code=${e.code} message=${e.message}");
       final text = _isInsufficientBalanceMessage(e.message)
           ? context.tr("withdrawal_exceeds_money_market")
-          : (e.message?.trim().isNotEmpty == true ? e.message! : e.code);
-      await showAppErrorMessageDialog(context, text);
+          : (e.message?.trim().isNotEmpty == true
+              ? "${e.message!} (${e.code})"
+              : e.code);
+      _showFailure(text);
     } catch (e) {
       if (!mounted) return;
+      debugPrint("[withdraw] unexpected error: $e");
+      setState(() => _inlineError = e.toString());
       await showAppErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -108,7 +130,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
             error: (e, _) => Text("${context.tr("wallet_prefix")} $e"),
             data: (w) {
               final avail = (w?["availableBalance"] as num?)?.toDouble() ?? 0;
-              final mm = moneyMarketAmountFromAllocationTotal(avail);
+              final mm = moneyMarketAvailableFromWallet(w);
               final res = (w?["reservedAmount"] as num?)?.toDouble() ?? 0;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,6 +165,38 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
               border: const OutlineInputBorder(),
             ),
           ),
+          if (_inlineError != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.red.shade700,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _inlineError!,
+                      style: TextStyle(
+                        color: Colors.red.shade900,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           FilledButton(
             onPressed: _busy ? null : _submit,
