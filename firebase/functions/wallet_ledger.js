@@ -13,6 +13,11 @@ const {
   sendCustomerTransactionAlerts,
 } = require("./notifications");
 const { verifyMpinOrThrow } = require("./mpin");
+const {
+  applyDepositFees,
+  bookMonthEndFeesAndProfit,
+  getFeeConfig_internal: getFeeConfigInternal,
+} = require("./fees");
 
 const db = () => admin.firestore();
 
@@ -259,10 +264,14 @@ async function runMonthEndProfitCredit({
     }
   }
 
+  const feeConfig = await getFeeConfigInternal();
   const portfoliosSnap = await db().collection("portfolios").get();
   let successCount = 0;
   let failCount = 0;
-  let totalProfit = 0;
+  let totalGrossProfit = 0;
+  let totalNetProfit = 0;
+  let totalManagementFee = 0;
+  let totalPerformanceFee = 0;
   const errors = [];
 
   for (const portfolioDoc of portfoliosSnap.docs) {
@@ -272,8 +281,11 @@ async function runMonthEndProfitCredit({
       const previousValue = Number(data.currentValue) || 0;
       if (previousValue <= 0 || monthlyPct <= 0) continue;
 
-      const profit = previousValue * (monthlyPct / 100);
-      const newValue = previousValue + profit;
+      const grossProfit = previousValue * (monthlyPct / 100);
+      // Portfolio currentValue follows GROSS profit so the displayed return
+      // tracks the underlying market performance. Fees come out of the wallet
+      // ledger, not the portfolio NAV (consistent with the existing model).
+      const newValue = previousValue + grossProfit;
 
       if (!dryRun) {
         const batch = db().batch();
@@ -289,7 +301,7 @@ async function runMonthEndProfitCredit({
           .doc();
         batch.set(histRef, {
           returnPct: monthlyPct,
-          profitAmount: profit,
+          profitAmount: grossProfit,
           previousValue,
           newValue,
           appliedAt: nowTs,
@@ -297,22 +309,31 @@ async function runMonthEndProfitCredit({
           mode: "month_end_annual_converted",
           periodKey: monthKey,
         });
-        const txRef = db().collection("transactions").doc();
-        batch.set(txRef, {
-          userId: uid,
-          type: "profit_entry",
-          amount: profit,
-          status: "approved",
-          createdAt: nowTs,
-          notes: `Month-end profit credit (${monthKey}) from annual rate ${annualRatePct.toFixed(2)}%`,
-          approvedBy: requestedBy,
+
+        const result = await bookMonthEndFeesAndProfit({
+          uid,
+          grossProfit,
+          monthlyPct,
+          annualRatePct,
           periodKey: monthKey,
+          approverUid: requestedBy,
+          batch,
+          now: nowTs,
+          feeConfig,
         });
+
         await batch.commit();
         await recalculateWallet(uid);
+
+        totalGrossProfit += result.grossProfit;
+        totalNetProfit += result.netProfit;
+        totalManagementFee += result.managementFee;
+        totalPerformanceFee += result.performanceFee;
+      } else {
+        totalGrossProfit += grossProfit;
+        totalNetProfit += grossProfit;
       }
 
-      totalProfit += profit;
       successCount++;
     } catch (e) {
       failCount++;
@@ -324,13 +345,30 @@ async function runMonthEndProfitCredit({
     }
   }
 
+  if (!dryRun && (totalManagementFee > 0 || totalPerformanceFee > 0)) {
+    try {
+      const { bumpCompanyEarnings } = require("./fees");
+      await bumpCompanyEarnings(monthKey, {
+        management: totalManagementFee,
+        performance: totalPerformanceFee,
+      });
+    } catch (e) {
+      logger.warn("runMonthEndProfitCredit_bumpCompanyEarnings_failed", {
+        error: String(e),
+      });
+    }
+  }
+
   if (!dryRun) {
     await jobRef.set(
       {
         status: "completed",
         successCount,
         failCount,
-        totalProfit,
+        totalProfit: totalNetProfit,
+        totalGrossProfit,
+        totalManagementFee,
+        totalPerformanceFee,
         errors: errors.slice(0, 50),
         completedAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -352,7 +390,10 @@ async function runMonthEndProfitCredit({
       monthlyPct,
       successCount,
       failCount,
-      totalProfit,
+      totalGrossProfit,
+      totalNetProfit,
+      totalManagementFee,
+      totalPerformanceFee,
       dryRun,
     },
   );
@@ -366,7 +407,10 @@ async function runMonthEndProfitCredit({
     monthlyPct,
     successCount,
     failCount,
-    totalProfit,
+    totalProfit: totalNetProfit,
+    totalGrossProfit,
+    totalManagementFee,
+    totalPerformanceFee,
     errors,
   };
 }
@@ -596,6 +640,25 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
   });
   await batch.commit();
   await recalculateWallet(req.userId);
+
+  const amt = Number(req.amount) || 0;
+  let feesApplied = [];
+  try {
+    const result = await applyDepositFees({
+      uid: req.userId,
+      depositTxId: tid,
+      depositAmount: amt,
+      approverUid: request.auth.uid,
+    });
+    feesApplied = result.applied || [];
+  } catch (e) {
+    logger.warn("approveDeposit_applyDepositFees_failed", {
+      uid: req.userId,
+      tid,
+      error: String(e),
+    });
+  }
+
   await safeAppendAudit(
     request.auth.uid,
     "admin",
@@ -603,10 +666,13 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
     "deposit_request",
     requestId,
     { status: "pending" },
-    { status: "approved", transactionId: tid },
+    {
+      status: "approved",
+      transactionId: tid,
+      feesApplied,
+    },
   );
 
-  const amt = Number(req.amount) || 0;
   await safeNotify(() =>
     sendCustomerTransactionAlerts(req.userId, {
       title: "Deposit approved",
@@ -620,7 +686,7 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
     }),
   );
 
-  return { ok: true };
+  return { ok: true, feesApplied };
 });
 
 /** Admin: reject deposit */
@@ -1132,6 +1198,26 @@ exports.adminApproveTransaction = onCall(
 
     await batch.commit();
     await recalculateWallet(userId);
+
+    let feesApplied = [];
+    if (type === "deposit") {
+      try {
+        const result = await applyDepositFees({
+          uid: userId,
+          depositTxId: txnId,
+          depositAmount: amount,
+          approverUid: adminUid,
+        });
+        feesApplied = result.applied || [];
+      } catch (e) {
+        logger.warn("adminApproveTransaction_applyDepositFees_failed", {
+          uid: userId,
+          txnId,
+          error: String(e),
+        });
+      }
+    }
+
     await safeAppendAudit(
       adminUid,
       "admin",
@@ -1139,7 +1225,7 @@ exports.adminApproveTransaction = onCall(
       "transaction",
       txnId,
       { status: "pending" },
-      { status: nextStatus, type, amount },
+      { status: nextStatus, type, amount, feesApplied },
     );
 
     const label =
@@ -1359,11 +1445,23 @@ exports.applyMonthlyReturns = onCall(
 
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
+    const feeConfig = await getFeeConfigInternal();
     const portfoliosSnap = await db().collection("portfolios").get();
+
+    // Manual returns are applied for the current calendar month.
+    const ymKey = (() => {
+      const d = new Date();
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+      return `${y}-${m}`;
+    })();
 
     let successCount = 0;
     let failCount = 0;
-    let totalProfit = 0;
+    let totalGrossProfit = 0;
+    let totalNetProfit = 0;
+    let totalManagementFee = 0;
+    let totalPerformanceFee = 0;
     const errors = [];
 
     for (const portfolioDoc of portfoliosSnap.docs) {
@@ -1373,19 +1471,17 @@ exports.applyMonthlyReturns = onCall(
         const previousValue = Number(data.currentValue) || 0;
         if (previousValue <= 0) continue; // skip empty portfolios
 
-        const profit = previousValue * (returnPct / 100);
-        const newValue = previousValue + profit;
+        const grossProfit = previousValue * (returnPct / 100);
+        const newValue = previousValue + grossProfit;
 
         const batch = db().batch();
 
-        // Update portfolio
         batch.update(portfolioDoc.ref, {
           currentValue: newValue,
           lastMonthlyReturnPct: returnPct,
           lastUpdated: now,
         });
 
-        // Write returnHistory entry
         const histRef = db()
           .collection("portfolios")
           .doc(uid)
@@ -1393,7 +1489,7 @@ exports.applyMonthlyReturns = onCall(
           .doc();
         batch.set(histRef, {
           returnPct,
-          profitAmount: profit,
+          profitAmount: grossProfit,
           previousValue,
           newValue,
           appliedAt: now,
@@ -1401,30 +1497,36 @@ exports.applyMonthlyReturns = onCall(
           mode: "percentage",
         });
 
-        // Write profit_entry transaction
-        const txRef = db().collection("transactions").doc();
-        batch.set(txRef, {
-          userId: uid,
-          type: "profit_entry",
-          amount: profit,
-          status: "approved",
-          createdAt: now,
-          notes: `Monthly return ${returnPct}% applied by admin`,
-          approvedBy: adminUid,
+        const result = await bookMonthEndFeesAndProfit({
+          uid,
+          grossProfit,
+          monthlyPct: returnPct,
+          annualRatePct: returnPct * 12,
+          periodKey: ymKey,
+          approverUid: adminUid,
+          batch,
+          now,
+          feeConfig,
         });
 
         await batch.commit();
-        totalProfit += profit;
+        await recalculateWallet(uid);
+
+        totalGrossProfit += result.grossProfit;
+        totalNetProfit += result.netProfit;
+        totalManagementFee += result.managementFee;
+        totalPerformanceFee += result.performanceFee;
         successCount++;
+
         await safeNotify(() =>
           sendCustomerTransactionAlerts(uid, {
             title: "Monthly return applied",
-            body: `PKR ${profit.toFixed(0)} credited (${returnPct}% return).`,
+            body: `PKR ${result.netProfit.toFixed(0)} net profit credited (${returnPct}% gross). Fees: PKR ${(result.performanceFee + result.managementFee).toFixed(0)}.`,
             type: "profit_entry",
             category: "portfolio",
             action: "open_portfolio",
             refId: uid,
-            amount: profit,
+            amount: result.netProfit,
             currency: "PKR",
           }),
         );
@@ -1433,6 +1535,20 @@ exports.applyMonthlyReturns = onCall(
         errors.push(`${uid}: ${String(e)}`);
         logger.error("applyMonthlyReturns user failed", {
           uid,
+          error: String(e),
+        });
+      }
+    }
+
+    if (totalManagementFee > 0 || totalPerformanceFee > 0) {
+      try {
+        const { bumpCompanyEarnings } = require("./fees");
+        await bumpCompanyEarnings(ymKey, {
+          management: totalManagementFee,
+          performance: totalPerformanceFee,
+        });
+      } catch (e) {
+        logger.warn("applyMonthlyReturns_bumpCompanyEarnings_failed", {
           error: String(e),
         });
       }
@@ -1449,11 +1565,22 @@ exports.applyMonthlyReturns = onCall(
         returnPct,
         successCount,
         failCount,
-        totalProfit,
+        totalGrossProfit,
+        totalNetProfit,
+        totalManagementFee,
+        totalPerformanceFee,
       },
     );
 
-    return { successCount, failCount, totalProfit, errors };
+    return {
+      successCount,
+      failCount,
+      totalProfit: totalNetProfit,
+      totalGrossProfit,
+      totalManagementFee,
+      totalPerformanceFee,
+      errors,
+    };
   },
 );
 

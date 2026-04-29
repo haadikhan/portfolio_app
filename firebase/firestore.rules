@@ -162,6 +162,13 @@ service cloud.firestore {
           && request.resource.data.requestedFields is map;
         allow update, delete: if isAdmin();
       }
+
+      // Fee statements: server-only writes (Cloud Functions / Admin SDK).
+      // Investor reads their own; admin reads all.
+      match /fee_statements/{periodKey} {
+        allow read: if isOwner(userId) || isAdmin() || crmManagesInvestor(userId);
+        allow create, update, delete: if false;
+      }
     }
 
     // Portfolio value + return history (investor app dashboard; admin applies returns in-app).
@@ -274,6 +281,12 @@ service cloud.firestore {
 
     match /audit_logs/{logId} {
       allow read: if hasRole("admin");
+      allow create, update, delete: if false;
+    }
+
+    // Company earnings (admin Earnings dashboard). Server-only writes.
+    match /company_earnings/{periodKey} {
+      allow read: if isAdmin();
       allow create, update, delete: if false;
     }
 

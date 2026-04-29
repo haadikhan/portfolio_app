@@ -362,6 +362,8 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
           if (isAdmin) ...[
             const SizedBox(height: 24),
             CrmAssignmentSection(investorUid: user.userId),
+            const SizedBox(height: 24),
+            _ReferrerCard(uid: user.userId),
           ],
           const SizedBox(height: 28),
           Text("Transactions", style: Theme.of(context).textTheme.titleLarge),
@@ -453,6 +455,171 @@ class _MetricCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Referrer / Employee Commission record-keeping. The 2% referral fee is
+/// already deducted automatically on the investor's first approved deposit
+/// (per `settings/fee_config`). This card lets the admin attach metadata so
+/// the company knows whom to pay out, and toggle a "paid" flag once that
+/// off-platform settlement is completed.
+class _ReferrerCard extends ConsumerStatefulWidget {
+  const _ReferrerCard({required this.uid});
+  final String uid;
+
+  @override
+  ConsumerState<_ReferrerCard> createState() => _ReferrerCardState();
+}
+
+class _ReferrerCardState extends ConsumerState<_ReferrerCard> {
+  final _nameCtl = TextEditingController();
+  final _noteCtl = TextEditingController();
+  bool _payoutPaid = false;
+  bool _saving = false;
+  bool _hydrated = false;
+
+  @override
+  void dispose() {
+    _nameCtl.dispose();
+    _noteCtl.dispose();
+    super.dispose();
+  }
+
+  void _hydrate(Map<String, dynamic>? data) {
+    if (_hydrated) return;
+    _hydrated = true;
+    final r = data?["referrerInfo"];
+    if (r is Map) {
+      _nameCtl.text = (r["referrerName"] as String?) ?? "";
+      _noteCtl.text = (r["referrerNote"] as String?) ?? "";
+      _payoutPaid = r["payoutPaid"] == true;
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final adminUid =
+          FirebaseAuth.instance.currentUser?.uid ?? "unknown_admin";
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.uid)
+          .set({
+        "referrerInfo": {
+          "referrerName": _nameCtl.text.trim(),
+          "referrerNote": _noteCtl.text.trim(),
+          "payoutPaid": _payoutPaid,
+          "updatedAt": FieldValue.serverTimestamp(),
+          "updatedBy": adminUid,
+        },
+      }, SetOptions(merge: true));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("referrer_save_ok"))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${context.tr("referrer_save_failed")}: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        _hydrate(snapshot.data?.data());
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: scheme.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.handshake_outlined, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.tr("referrer_card_title"),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.tr("referrer_card_subtitle"),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nameCtl,
+                  decoration: InputDecoration(
+                    labelText: context.tr("referrer_field_name"),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _noteCtl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: context.tr("referrer_field_note"),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _payoutPaid,
+                  onChanged: (v) => setState(() => _payoutPaid = v),
+                  title: Text(context.tr("referrer_payout_paid")),
+                  subtitle: Text(
+                    context.tr("referrer_payout_paid_subtitle"),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined, size: 18),
+                    label: Text(
+                      _saving
+                          ? context.tr("fee_saving")
+                          : context.tr("referrer_save_action"),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

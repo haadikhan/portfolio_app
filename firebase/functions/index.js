@@ -2,6 +2,16 @@
  * Firebase Cloud Functions — Wakalat Invest
  */
 
+// Lower the per-function default CPU from 1 to 0.5 to stay under the
+// us-central1 Cloud Run regional CPU quota during rolling deploys.
+// Per-function overrides (cpu: 0.08 / 0.25 / 0.5) take priority over this.
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({
+  region: "us-central1",
+  cpu: 0.5,
+  memory: "256MiB",
+});
+
 const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
@@ -18,11 +28,18 @@ const notifications = require("./notifications");
 const marketData = require("./market_data");
 const appUpdates = require("./app_updates");
 const mpin = require("./mpin");
+const fees = require("./fees");
 Object.assign(exports, walletLedger);
 Object.assign(exports, notifications);
 Object.assign(exports, marketData);
 Object.assign(exports, appUpdates);
 Object.assign(exports, mpin);
+// Only expose public callables / scheduled functions; module-private helpers
+// (getFeeConfig_internal, applyDepositFees, ...) are NOT re-exported.
+exports.getFeeConfig = fees.getFeeConfig;
+exports.saveFeeConfig = fees.saveFeeConfig;
+exports.sendMonthlyFeeStatements = fees.sendMonthlyFeeStatements;
+exports.applyMonthEndFeeStatements = fees.applyMonthEndFeeStatements;
 
 exports.onKycSubmittedForReview = onDocumentUpdated(
   {

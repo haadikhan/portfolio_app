@@ -24,12 +24,19 @@ class _TransactionHistoryScreenState
   late TabController _tabController;
   String _statusFilter = "all";
 
-  final _typeFilters = ["all", "deposit", "withdrawal", "profit_entry"];
+  final _typeFilters = ["all", "deposit", "withdrawal", "profit_entry", "fees"];
+
+  static const _kFeeTypes = <String>{
+    "front_end_load_fee",
+    "referral_fee",
+    "management_fee",
+    "performance_fee",
+  };
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -42,7 +49,9 @@ class _TransactionHistoryScreenState
     List<TxnItem> result = all;
 
     final typeFilter = _typeFilters[tabIndex];
-    if (typeFilter != "all") {
+    if (typeFilter == "fees") {
+      result = result.where((t) => _kFeeTypes.contains(t.type)).toList();
+    } else if (typeFilter != "all") {
       result = result
           .where((t) =>
               t.type == typeFilter ||
@@ -67,6 +76,7 @@ class _TransactionHistoryScreenState
       Tab(text: context.tr("tab_deposits")),
       Tab(text: context.tr("tab_withdrawals")),
       Tab(text: context.tr("tab_profit")),
+      Tab(text: context.tr("tab_fees")),
     ];
 
     return AppScaffold(
@@ -136,7 +146,7 @@ class _TransactionHistoryScreenState
               ),
               data: (all) => TabBarView(
                 controller: _tabController,
-                children: List.generate(4, (i) {
+                children: List.generate(5, (i) {
                   final items = _filter(all, i);
                   if (items.isEmpty) {
                     return _EmptyState(statusFilter: _statusFilter);
@@ -166,6 +176,13 @@ class TransactionRowItem extends StatelessWidget {
   const TransactionRowItem({super.key, required this.txn});
   final TxnItem txn;
 
+  static const _kFeeTypes = <String>{
+    "front_end_load_fee",
+    "referral_fee",
+    "management_fee",
+    "performance_fee",
+  };
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -173,6 +190,7 @@ class TransactionRowItem extends StatelessWidget {
     final isProfit =
         txn.type == "profit_entry" || txn.type == "profit";
     final isWithdrawal = txn.type == "withdrawal";
+    final isFee = _kFeeTypes.contains(txn.type);
 
     final (Color iconBg, Color iconFg, IconData icon) = isDeposit
         ? (
@@ -186,11 +204,17 @@ class TransactionRowItem extends StatelessWidget {
                 AppColors.error,
                 Icons.arrow_upward_rounded
               )
-            : (
-                scheme.primaryContainer.withValues(alpha: 0.4),
-                Colors.blue.shade700,
-                Icons.trending_up_rounded
-              );
+            : isFee
+                ? (
+                    scheme.errorContainer.withValues(alpha: 0.4),
+                    AppColors.error,
+                    _feeIcon(txn.type),
+                  )
+                : (
+                    scheme.primaryContainer.withValues(alpha: 0.4),
+                    Colors.blue.shade700,
+                    Icons.trending_up_rounded,
+                  );
 
     final amountColor = isDeposit || isProfit ? AppColors.success : AppColors.error;
     final amountSign = isDeposit || isProfit ? "+" : "-";
@@ -199,7 +223,9 @@ class TransactionRowItem extends StatelessWidget {
         ? context.tr("txn_type_deposit")
         : isWithdrawal
             ? context.tr("txn_type_withdrawal")
-            : context.tr("txn_type_profit");
+            : isFee
+                ? _feeLabel(context, txn.type)
+                : context.tr("txn_type_profit");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -272,6 +298,36 @@ class TransactionRowItem extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _feeIcon(String ty) {
+    switch (ty) {
+      case "front_end_load_fee":
+        return Icons.input_rounded;
+      case "referral_fee":
+        return Icons.handshake_outlined;
+      case "management_fee":
+        return Icons.account_balance_outlined;
+      case "performance_fee":
+        return Icons.trending_up_rounded;
+      default:
+        return Icons.receipt_long_outlined;
+    }
+  }
+
+  String _feeLabel(BuildContext context, String ty) {
+    switch (ty) {
+      case "front_end_load_fee":
+        return context.tr("fee_label_front_load");
+      case "referral_fee":
+        return context.tr("fee_label_referral");
+      case "management_fee":
+        return context.tr("fee_label_management");
+      case "performance_fee":
+        return context.tr("fee_label_performance");
+      default:
+        return context.tr("txn_type_fee");
+    }
   }
 }
 

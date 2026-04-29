@@ -15,7 +15,9 @@ import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/reports_providers.dart";
 import "../../../providers/transaction_history_providers.dart";
+import "../data/fee_statement_providers.dart";
 import "../services/report_pdf_builder.dart";
+import "fee_statement_detail_screen.dart";
 import "report_pdf_preview_screen.dart";
 
 enum _PeriodPreset { thisMonth, thisYear, custom }
@@ -473,6 +475,58 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const Divider(),
           const SizedBox(height: 8),
           Text(
+            context.tr("fee_statement_section_title"),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            context.tr("fee_statement_section_subtitle"),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Consumer(
+            builder: (context, ref, _) {
+              final feeAsync = ref.watch(userFeeStatementsProvider);
+              return feeAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                error: (e, _) => Text(
+                  "${context.tr("error_prefix")} $e",
+                  style: TextStyle(color: scheme.error),
+                ),
+                data: (items) {
+                  if (items.isEmpty) {
+                    return Text(
+                      context.tr("fee_statement_empty"),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (final s in items)
+                        _FeeStatementRow(statement: s),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
+          Text(
             context.tr("reports_team_section"),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -524,6 +578,99 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             },
           ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeeStatementRow extends StatelessWidget {
+  const _FeeStatementRow({required this.statement});
+  final FeeStatement statement;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
+
+    final parts = statement.periodKey.split("-");
+    String monthLabel = statement.periodKey;
+    if (parts.length == 2) {
+      final y = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (y != null && m != null) {
+        monthLabel = DateFormat.yMMMM().format(DateTime(y, m));
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  FeeStatementDetailScreen(statement: statement),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color: scheme.onPrimaryContainer,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      monthLabel,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${context.tr("fee_statement_total_fees")}: "
+                      "${money.format(statement.totalFees)}"
+                      " · "
+                      "${context.tr("fee_statement_net_credited")}: "
+                      "${money.format(statement.netProfit)}",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

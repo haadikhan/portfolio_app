@@ -14,6 +14,8 @@ import "crm/crm_investor_list_screen.dart";
 import "crm/crm_team_screen.dart";
 import "screens/admin_dashboard_screen.dart";
 import "screens/admin_deposits_queue_screen.dart";
+import "screens/admin_earnings_screen.dart";
+import "screens/admin_fees_screen.dart";
 import "screens/admin_investor_detail_screen.dart";
 import "screens/admin_investor_list_screen.dart";
 import "screens/admin_kyc_detail_screen.dart";
@@ -124,6 +126,14 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/returns",
             builder: (_, __) => const AdminReturnsScreen(),
+          ),
+          GoRoute(
+            path: "/fees",
+            builder: (_, __) => const AdminFeesScreen(),
+          ),
+          GoRoute(
+            path: "/earnings",
+            builder: (_, __) => const AdminEarningsScreen(),
           ),
           GoRoute(
             path: "/upload-reports",

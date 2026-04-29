@@ -774,6 +774,122 @@ const _en = <String, String>{
   "mpin_toggle_currentpin_title": "Confirm with MPIN",
   "mpin_toggle_currentpin_body":
       "Enter your current MPIN to change this setting.",
+
+  // ── Fee Management (admin) ────────────────────────────────────────────
+  "nav_fees": "Fee management",
+  "nav_fees_subtitle": "Configure rates & history",
+  "nav_earnings": "Earnings",
+  "nav_earnings_subtitle": "Company income from fees",
+  "fee_management_title": "Fee management",
+  "fee_management_subtitle":
+      "Configure investor fees deducted automatically by the platform.",
+  "fee_status_active": "Active",
+  "fee_status_disabled": "Disabled",
+  "fee_master_toggle": "Enable fees",
+  "fee_save_action": "Save changes",
+  "fee_saving": "Saving…",
+  "fee_save_ok": "Fee configuration saved.",
+  "fee_save_failed": "Failed to save fee configuration",
+  "fee_load_failed": "Failed to load fee configuration",
+  "fee_section_rates": "Fee rates",
+  "fee_section_history": "Recent fee deductions",
+  "fee_history_empty": "No fee deductions yet.",
+  "fee_field_rate": "Percentage",
+  "fee_preview_label": "PREVIEW",
+  "fee_preview_principal": "On principal of",
+  "fee_preview_monthly_deduction": "Monthly deduction",
+  "fee_preview_yearly_deduction": "Yearly deduction",
+  "fee_preview_gross_profit": "On gross profit of",
+  "fee_preview_fee_deducted": "Fee deducted",
+  "fee_preview_net_credited": "Net credited to investor",
+  "fee_preview_deposit": "On deposit of",
+  "fee_preview_front_load_fee": "Front-end load",
+  "fee_preview_invested_principal": "Net invested principal",
+  "fee_preview_first_deposit": "On first deposit of",
+  "fee_preview_referral_fee": "Referral commission",
+  "fee_preview_referral_note":
+      "Collected as company income. Pay-out to the actual referrer/employee is handled manually.",
+  "fee_card_mgmt_title": "Annual management fee",
+  "fee_card_mgmt_subtitle":
+      "Charged on principal · posted monthly (annual rate ÷ 12).",
+  "fee_card_perf_title": "Performance fee",
+  "fee_card_perf_subtitle":
+      "Deducted from monthly profit before crediting net profit.",
+  "fee_card_front_title": "Front-end load",
+  "fee_card_front_subtitle":
+      "One-time charge on each approved deposit (or first deposit only).",
+  "fee_card_referral_title": "Referral / employee commission",
+  "fee_card_referral_subtitle":
+      "One-time charge on the investor's first approved deposit.",
+  "fee_front_first_only_label": "Charge on first deposit only",
+  "fee_front_first_only_subtitle":
+      "When off, every approved deposit is charged.",
+  "fee_send_statements_action": "Send monthly statements",
+  "fee_send_statements_busy": "Sending…",
+  "fee_send_statements_title": "Send monthly fee statements",
+  "fee_send_statements_body":
+      "Generate fee statements and notify all investors with activity in {period}.",
+  "fee_pick_period": "Pick statement month",
+  "fee_statements_done":
+      "{written} statement(s) generated for {period}.",
+  "fee_statements_failed": "Failed to send statements",
+  "fee_label_front_load": "Front-end load",
+  "fee_label_referral": "Referral commission",
+  "fee_label_management": "Management fee",
+  "fee_label_performance": "Performance fee",
+  // ── Earnings dashboard ───────────────────────────────────────────────
+  "earnings_title": "Company earnings",
+  "earnings_subtitle":
+      "Live income breakdown from front-end load, referral, management & performance fees.",
+  "earn_total_lifetime": "Total earnings (lifetime)",
+  "earn_this_month": "This month",
+  "earn_ytd": "Year to date",
+  "earn_front_load_ytd": "Front-end load (YTD)",
+  "earn_referral_ytd": "Referral commission (YTD)",
+  "earn_mgmt_ytd": "Management fee (YTD)",
+  "earn_perf_ytd": "Performance fee (YTD)",
+  "earn_chart_title": "Monthly income breakdown",
+  "earn_chart_empty": "No fee income recorded yet.",
+  "earn_filter_title": "Recent fee transactions",
+  "earn_filter_clear": "Clear filters",
+  "earn_filter_all_periods": "All periods",
+  "earn_filter_all_kinds": "All kinds",
+  "earn_table_empty": "No fee transactions match your filters.",
+  "earn_per_investor_title": "Top investors by fees collected",
+  "earn_per_investor_empty": "No investor breakdown yet.",
+  "earn_col_investor": "Investor UID",
+  "earn_col_total": "Total",
+  // ── Referrer card ───────────────────────────────────────────────────
+  "referrer_card_title": "Referrer / employee commission",
+  "referrer_card_subtitle":
+      "Record the person to whom the 2% referral fee is owed. Pay-out is settled manually outside the app.",
+  "referrer_field_name": "Referrer name",
+  "referrer_field_note": "Note (e.g. employee ID, payout method)",
+  "referrer_payout_paid": "Mark commission paid",
+  "referrer_payout_paid_subtitle":
+      "Toggle on once you have settled the referrer's commission off-platform.",
+  "referrer_save_action": "Save referrer info",
+  "referrer_save_ok": "Referrer info saved.",
+  "referrer_save_failed": "Failed to save referrer info",
+  // ── Investor side ───────────────────────────────────────────────────
+  "tab_fees": "Fees",
+  "txn_type_fee": "Fee",
+  "fee_statement_screen_title": "Monthly fee statement",
+  "fee_statement_section_title": "Monthly fee statements",
+  "fee_statement_section_subtitle":
+      "Transparent breakdown of fees deducted and net profit credited each month.",
+  "fee_statement_empty":
+      "No fee statements yet — they appear here at the end of every month.",
+  "fee_statement_principal": "Principal at start",
+  "fee_statement_total_fees": "Total fees",
+  "fee_statement_net_credited": "Net profit credited",
+  "fee_statement_gross_profit": "Gross profit earned",
+  "fee_statement_breakdown": "Breakdown",
+  "fee_statement_activity": "Other activity this month",
+  "fee_statement_deposits_month": "Deposits this month",
+  "fee_statement_withdrawals_month": "Withdrawals this month",
+  "fee_statement_transparency_note":
+      "Fees are deducted before profit is disbursed, so the amount you see credited is fully net of all charges. Tap any fee on your transaction history for full details.",
 };
 
 const _ur = <String, String>{
@@ -1538,6 +1654,122 @@ const _ur = <String, String>{
   "mpin_toggle_currentpin_title": "ایم پن سے تصدیق",
   "mpin_toggle_currentpin_body":
       "اس سیٹنگ کو تبدیل کرنے کے لیے موجودہ ایم پن درج کریں۔",
+
+  // ── Fee Management (admin) ────────────────────────────────────────────
+  "nav_fees": "فیس کا انتظام",
+  "nav_fees_subtitle": "شرحیں اور تاریخ ترتیب دیں",
+  "nav_earnings": "آمدنی",
+  "nav_earnings_subtitle": "فیسوں سے کمپنی کی آمدنی",
+  "fee_management_title": "فیس کا انتظام",
+  "fee_management_subtitle":
+      "پلیٹ فارم کی طرف سے خود بخود کاٹی جانے والی سرمایہ کار فیس ترتیب دیں۔",
+  "fee_status_active": "فعال",
+  "fee_status_disabled": "غیر فعال",
+  "fee_master_toggle": "فیسیں چالو کریں",
+  "fee_save_action": "تبدیلیاں محفوظ کریں",
+  "fee_saving": "محفوظ کیا جا رہا ہے…",
+  "fee_save_ok": "فیس کنفیگریشن محفوظ ہو گئی۔",
+  "fee_save_failed": "فیس کنفیگریشن محفوظ کرنے میں ناکامی",
+  "fee_load_failed": "فیس کنفیگریشن لوڈ کرنے میں ناکامی",
+  "fee_section_rates": "فیس کی شرحیں",
+  "fee_section_history": "حالیہ فیس کٹوتیاں",
+  "fee_history_empty": "ابھی تک کوئی فیس کٹوتی نہیں۔",
+  "fee_field_rate": "فیصد",
+  "fee_preview_label": "پیش نظارہ",
+  "fee_preview_principal": "اصل رقم پر",
+  "fee_preview_monthly_deduction": "ماہانہ کٹوتی",
+  "fee_preview_yearly_deduction": "سالانہ کٹوتی",
+  "fee_preview_gross_profit": "مجموعی منافع پر",
+  "fee_preview_fee_deducted": "کاٹی گئی فیس",
+  "fee_preview_net_credited": "سرمایہ کار کو خالص کریڈٹ",
+  "fee_preview_deposit": "جمع رقم پر",
+  "fee_preview_front_load_fee": "فرنٹ-اینڈ لوڈ",
+  "fee_preview_invested_principal": "خالص سرمایہ کاری",
+  "fee_preview_first_deposit": "پہلی جمع پر",
+  "fee_preview_referral_fee": "ریفرل کمیشن",
+  "fee_preview_referral_note":
+      "کمپنی کی آمدنی کے طور پر جمع کیا جاتا ہے۔ اصل ریفر کرنے والے/ملازم کو ادائیگی دستی طور پر ہوتی ہے۔",
+  "fee_card_mgmt_title": "سالانہ انتظامی فیس",
+  "fee_card_mgmt_subtitle":
+      "اصل رقم پر چارج · ماہانہ پوسٹ ہوتی ہے (سالانہ شرح ÷ 12)۔",
+  "fee_card_perf_title": "کارکردگی فیس",
+  "fee_card_perf_subtitle":
+      "خالص منافع جاری کرنے سے پہلے ماہانہ منافع سے کاٹی جاتی ہے۔",
+  "fee_card_front_title": "فرنٹ-اینڈ لوڈ",
+  "fee_card_front_subtitle":
+      "ہر منظور شدہ جمع پر یکمشت چارج (یا صرف پہلی جمع پر)۔",
+  "fee_card_referral_title": "ریفرل / ملازم کمیشن",
+  "fee_card_referral_subtitle":
+      "سرمایہ کار کی پہلی منظور شدہ جمع پر یکمشت چارج۔",
+  "fee_front_first_only_label": "صرف پہلی جمع پر چارج کریں",
+  "fee_front_first_only_subtitle":
+      "بند ہونے پر، ہر منظور شدہ جمع پر چارج لگے گا۔",
+  "fee_send_statements_action": "ماہانہ گوشوارے بھیجیں",
+  "fee_send_statements_busy": "بھیجا جا رہا ہے…",
+  "fee_send_statements_title": "ماہانہ فیس گوشوارے بھیجیں",
+  "fee_send_statements_body":
+      "{period} میں سرگرمی والے تمام سرمایہ کاروں کے لیے فیس گوشوارے تیار کریں اور انہیں مطلع کریں۔",
+  "fee_pick_period": "گوشوارہ مہینہ منتخب کریں",
+  "fee_statements_done":
+      "{period} کے لیے {written} گوشوارے تیار ہو گئے۔",
+  "fee_statements_failed": "گوشوارے بھیجنے میں ناکامی",
+  "fee_label_front_load": "فرنٹ-اینڈ لوڈ",
+  "fee_label_referral": "ریفرل کمیشن",
+  "fee_label_management": "انتظامی فیس",
+  "fee_label_performance": "کارکردگی فیس",
+  // ── Earnings dashboard ───────────────────────────────────────────────
+  "earnings_title": "کمپنی کی آمدنی",
+  "earnings_subtitle":
+      "فرنٹ-اینڈ لوڈ، ریفرل، انتظامی اور کارکردگی فیسوں سے براہ راست آمدنی کا تجزیہ۔",
+  "earn_total_lifetime": "کل آمدنی (تاحیات)",
+  "earn_this_month": "اس مہینے",
+  "earn_ytd": "سال بہ تاریخ",
+  "earn_front_load_ytd": "فرنٹ-اینڈ لوڈ (YTD)",
+  "earn_referral_ytd": "ریفرل کمیشن (YTD)",
+  "earn_mgmt_ytd": "انتظامی فیس (YTD)",
+  "earn_perf_ytd": "کارکردگی فیس (YTD)",
+  "earn_chart_title": "ماہانہ آمدنی کی تفصیل",
+  "earn_chart_empty": "ابھی تک کوئی فیس آمدنی درج نہیں ہے۔",
+  "earn_filter_title": "حالیہ فیس ٹرانزیکشنز",
+  "earn_filter_clear": "فلٹرز صاف کریں",
+  "earn_filter_all_periods": "تمام دورانیے",
+  "earn_filter_all_kinds": "تمام اقسام",
+  "earn_table_empty": "آپ کے فلٹرز سے کوئی فیس ٹرانزیکشن میل نہیں کھاتی۔",
+  "earn_per_investor_title": "کاٹی گئی فیس کے لحاظ سے سرفہرست سرمایہ کار",
+  "earn_per_investor_empty": "ابھی سرمایہ کار کا تجزیہ موجود نہیں۔",
+  "earn_col_investor": "سرمایہ کار UID",
+  "earn_col_total": "کل",
+  // ── Referrer card ───────────────────────────────────────────────────
+  "referrer_card_title": "ریفرر / ملازم کمیشن",
+  "referrer_card_subtitle":
+      "اس شخص کی تفصیل درج کریں جس کو 2% ریفرل فیس واجب الادا ہے۔ ادائیگی ایپ سے باہر دستی طور پر کی جاتی ہے۔",
+  "referrer_field_name": "ریفرر کا نام",
+  "referrer_field_note": "نوٹ (مثلاً ملازم آئی ڈی، ادائیگی کا طریقہ)",
+  "referrer_payout_paid": "کمیشن ادا کر دیا",
+  "referrer_payout_paid_subtitle":
+      "ایپ سے باہر کمیشن ادا کرنے کے بعد آن کریں۔",
+  "referrer_save_action": "ریفرر معلومات محفوظ کریں",
+  "referrer_save_ok": "ریفرر معلومات محفوظ ہو گئیں۔",
+  "referrer_save_failed": "ریفرر معلومات محفوظ کرنے میں ناکامی",
+  // ── Investor side ───────────────────────────────────────────────────
+  "tab_fees": "فیسیں",
+  "txn_type_fee": "فیس",
+  "fee_statement_screen_title": "ماہانہ فیس گوشوارہ",
+  "fee_statement_section_title": "ماہانہ فیس گوشوارے",
+  "fee_statement_section_subtitle":
+      "ہر مہینے کاٹی گئی فیس اور کریڈٹ ہونے والے خالص منافع کا شفاف تجزیہ۔",
+  "fee_statement_empty":
+      "ابھی کوئی گوشوارہ نہیں — یہ ہر مہینے کے آخر میں یہاں ظاہر ہوں گے۔",
+  "fee_statement_principal": "آغاز پر اصل رقم",
+  "fee_statement_total_fees": "کل فیسیں",
+  "fee_statement_net_credited": "خالص منافع کریڈٹ",
+  "fee_statement_gross_profit": "حاصل کردہ مجموعی منافع",
+  "fee_statement_breakdown": "تفصیل",
+  "fee_statement_activity": "اس مہینے دیگر سرگرمی",
+  "fee_statement_deposits_month": "اس مہینے جمع",
+  "fee_statement_withdrawals_month": "اس مہینے نکاسیاں",
+  "fee_statement_transparency_note":
+      "فیسیں منافع کی تقسیم سے پہلے کاٹی جاتی ہیں، لہٰذا جو رقم آپ کو کریڈٹ نظر آتی ہے وہ تمام چارجز کے بعد خالص ہوتی ہے۔ مکمل تفصیلات کے لیے ٹرانزیکشن ہسٹری میں کسی بھی فیس پر ٹیپ کریں۔",
 };
 
 extension AppTranslations on BuildContext {

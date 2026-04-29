@@ -19,6 +19,8 @@ const _kAdminShellRoutes = <String>[
   "/crm/investors",
   "/crm/team",
   "/returns",
+  "/fees",
+  "/earnings",
   "/upload-reports",
   "/app-updates",
   "/notifications",
@@ -224,6 +226,30 @@ class AdminShell extends ConsumerWidget {
                       title: Text(context.tr("returns")),
                       selected: loc.startsWith("/returns"),
                       onTap: () => _go(context, "/returns"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: Icon(
+                        Icons.payments_outlined,
+                        color: scheme.primary,
+                      ),
+                      title: Text(context.tr("nav_fees")),
+                      subtitle: Text(context.tr("nav_fees_subtitle")),
+                      selected: loc.startsWith("/fees"),
+                      onTap: () => _go(context, "/fees"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: Icon(
+                        Icons.savings_outlined,
+                        color: scheme.primary,
+                      ),
+                      title: Text(context.tr("nav_earnings")),
+                      subtitle: Text(context.tr("nav_earnings_subtitle")),
+                      selected: loc.startsWith("/earnings"),
+                      onTap: () => _go(context, "/earnings"),
                     ),
                     ListTile(
                       dense: true,
@@ -527,6 +553,16 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("returns")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.payments_outlined),
+          selectedIcon: const Icon(Icons.payments_rounded),
+          label: Text(context.tr("nav_fees")),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.savings_outlined),
+          selectedIcon: const Icon(Icons.savings_rounded),
+          label: Text(context.tr("nav_earnings")),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.picture_as_pdf_outlined),
           selectedIcon: const Icon(Icons.picture_as_pdf),
           label: Text(context.tr("admin_nav_upload_reports")),
@@ -559,10 +595,12 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 12;
-  if (loc.startsWith("/notifications")) return 11;
-  if (loc.startsWith("/app-updates")) return 10;
-  if (loc.startsWith("/upload-reports")) return 9;
+  if (loc.startsWith("/broadcast")) return 14;
+  if (loc.startsWith("/notifications")) return 13;
+  if (loc.startsWith("/app-updates")) return 12;
+  if (loc.startsWith("/upload-reports")) return 11;
+  if (loc.startsWith("/earnings")) return 10;
+  if (loc.startsWith("/fees")) return 9;
   if (loc.startsWith("/returns")) return 8;
   if (loc.startsWith("/crm/team")) return 7;
   if (loc.startsWith("/crm/investors")) return 6;
