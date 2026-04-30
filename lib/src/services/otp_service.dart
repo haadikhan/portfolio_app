@@ -46,11 +46,9 @@ class OtpFailed extends OtpSendResult {
 
 /// Wraps Firebase Phone Auth for the new-device OTP flow.
 ///
-/// We deliberately do NOT keep the user signed in as the phone provider;
-/// instead, after a successful credential the caller [linkAndUnlink]s it
-/// against the existing email/password user purely to prove the OTP, then
-/// the backend cleans up the link. This keeps the user's primary
-/// authentication method (email + password) unchanged.
+/// The phone credential is linked only long enough for server-side callers
+/// (Cloud Functions reading `providerId == phone`) to observe it; callers use
+/// [withTransientPhoneLink] so unlink runs after async work completes.
 class OtpService {
   OtpService(this._auth);
 
@@ -114,14 +112,15 @@ class OtpService {
     );
   }
 
-  /// Links the phone credential to the currently signed-in user, then
-  /// immediately unlinks it. The transient link is the cryptographic proof
-  /// that the user owns the phone for this session; the unlink keeps the
-  /// account on a single primary provider (email + password).
+  /// Links [credential], runs [whilePhoneLinked], then **always** tries to
+  /// unlink the phone provider so the primary sign-in stays email/password.
   ///
-  /// Returns the verified phone number reported by Firebase, or null if the
-  /// link succeeded but the SDK didn't report a phone (very rare).
-  Future<String?> linkAndUnlink(PhoneAuthCredential credential) async {
+  /// Cloud Functions use Admin Auth to read the linked phone; they must run
+  /// inside [whilePhoneLinked] before unlink executes in `finally`.
+  Future<T> withTransientPhoneLink<T>(
+    PhoneAuthCredential credential,
+    Future<T> Function() whilePhoneLinked,
+  ) async {
     final user = _auth.currentUser;
     if (user == null) {
       throw FirebaseAuthException(
@@ -129,28 +128,35 @@ class OtpService {
         message: "No signed-in user to link OTP credential to.",
       );
     }
+
     try {
-      final result = await user.linkWithCredential(credential);
-      final phone = result.user?.phoneNumber ?? user.phoneNumber;
       try {
-        await user.unlink(PhoneAuthProvider.PROVIDER_ID);
-      } catch (e, st) {
-        if (kDebugMode) {
-          debugPrint("[OTP] unlink after link failed (non-fatal): $e\n$st");
+        await user.linkWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == "provider-already-linked" ||
+            e.code == "credential-already-in-use") {
+          // Already linked from an incomplete earlier attempt — still run server
+          // work so Admin Auth can observe provider phone before unlink runs.
+          if (kDebugMode) {
+            debugPrint(
+              "[OTP] withTransientPhoneLink: skip link (${e.code}), running work anyway",
+            );
+          }
+        } else {
+          rethrow;
         }
       }
-      return phone;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == "provider-already-linked" ||
-          e.code == "credential-already-in-use") {
-        // Same user already has this phone linked from a previous attempt
-        // that didn't get cleaned up. Treat as success and unlink to clean.
-        try {
-          await user.unlink(PhoneAuthProvider.PROVIDER_ID);
-        } catch (_) {}
-        return user.phoneNumber;
+      return await whilePhoneLinked();
+    } finally {
+      try {
+        await _auth.currentUser?.unlink(PhoneAuthProvider.PROVIDER_ID);
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint(
+            "[OTP] unlink after transient link failed (non-fatal): $e\n$st",
+          );
+        }
       }
-      rethrow;
     }
   }
 }

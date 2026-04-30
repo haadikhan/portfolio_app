@@ -6,6 +6,8 @@ import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../services/device_fingerprint.dart";
+import "../../../services/otp_auth_errors.dart";
+import "../../../services/otp_callable_errors.dart";
 import "../../../services/otp_service.dart";
 
 class LoginOtpChallengeScreen extends StatefulWidget {
@@ -68,8 +70,8 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
           _cooldown = 30;
         });
         _tick();
-      case OtpAutoFilled():
-        await _completeOtp(res.credential);
+      case OtpAutoFilled(:final credential):
+        await _completeOtp(credential);
       case OtpFailed():
         setState(() {
           _sending = false;
@@ -84,23 +86,26 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
       _error = null;
     });
     try {
-      await _otpService.linkAndUnlink(credential);
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("No signed-in user");
-      final fp = await currentDeviceFingerprint(user.uid);
-      await _functions.httpsCallable("markDeviceTrusted").call(fp.toCallablePayload());
+      await _otpService.withTransientPhoneLink(credential, () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) throw Exception("No signed-in user");
+        final fp = await currentDeviceFingerprint(user.uid);
+        await _functions
+            .httpsCallable("markDeviceTrusted")
+            .call(fp.toCallablePayload());
+      });
       if (!mounted) return;
       context.go("/investor");
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.code == "invalid-verification-code"
-            ? context.tr("otp_challenge_invalid_code")
-            : context.tr("otp_challenge_generic_error");
+        _error = trFirebasePhoneOtpError(context, e);
       });
-    } on FirebaseFunctionsException catch (_) {
+    } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      setState(() => _error = context.tr("otp_challenge_generic_error"));
+      setState(() {
+        _error = trFirebasePhoneCallableError(context, e);
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = context.tr("otp_challenge_generic_error"));
@@ -187,7 +192,7 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
                       ? null
                       : () async {
                           await FirebaseAuth.instance.signOut();
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           context.go("/login");
                         },
                   child: Text(context.tr("otp_challenge_wrong_number_logout")),

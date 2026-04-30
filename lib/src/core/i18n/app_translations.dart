@@ -922,6 +922,15 @@ const _en = <String, String>{
   "otp_challenge_wrong_number_logout": "Wrong number? Sign out",
   "otp_challenge_invalid_code": "Invalid code. Please try again.",
   "otp_challenge_expired": "Code expired. Tap Resend to get a new one.",
+  "otp_challenge_too_many_requests":
+      "Too many attempts. Please wait a few minutes and try again.",
+  "otp_callable_failed_precondition":
+      "Server could not verify your phone session. Tap Send code to try again, or restart the app.",
+  "otp_callable_permission_denied":
+      "This action is not allowed for your account. Please sign out and sign in again or contact support.",
+  "otp_callable_invalid_argument":
+      "Something is wrong with this device’s security data. Please try again or restart the app.",
+  "otp_enroll_send_cooldown": "Wait %ss",
   "otp_challenge_generic_error": "Something went wrong. Please try again.",
   "otp_enroll_title": "Verify your phone",
   "otp_enroll_subtitle":
@@ -1859,6 +1868,15 @@ const _ur = <String, String>{
   "otp_challenge_invalid_code": "غلط کوڈ۔ براہ کرم دوبارہ کوشش کریں۔",
   "otp_challenge_expired":
       "کوڈ کی مدت ختم ہو گئی۔ نیا کوڈ حاصل کرنے کے لیے دوبارہ بھیجیں پر ٹیپ کریں۔",
+  "otp_challenge_too_many_requests":
+      "بہت زیادہ کوششیں۔ براہ کرم کچھ منٹ انتظار کریں اور دوبارہ کوشش کریں۔",
+  "otp_callable_failed_precondition":
+      "سرور آپ کا فون سیشن تصدیق نہیں کر سکا۔ کوڈ بھیجیں پر دوبارہ ٹیپ کریں یا ایپ ری اسٹارٹ کریں۔",
+  "otp_callable_permission_denied":
+      "یہ عمل آپ کے اکاؤنٹ کے لیے اجازت یافتہ نہیں۔ سائن آؤٹ یا سائن اِن یا سپورٹ سے رابطہ کریں۔",
+  "otp_callable_invalid_argument":
+      "اس ڈیوائس پر سکیورٹی ڈیٹا میں مسئلہ ہے۔ دوبارہ کوشش کریں یا ایپ ری اسٹارٹ کریں۔",
+  "otp_enroll_send_cooldown": "%s سیکنڈ",
   "otp_challenge_generic_error":
       "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
   "otp_enroll_title": "اپنا فون تصدیق کریں",
