@@ -890,6 +890,60 @@ const _en = <String, String>{
   "fee_statement_withdrawals_month": "Withdrawals this month",
   "fee_statement_transparency_note":
       "Fees are deducted before profit is disbursed, so the amount you see credited is fully net of all charges. Tap any fee on your transaction history for full details.",
+  "security_section_title": "Security",
+  "security_section_subtitle":
+      "Manage one-time passwords and devices that can sign in to your account.",
+  "otp_new_device_toggle": "Require OTP on new devices",
+  "otp_new_device_explainer":
+      "When enabled, signing in from a new device sends a 6-digit code to your verified phone. Trusted devices skip the OTP step.",
+  "otp_verified_phone": "Verified phone",
+  "otp_no_verified_phone": "Not yet verified",
+  "otp_change_phone": "Change verified phone",
+  "otp_change_phone_warning":
+      "Changing the phone removes all trusted devices. You'll be asked for an OTP on every device next time.",
+  "trusted_devices_title": "Trusted devices",
+  "trusted_devices_subtitle":
+      "Devices below can sign in without an OTP. Revoke any you don't recognise.",
+  "trusted_devices_empty":
+      "No trusted devices yet. The first device you sign in from after enabling OTP will appear here.",
+  "trusted_device_current": "This device",
+  "trusted_device_revoke": "Revoke",
+  "trusted_device_revoked": "Device revoked. It will require OTP next time.",
+  "trusted_device_revoke_failed": "Could not revoke device. Please try again.",
+  "trusted_device_first_seen": "Trusted on",
+  "trusted_device_last_seen": "Last seen",
+  "otp_challenge_title": "Verify it's you",
+  "otp_challenge_subtitle":
+      "We sent a 6-digit code to %s. Enter it below to continue.",
+  "otp_challenge_resend": "Resend code",
+  "otp_challenge_resend_in": "Resend in %ss",
+  "otp_challenge_verify": "Verify and continue",
+  "otp_challenge_verifying": "Verifying...",
+  "otp_challenge_wrong_number_logout": "Wrong number? Sign out",
+  "otp_challenge_invalid_code": "Invalid code. Please try again.",
+  "otp_challenge_expired": "Code expired. Tap Resend to get a new one.",
+  "otp_challenge_generic_error": "Something went wrong. Please try again.",
+  "otp_enroll_title": "Verify your phone",
+  "otp_enroll_subtitle":
+      "We'll send a one-time 6-digit code to confirm this number belongs to you.",
+  "otp_enroll_phone_label": "Phone number",
+  "otp_enroll_phone_hint": "+92 300 1234567",
+  "otp_enroll_send_code": "Send code",
+  "otp_enroll_invalid_phone":
+      "Enter a valid phone number including country code (e.g. +92).",
+  "otp_enroll_success": "OTP login enabled for new devices.",
+  "otp_disabled_success": "OTP for new devices is now off.",
+  "otp_phone_required_to_enable":
+      "Add and verify a phone number to enable OTP login.",
+  "otp_verify_now_cta": "Verify now",
+  "otp_setup_hint":
+      "Verify your phone to protect your account with OTP login on new devices.",
+  "otp_app_not_authorized":
+      "This app build is not authorized for phone verification. Please contact support or try updating the app.",
+  "otp_send_failed_try_again":
+      "Could not send the verification code. Check your internet connection and try again.",
+  "otp_phone_label_unverified": "Phone (not verified)",
+  "otp_phone_label_verified": "Verified phone",
 };
 
 const _ur = <String, String>{
@@ -1770,6 +1824,64 @@ const _ur = <String, String>{
   "fee_statement_withdrawals_month": "اس مہینے نکاسیاں",
   "fee_statement_transparency_note":
       "فیسیں منافع کی تقسیم سے پہلے کاٹی جاتی ہیں، لہٰذا جو رقم آپ کو کریڈٹ نظر آتی ہے وہ تمام چارجز کے بعد خالص ہوتی ہے۔ مکمل تفصیلات کے لیے ٹرانزیکشن ہسٹری میں کسی بھی فیس پر ٹیپ کریں۔",
+  "security_section_title": "سیکیورٹی",
+  "security_section_subtitle":
+      "ون ٹائم پاس ورڈ اور ان ڈیوائسز کا انتظام کریں جو آپ کے اکاؤنٹ میں سائن ان کر سکتی ہیں۔",
+  "otp_new_device_toggle": "نئی ڈیوائس پر OTP لازمی کریں",
+  "otp_new_device_explainer":
+      "فعال ہونے پر، نئی ڈیوائس سے سائن ان پر آپ کے تصدیق شدہ نمبر پر 6 ہندسی کوڈ بھیجا جاتا ہے۔ قابلِ اعتماد ڈیوائسز پر OTP نہیں لیا جائے گا۔",
+  "otp_verified_phone": "تصدیق شدہ فون",
+  "otp_no_verified_phone": "ابھی تصدیق نہیں ہوئی",
+  "otp_change_phone": "تصدیق شدہ فون تبدیل کریں",
+  "otp_change_phone_warning":
+      "فون تبدیل کرنے سے تمام قابلِ اعتماد ڈیوائسز ہٹا دی جائیں گی۔ اگلی بار ہر ڈیوائس پر OTP طلب کیا جائے گا۔",
+  "trusted_devices_title": "قابلِ اعتماد ڈیوائسز",
+  "trusted_devices_subtitle":
+      "نیچے دی گئی ڈیوائسز OTP کے بغیر سائن ان کر سکتی ہیں۔ کسی نا معلوم ڈیوائس کو منسوخ کریں۔",
+  "trusted_devices_empty":
+      "ابھی کوئی قابلِ اعتماد ڈیوائس نہیں۔ OTP فعال کرنے کے بعد پہلی ڈیوائس یہاں ظاہر ہوگی۔",
+  "trusted_device_current": "یہ ڈیوائس",
+  "trusted_device_revoke": "منسوخ کریں",
+  "trusted_device_revoked":
+      "ڈیوائس منسوخ کر دی گئی۔ اگلی بار اس پر OTP درکار ہوگا۔",
+  "trusted_device_revoke_failed":
+      "ڈیوائس منسوخ نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔",
+  "trusted_device_first_seen": "بھروسہ شدہ",
+  "trusted_device_last_seen": "آخری بار دیکھا گیا",
+  "otp_challenge_title": "تصدیق کریں کہ یہ آپ ہیں",
+  "otp_challenge_subtitle":
+      "ہم نے %s پر 6 ہندسی کوڈ بھیجا ہے۔ آگے بڑھنے کے لیے نیچے درج کریں۔",
+  "otp_challenge_resend": "کوڈ دوبارہ بھیجیں",
+  "otp_challenge_resend_in": "%s سیکنڈ میں دوبارہ",
+  "otp_challenge_verify": "تصدیق کریں اور آگے بڑھیں",
+  "otp_challenge_verifying": "تصدیق ہو رہی ہے...",
+  "otp_challenge_wrong_number_logout": "غلط نمبر؟ سائن آؤٹ",
+  "otp_challenge_invalid_code": "غلط کوڈ۔ براہ کرم دوبارہ کوشش کریں۔",
+  "otp_challenge_expired":
+      "کوڈ کی مدت ختم ہو گئی۔ نیا کوڈ حاصل کرنے کے لیے دوبارہ بھیجیں پر ٹیپ کریں۔",
+  "otp_challenge_generic_error":
+      "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
+  "otp_enroll_title": "اپنا فون تصدیق کریں",
+  "otp_enroll_subtitle":
+      "ہم 6 ہندسی ون ٹائم کوڈ بھیج کر تصدیق کریں گے کہ یہ نمبر آپ کا ہے۔",
+  "otp_enroll_phone_label": "فون نمبر",
+  "otp_enroll_phone_hint": "+92 300 1234567",
+  "otp_enroll_send_code": "کوڈ بھیجیں",
+  "otp_enroll_invalid_phone":
+      "ملک کا کوڈ سمیت درست نمبر درج کریں (مثلاً +92)۔",
+  "otp_enroll_success": "نئی ڈیوائسز کے لیے OTP لاگ اِن فعال ہو گیا۔",
+  "otp_disabled_success": "نئی ڈیوائسز کے لیے OTP اب بند ہے۔",
+  "otp_phone_required_to_enable":
+      "OTP لاگ اِن فعال کرنے کے لیے فون نمبر شامل اور تصدیق کریں۔",
+  "otp_verify_now_cta": "ابھی تصدیق کریں",
+  "otp_setup_hint":
+      "نئی ڈیوائسز پر OTP لاگ اِن کے ذریعے اپنے اکاؤنٹ کو محفوظ بنانے کے لیے فون تصدیق کریں۔",
+  "otp_app_not_authorized":
+      "یہ ایپ بلڈ فون تصدیق کے لیے مجاز نہیں۔ براہ کرم سپورٹ سے رابطہ کریں یا ایپ اپڈیٹ کریں۔",
+  "otp_send_failed_try_again":
+      "تصدیقی کوڈ بھیجا نہیں جا سکا۔ انٹرنیٹ کنکشن چیک کریں اور دوبارہ کوشش کریں۔",
+  "otp_phone_label_unverified": "فون (تصدیق نہیں ہوئی)",
+  "otp_phone_label_verified": "تصدیق شدہ فون",
 };
 
 extension AppTranslations on BuildContext {

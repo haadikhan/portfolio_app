@@ -169,6 +169,11 @@ service cloud.firestore {
         allow read: if isOwner(userId) || isAdmin() || crmManagesInvestor(userId);
         allow create, update, delete: if false;
       }
+
+      match /trustedDevices/{deviceHash} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if false;
+      }
     }
 
     // Portfolio value + return history (investor app dashboard; admin applies returns in-app).

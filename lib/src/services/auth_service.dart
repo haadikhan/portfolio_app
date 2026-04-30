@@ -2,6 +2,8 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/foundation.dart";
 
+import "device_fingerprint.dart";
+
 class AuthService {
   AuthService(this._auth);
 
@@ -83,6 +85,17 @@ class AuthService {
 
   Future<void> logout() async {
     try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        try {
+          final fp = await currentDeviceFingerprint(user.uid);
+          await _functions.httpsCallable("removeTrustedDevice").call({
+            "deviceHash": fp.deviceHash,
+          });
+        } catch (_) {
+          // Best effort only; logout must still proceed.
+        }
+      }
       await _auth.signOut();
     } catch (_) {
       throw Exception("Could not logout. Please try again.");

@@ -10,6 +10,7 @@ import "../core/theme/app_theme.dart";
 import "../core/theme/theme_provider.dart";
 import "../features/admin/presentation/admin_dashboard_screen.dart";
 import "../features/auth/presentation/auth_screen.dart";
+import "../features/auth/presentation/login_otp_challenge_screen.dart";
 import "../features/crm/presentation/crm_dashboard_screen.dart";
 import "../features/home/presentation/home_screen.dart";
 import "../features/investment/presentation/investment_portfolio_screen.dart";
@@ -29,6 +30,7 @@ import "../features/market/presentation/gold_price_chart_screen.dart";
 import "../features/market/presentation/kmi30_companies_screen.dart";
 import "../features/market/presentation/kmi30_company_chart_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
+import "../features/security/presentation/trusted_devices_screen.dart";
 import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../features/update/data/app_update_providers.dart";
 import "../features/update/presentation/force_update_screen.dart";
@@ -87,6 +89,12 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(path: "/home", redirect: (_, __) => "/investor"),
         GoRoute(path: "/landing", builder: (_, __) => const HomeScreen()),
         GoRoute(path: "/auth", builder: (_, __) => const AuthScreen()),
+        GoRoute(
+          path: "/login-otp",
+          builder: (_, state) => LoginOtpChallengeScreen(
+            phoneE164: state.uri.queryParameters["phone"] ?? "",
+          ),
+        ),
         GoRoute(path: "/kyc", builder: (_, __) => const KycScreen()),
         GoRoute(path: "/legal", builder: (_, __) => const LegalConsentScreen()),
         StatefulShellRoute.indexedStack(
@@ -138,6 +146,10 @@ class WakalatInvestApp extends ConsumerWidget {
                 GoRoute(
                   path: "/profile",
                   builder: (_, __) => const InvestorProfileScreen(),
+                ),
+                GoRoute(
+                  path: "/profile/trusted-devices",
+                  builder: (_, __) => const TrustedDevicesScreen(),
                 ),
               ],
             ),

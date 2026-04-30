@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'src/app/app.dart';
 import 'src/core/config/app_config.dart';
+import 'src/core/firebase/app_check_bootstrap.dart';
+import 'src/core/firebase/firebase_auth_phone_bootstrap.dart';
 import 'src/core/fcm/fcm_bootstrap.dart';
 import 'src/core/splash/splash_host.dart';
 
@@ -15,6 +17,8 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await configureFirebaseAndroidPhoneVerification();
+    await activateFirebaseAppCheckBootstrap();
   } catch (e) {
     initError = e;
   }

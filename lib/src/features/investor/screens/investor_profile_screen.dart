@@ -17,6 +17,7 @@ import "../../mpin/data/mpin_service.dart";
 import "../../mpin/data/mpin_status.dart";
 import "../../mpin/presentation/mpin_keypad.dart";
 import "../../mpin/presentation/mpin_setup_screen.dart";
+import "../../security/presentation/security_settings_section.dart";
 
 /// Prefer `users/{uid}` field when set; otherwise show value from KYC doc.
 String? _preferProfileThenKyc(String? profileField, String? kycField) {
@@ -740,6 +741,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+
+          const SecuritySettingsSection(),
           const SizedBox(height: 14),
 
           // ── Bank details card ───────────────────────────────────────

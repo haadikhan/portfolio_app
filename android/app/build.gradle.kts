@@ -11,6 +11,10 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -42,4 +46,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Default FirebaseApp — MainActivity reads persistenceKey before Dart runs.
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-common")
 }

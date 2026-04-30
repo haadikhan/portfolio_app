@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../features/security/data/security_providers.dart";
 import "../providers/auth_providers.dart";
 import "../providers/biometric_providers.dart";
 
@@ -20,6 +21,21 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
     if (_isRouting || !mounted) return;
     _isRouting = true;
     final contextRef = context;
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    final security = await ref.read(userSecurityProvider.future);
+    final verifiedPhone = security?.verifiedPhone?.trim() ?? "";
+    if (verifiedPhone.isNotEmpty) {
+      final trusted = await ref.read(currentDeviceTrustedProvider.future);
+      if (!mounted) return;
+      if (!trusted) {
+        contextRef.go(
+          "/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}",
+        );
+        return;
+      }
+    }
 
     final biometricEnabledForUser = await ref.read(
       biometricEnabledForCurrentUserProvider.future,
