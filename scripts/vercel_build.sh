@@ -35,4 +35,11 @@ if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
   DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
 fi
 
-flutter build web --release -t lib/admin_main.dart "${DART_DEFINES[@]}"
+# Headless CI (e.g. Vercel) can fail on the default wasm dry run; match stable local JS builds.
+EXTRA_WEB_FLAGS=(--no-wasm-dry-run)
+
+if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
+  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}"
+else
+  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}"
+fi
