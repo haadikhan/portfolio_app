@@ -9,6 +9,7 @@ import "package:intl/intl.dart";
 import "../../core/i18n/app_translations.dart";
 import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
+import "../models/kyc_admin_models.dart";
 import "../providers/admin_providers.dart";
 
 class AdminInvestorDetailScreen extends ConsumerStatefulWidget {
@@ -180,6 +181,7 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
     final user = widget.detail.summary;
     final wallet = widget.detail.wallet;
     final tx = widget.detail.transactions;
+    final kycAsync = ref.watch(kycDetailProvider(user.userId));
     final currency = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
     final dt = DateFormat.yMMMd().add_Hm();
     final role = ref.watch(adminRoleProvider).valueOrNull ?? "";
@@ -228,6 +230,8 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
               ),
             ),
           ],
+          const SizedBox(height: 20),
+          _InvestorKycDetailsCard(asyncKyc: kycAsync),
           const SizedBox(height: 20),
           Wrap(
             spacing: 16,
@@ -455,6 +459,133 @@ class _MetricCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InvestorKycDetailsCard extends StatelessWidget {
+  const _InvestorKycDetailsCard({required this.asyncKyc});
+
+  final AsyncValue<KycAdminDocument?> asyncKyc;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: asyncKyc.when(
+          loading: () => const SizedBox(
+            height: 72,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("KYC details", style: titleStyle),
+              const SizedBox(height: 8),
+              Text("Unable to load KYC details: $e"),
+            ],
+          ),
+          data: (kyc) {
+            if (kyc == null) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("KYC details", style: titleStyle),
+                  const SizedBox(height: 8),
+                  const Text("No KYC details found for this investor."),
+                ],
+              );
+            }
+
+            final fmt = DateFormat.yMMMd().add_Hm();
+            final bank = kyc.bankDetails;
+            final nominee = kyc.nominee;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text("KYC details", style: titleStyle),
+                    const Spacer(),
+                    Chip(
+                      label: Text("Status: ${kyc.status}"),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (kyc.submittedAt != null)
+                  Text("Submitted: ${fmt.format(kyc.submittedAt!.toLocal())}"),
+                if (kyc.reviewedAt != null)
+                  Text("Reviewed: ${fmt.format(kyc.reviewedAt!.toLocal())}"),
+                const SizedBox(height: 12),
+                _KycInfoTable(
+                  rows: {
+                    "CNIC": kyc.cnicNumber ?? "—",
+                    "Phone": kyc.phone ?? "—",
+                    "Address": kyc.address ?? "—",
+                    "Bank": bank?["bankName"]?.toString() ?? "—",
+                    "Account title": bank?["accountTitle"]?.toString() ?? "—",
+                    "IBAN / account":
+                        bank?["ibanOrAccountNumber"]?.toString() ?? "—",
+                    "Nominee name": nominee?["nomineeName"]?.toString() ?? "—",
+                    "Nominee CNIC": nominee?["nomineeCnic"]?.toString() ?? "—",
+                    "Nominee relation":
+                        nominee?["relationship"]?.toString() ?? "—",
+                  },
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => context.go("/kyc/${kyc.userId}"),
+                    icon: const Icon(Icons.open_in_new_outlined),
+                    label: const Text("Open full KYC page"),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _KycInfoTable extends StatelessWidget {
+  const _KycInfoTable({required this.rows});
+
+  final Map<String, String> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Table(
+      columnWidths: const {0: FlexColumnWidth(1.2), 1: FlexColumnWidth(2)},
+      children: [
+        for (final e in rows.entries)
+          TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  e.key,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(e.value),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
