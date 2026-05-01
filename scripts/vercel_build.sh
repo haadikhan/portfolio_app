@@ -13,7 +13,7 @@
 #    ReCAPTCHA Enterprise: allow your *.vercel.app (and custom domain) in the key's domain settings.
 #
 # Optional env:
-#   FLUTTER_REF        — Flutter git ref to install (tag/branch/SHA). Default: stable tag 3.41.9.
+#   FLUTTER_REF        — stable Flutter semver (default 3.41.9). Used for official Linux SDK tarball.
 #   FLUTTER_REVISION   — legacy alias for FLUTTER_REF (kept for compatibility).
 
 set -euo pipefail
@@ -24,32 +24,99 @@ export CI=true
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Pin a stable Flutter ref so `flutter --version` is a real semver (not 0.0.0-unknown).
-# This avoids pub resolution failures for plugins with Flutter SDK constraints.
+# Pin a stable Flutter version so `flutter --version` is a real semver (not 0.0.0-unknown).
+# Shallow git clones often produce 0.0.0-unknown (no tag history for `git describe`), which
+# breaks pub for packages that require a minimum Flutter SDK (e.g. firebase_app_check).
 FLUTTER_REF="${FLUTTER_REF:-${FLUTTER_REVISION:-3.41.9}}"
 
 FLUTTER_DIR="$ROOT/flutter_sdk"
+FLUTTER_RELEASES_BASE="https://storage.googleapis.com/flutter_infra_release/releases"
 
-_needs_flutter_install() {
+_flutter_sdk_ok() {
   if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
-    return 0
+    return 1
   fi
-  local pinned
-  pinned="$(cat "$FLUTTER_DIR/.pinned_ref" 2>/dev/null || echo "")"
-  [[ "$pinned" != "$FLUTTER_REF" ]]
+  local want
+  want="$(cat "$FLUTTER_DIR/.pinned_requested" 2>/dev/null || echo "")"
+  if [[ "$want" != "$FLUTTER_REF" ]]; then
+    return 1
+  fi
+  local vl
+  vl="$("$FLUTTER_DIR/bin/flutter" --version 2>/dev/null | head -n 1 || echo "")"
+  if [[ -z "$vl" ]] || [[ "$vl" == *"0.0.0-unknown"* ]]; then
+    return 1
+  fi
+  return 0
 }
 
-if _needs_flutter_install; then
-  echo "[vercel_build] installing Flutter framework $FLUTTER_REF → $FLUTTER_DIR ..."
+_install_flutter_from_linux_tarball() {
+  local ver="$1"
+  local url="${FLUTTER_RELEASES_BASE}/stable/linux/flutter_linux_${ver}-stable.tar.xz"
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  rm -rf "$FLUTTER_DIR" "$(dirname "$FLUTTER_DIR")/flutter"
+  echo "[vercel_build] downloading Flutter $ver Linux SDK (official tarball)..."
+  if ! curl -fsSL "$url" -o "$tmpdir/flutter_sdk.tar.xz"; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  mkdir -p "$(dirname "$FLUTTER_DIR")"
+  if ! tar -xf "$tmpdir/flutter_sdk.tar.xz" -C "$(dirname "$FLUTTER_DIR")"; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  rm -rf "$tmpdir"
+  if [[ ! -x "$(dirname "$FLUTTER_DIR")/flutter/bin/flutter" ]]; then
+    echo "[vercel_build] tarball extraction did not yield flutter/bin/flutter"
+    rm -rf "$(dirname "$FLUTTER_DIR")/flutter"
+    return 1
+  fi
+  mv "$(dirname "$FLUTTER_DIR")/flutter" "$FLUTTER_DIR"
+  printf "%s\n" "${FLUTTER_REF}" > "$FLUTTER_DIR/.pinned_requested"
+  return 0
+}
+
+_install_flutter_from_git_tag() {
+  local ref="$1"
+  echo "[vercel_build] git clone Flutter ref $ref (fallback, depth 500) ..."
   rm -rf "$FLUTTER_DIR"
-  mkdir -p "$FLUTTER_DIR"
-  git init "$FLUTTER_DIR"
-  git -C "$FLUTTER_DIR" remote add origin https://github.com/flutter/flutter.git
-  # Try exact tag first (best for deterministic semantic versioning), then generic ref fallback.
-  git -C "$FLUTTER_DIR" fetch --depth 1 origin "refs/tags/$FLUTTER_REF" || \
-    git -C "$FLUTTER_DIR" fetch --depth 1 origin "$FLUTTER_REF"
-  git -C "$FLUTTER_DIR" checkout -f FETCH_HEAD
-  printf "%s\n" "$FLUTTER_REF" > "$FLUTTER_DIR/.pinned_ref"
+  if ! git clone https://github.com/flutter/flutter.git "$FLUTTER_DIR" \
+    --single-branch \
+    --branch "$ref" \
+    --depth 500; then
+    return 1
+  fi
+  printf "%s\n" "${FLUTTER_REF}" > "$FLUTTER_DIR/.pinned_requested"
+  return 0
+}
+
+if ! _flutter_sdk_ok; then
+  echo "[vercel_build] installing Flutter $FLUTTER_REF → $FLUTTER_DIR ..."
+  # Prefer official stable Linux tarball (includes correct version metadata for pub).
+  if [[ "$FLUTTER_REF" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if ! _install_flutter_from_linux_tarball "$FLUTTER_REF"; then
+      echo "[vercel_build] tarball install failed; trying git clone of tag $FLUTTER_REF."
+      if ! _install_flutter_from_git_tag "$FLUTTER_REF"; then
+        echo "[vercel_build] git tag clone failed; trying stable branch."
+        if ! _install_flutter_from_git_tag "stable"; then
+          echo "[vercel_build] could not install Flutter SDK."
+          exit 1
+        fi
+      fi
+    fi
+  else
+    echo "[vercel_build] FLUTTER_REF is not X.Y.Z; using git stable branch."
+    if ! _install_flutter_from_git_tag "stable"; then
+      echo "[vercel_build] could not install Flutter SDK."
+      exit 1
+    fi
+  fi
+fi
+
+if ! _flutter_sdk_ok; then
+  echo "[vercel_build] Flutter SDK still invalid after install."
+  "$FLUTTER_DIR/bin/flutter" --version 2>&1 || true
+  exit 1
 fi
 
 export PATH="$FLUTTER_DIR/bin:$PATH"
