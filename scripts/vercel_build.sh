@@ -17,6 +17,9 @@ set -euo pipefail
 # Vercel sets CI=1; Flutter only skips the root-user warning when CI is the string "true".
 export CI=true
 
+# Release web defaults use dart2js -O4, which often exhausts RAM on standard CI runners (e.g. 8GB).
+export DART_VM_OPTIONS="--old_gen_heap_size=6144 ${DART_VM_OPTIONS:-}"
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -49,15 +52,26 @@ if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
   DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
 fi
 
-# Headless CI (e.g. Vercel) can fail on the default wasm dry run; match stable local JS builds.
-EXTRA_WEB_FLAGS=(--no-wasm-dry-run)
+# Headless CI can fail wasm dry-run; omit it. Prefer -O3 over default -O4 to reduce dart2js memory.
+EXTRA_WEB_FLAGS=(--no-wasm-dry-run --optimization-level=3)
+
+BUILD_LOG=/tmp/portfolio_web_build.log
+rm -f "$BUILD_LOG"
 
 echo "[vercel_build] dart defines count: ${#DART_DEFINES[@]}"
+set +e
 if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
   echo "[vercel_build] flutter build web (no dart-defines)..."
-  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}"
+  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee "$BUILD_LOG"
 else
   echo "[vercel_build] flutter build web (with dart-defines)..."
-  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}"
+  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee "$BUILD_LOG"
+fi
+web_status="${PIPESTATUS[0]}"
+set -euo pipefail
+if [ "$web_status" -ne 0 ]; then
+  echo "[vercel_build] flutter build web failed (exit $web_status). Look for Target dart2js failed above; tail:"
+  tail -n 200 "$BUILD_LOG" || true
+  exit "$web_status"
 fi
 echo "[vercel_build] ok"
