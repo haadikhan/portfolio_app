@@ -13,7 +13,8 @@
 #    ReCAPTCHA Enterprise: allow your *.vercel.app (and custom domain) in the key's domain settings.
 #
 # Optional env:
-#   FLUTTER_REVISION   — git SHA of flutter/flutter framework (pins CI to your dev SDK).
+#   FLUTTER_REF        — Flutter git ref to install (tag/branch/SHA). Default: stable tag 3.41.9.
+#   FLUTTER_REVISION   — legacy alias for FLUTTER_REF (kept for compatibility).
 
 set -euo pipefail
 
@@ -23,8 +24,9 @@ export CI=true
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Pin framework revision so CI matches a known-good stable SDK (avoid surprise stable drift vs local dev).
-FLUTTER_REVISION="${FLUTTER_REVISION:-cc0734ac716fbb8b90f3f9db8020958b1553afa7}"
+# Pin a stable Flutter ref so `flutter --version` is a real semver (not 0.0.0-unknown).
+# This avoids pub resolution failures for plugins with Flutter SDK constraints.
+FLUTTER_REF="${FLUTTER_REF:-${FLUTTER_REVISION:-3.41.9}}"
 
 FLUTTER_DIR="$ROOT/flutter_sdk"
 
@@ -32,19 +34,22 @@ _needs_flutter_install() {
   if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
     return 0
   fi
-  local got
-  got="$(git -C "$FLUTTER_DIR" rev-parse HEAD 2>/dev/null || echo "")"
-  [[ "$got" != "$FLUTTER_REVISION" ]]
+  local pinned
+  pinned="$(cat "$FLUTTER_DIR/.pinned_ref" 2>/dev/null || echo "")"
+  [[ "$pinned" != "$FLUTTER_REF" ]]
 }
 
 if _needs_flutter_install; then
-  echo "[vercel_build] installing Flutter framework $FLUTTER_REVISION → $FLUTTER_DIR ..."
+  echo "[vercel_build] installing Flutter framework $FLUTTER_REF → $FLUTTER_DIR ..."
   rm -rf "$FLUTTER_DIR"
   mkdir -p "$FLUTTER_DIR"
   git init "$FLUTTER_DIR"
   git -C "$FLUTTER_DIR" remote add origin https://github.com/flutter/flutter.git
-  git -C "$FLUTTER_DIR" fetch --depth 1 origin "$FLUTTER_REVISION"
+  # Try exact tag first (best for deterministic semantic versioning), then generic ref fallback.
+  git -C "$FLUTTER_DIR" fetch --depth 1 origin "refs/tags/$FLUTTER_REF" || \
+    git -C "$FLUTTER_DIR" fetch --depth 1 origin "$FLUTTER_REF"
   git -C "$FLUTTER_DIR" checkout -f FETCH_HEAD
+  printf "%s\n" "$FLUTTER_REF" > "$FLUTTER_DIR/.pinned_ref"
 fi
 
 export PATH="$FLUTTER_DIR/bin:$PATH"
