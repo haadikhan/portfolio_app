@@ -2,14 +2,26 @@ import "package:flutter/material.dart";
 
 import "../i18n/app_translations.dart";
 
-/// Verbatim mandatory risk lines (section 12.1) — EN/Ur via [AppTranslations].
+/// Trust-forward onboarding note (EN/Ur via [AppTranslations]).
+///
+/// Paragraph keys: [mandatory_disclaimer_p1] … [mandatory_disclaimer_p6].
 class MandatoryRiskDisclaimerStrip extends StatelessWidget {
   const MandatoryRiskDisclaimerStrip({super.key});
+
+  static const _paragraphKeys = <String>[
+    "mandatory_disclaimer_p1",
+    "mandatory_disclaimer_p2",
+    "mandatory_disclaimer_p3",
+    "mandatory_disclaimer_p4",
+    "mandatory_disclaimer_p5",
+    "mandatory_disclaimer_p6",
+  ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurfaceVariant;
+    final onSurface = scheme.onSurface;
 
     return Card(
       elevation: 0,
@@ -24,81 +36,40 @@ class MandatoryRiskDisclaimerStrip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.gavel_rounded, size: 20, color: scheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mandatory_disclaimer_heading"),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurface,
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 22,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.tr("mandatory_disclaimer_subtitle_strip"),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: onSurface,
+                          height: 1.35,
+                        ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _Line(text: context.tr("mandatory_disclaimer_line_1"), muted: muted),
-            const SizedBox(height: 10),
-            _Line(text: context.tr("mandatory_disclaimer_line_2"), muted: muted),
-            const SizedBox(height: 10),
-            _Line(text: context.tr("mandatory_disclaimer_line_3"), muted: muted),
+            const SizedBox(height: 14),
+            for (var i = 0; i < _paragraphKeys.length; i++) ...[
+              Text(
+                context.tr(_paragraphKeys[i]),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      height: 1.55,
+                      color: muted,
+                    ),
+              ),
+              if (i < _paragraphKeys.length - 1) const SizedBox(height: 12),
+            ],
           ],
         ),
       ),
     );
-  }
-}
-
-class _Line extends StatelessWidget {
-  const _Line({required this.text, required this.muted});
-
-  final String text;
-  final Color muted;
-
-  @override
-  Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final lead = _leadSentence(text);
-    final rest = _rest(text);
-    return Text.rich(
-      TextSpan(
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          height: 1.4,
-          color: muted,
-        ),
-        children: [
-          TextSpan(
-            text: rest.isEmpty ? lead : "$lead ",
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: onSurface,
-            ),
-          ),
-          if (rest.isNotEmpty) TextSpan(text: rest),
-        ],
-      ),
-    );
-  }
-
-  /// First sentence shown bold (up to first Latin or Arabic full stop).
-  static String _leadSentence(String s) {
-    final i = _firstSentenceEnd(s);
-    if (i < 0) return s;
-    return s.substring(0, i + 1).trim();
-  }
-
-  static String _rest(String s) {
-    final i = _firstSentenceEnd(s);
-    if (i < 0 || i + 1 >= s.length) return "";
-    return s.substring(i + 1).trim();
-  }
-
-  static int _firstSentenceEnd(String s) {
-    const arabicStop = "\u06D4";
-    final dot = s.indexOf(".");
-    final ar = s.indexOf(arabicStop);
-    if (dot < 0) return ar;
-    if (ar < 0) return dot;
-    return dot < ar ? dot : ar;
   }
 }

@@ -102,25 +102,28 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
   bool _hideMoney = true;
 
   Future<void> _maybeShowOneTimeRiskDisclaimer() async {
-    if (await hasSeenRiskDisclaimer()) return;
+    if (await hasSeenRiskDisclaimerForUser(widget.profile.id)) return;
     if (!mounted) return;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.tr("mandatory_disclaimer_heading")),
-        content: const SingleChildScrollView(
-          child: MandatoryRiskDisclaimerStrip(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await markRiskDisclaimerSeen();
-              if (ctx.mounted) Navigator.of(ctx).pop();
-            },
-            child: Text(context.tr("continue_btn")),
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(context.tr("mandatory_disclaimer_heading")),
+          content: const SingleChildScrollView(
+            child: MandatoryRiskDisclaimerStrip(),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await markRiskDisclaimerSeenForUser(widget.profile.id);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: Text(context.tr("continue_btn")),
+            ),
+          ],
+        ),
       ),
     );
   }

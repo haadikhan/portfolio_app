@@ -1,7 +1,9 @@
+import "package:firebase_app_check/firebase_app_check.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/foundation.dart";
 
+import "../core/firebase/app_check_auth_errors.dart";
 import "device_fingerprint.dart";
 
 class AuthService {
@@ -65,12 +67,30 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    Future<UserCredential> attempt() => _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
     try {
-      return await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      return await attempt();
     } on FirebaseAuthException catch (e) {
+      if (kIsWeb &&
+          looksLikeFirebaseAuthAppCheckInvalid(
+            code: e.code,
+            messageOrFallback: e.message,
+          )) {
+        try {
+          await FirebaseAppCheck.instance.getToken(true);
+        } catch (_) {}
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        try {
+          return await attempt();
+        } on FirebaseAuthException {
+          rethrow;
+        }
+      }
+
       final shouldRetry = _isTransientAuthError(e);
       if (!shouldRetry) rethrow;
       if (kDebugMode) {
@@ -79,7 +99,7 @@ class AuthService {
         );
       }
       await Future<void>.delayed(const Duration(milliseconds: 700));
-      return _auth.signInWithEmailAndPassword(email: email, password: password);
+      return attempt();
     }
   }
 
@@ -167,6 +187,13 @@ class AuthService {
         lowerFallback.contains("connection reset");
     if (looksLikeTransientTransport) {
       return "Network connection was interrupted. Please try again.";
+    }
+
+    if (looksLikeFirebaseAuthAppCheckInvalid(
+      code: code,
+      messageOrFallback: normalizedFallback,
+    )) {
+      return firebaseAuthAppCheckBlockedUserMessage();
     }
 
     switch (code) {

@@ -1,6 +1,9 @@
+import "package:firebase_app_check/firebase_app_check.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../core/firebase/app_check_auth_errors.dart";
 import "../../providers/auth_providers.dart";
 import "../models/admin_investor_models.dart";
 import "../models/kyc_admin_models.dart";
@@ -85,10 +88,35 @@ class AdminAuthController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      late UserCredential cred;
+      try {
+        cred = await _auth.signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        );
+      } on FirebaseAuthException catch (e) {
+        if (kIsWeb && isFirebaseAuthAppCheckFailure(e)) {
+          try {
+            await FirebaseAppCheck.instance.getToken(true);
+          } catch (_) {}
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          try {
+            cred = await _auth.signInWithEmailAndPassword(
+              email: email.trim(),
+              password: password,
+            );
+          } on FirebaseAuthException catch (e2) {
+            if (isFirebaseAuthAppCheckFailure(e2)) {
+              throw Exception(firebaseAuthAppCheckBlockedUserMessage());
+            }
+            rethrow;
+          }
+        } else if (isFirebaseAuthAppCheckFailure(e)) {
+          throw Exception(firebaseAuthAppCheckBlockedUserMessage());
+        } else {
+          rethrow;
+        }
+      }
       await cred.user?.getIdToken(true);
       final uid = cred.user?.uid;
       if (uid == null) throw Exception("Sign-in failed.");

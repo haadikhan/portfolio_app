@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 # Admin web: flutter build web -t lib/admin_main.dart
 #
-# Post-deploy (manual):
-# - Vercel: import repo, set production branch (e.g. old_state), deploy.
-# - Firebase Console: Authentication > Settings > Authorized domains — add your *.vercel.app host.
+# Post-deploy (manual checklist):
+# 1) Vercel: connect repo; Git push deploys the branch set as Production / Preview.
+# 2) Firebase Auth: Authentication > Settings > Authorized domains — add:
+#    your-project.vercel.app, any custom domain used in production, and localhost for dev.
+# 3) Firebase App Check (web under enforcement): prefer reCAPTCHA — in Vercel project
+#    Settings > Environment Variables set (Production):
+#      FIREBASE_APP_CHECK_WEB_RECAPTCHA_SITE_KEY (optional; see below)
+#      FIREBASE_APP_CHECK_WEB_PROVIDER            (optional: enterprise | v3)
+#      FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN          (optional CI/staging only; not for public prod)
+#    ReCAPTCHA Enterprise: allow your *.vercel.app (and custom domain) in the key's domain settings.
+#
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -15,4 +23,16 @@ export PATH="$FLUTTER_DIR/bin:$PATH"
 
 flutter config --no-analytics
 flutter pub get
-flutter build web --release -t lib/admin_main.dart
+
+DART_DEFINES=()
+if [ -n "${FIREBASE_APP_CHECK_WEB_RECAPTCHA_SITE_KEY:-}" ]; then
+  DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_RECAPTCHA_SITE_KEY="${FIREBASE_APP_CHECK_WEB_RECAPTCHA_SITE_KEY}")
+fi
+if [ -n "${FIREBASE_APP_CHECK_WEB_PROVIDER:-}" ]; then
+  DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_PROVIDER="${FIREBASE_APP_CHECK_WEB_PROVIDER}")
+fi
+if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
+  DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
+fi
+
+flutter build web --release -t lib/admin_main.dart "${DART_DEFINES[@]}"

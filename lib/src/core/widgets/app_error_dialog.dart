@@ -1,14 +1,21 @@
 import "package:flutter/material.dart";
 
+import "../firebase/app_check_auth_errors.dart";
 import "../i18n/app_translations.dart";
 
 /// User-facing text for auth/async failures (matches [LoginScreen] / SnackBar behavior).
 String formatAppErrorMessage(BuildContext context, Object error) {
   final s = error.toString();
-  if (s.startsWith("Exception: ")) {
-    return s.substring("Exception: ".length);
+  final body = s.startsWith("Exception: ")
+      ? s.substring("Exception: ".length)
+      : s;
+  if (looksLikeFirebaseAuthAppCheckInvalid(
+        code: "",
+        messageOrFallback: body,
+      )) {
+    return firebaseAuthAppCheckBlockedUserMessage();
   }
-  return s;
+  return body;
 }
 
 /// Non-blocking error alert (e.g. after [AsyncValue] failure or thrown [Exception]).

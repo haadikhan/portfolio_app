@@ -316,13 +316,21 @@ const _en = <String, String>{
   "legal_summary_point_2":
       "Professional support for onboarding, verification, and updates.",
   "legal_summary_point_3": "Simple, transparent communication inside the app.",
-  "mandatory_disclaimer_heading": "Risk disclosure",
-  "mandatory_disclaimer_line_1":
-      "This is a private investment tracking platform. The system does not manage real funds or execute trades.",
-  "mandatory_disclaimer_line_2":
-      "Returns are not guaranteed. Profits are illustrative or admin-input based, not contractual.",
-  "mandatory_disclaimer_line_3":
-      "Past performance does not guarantee future results. Historical growth or monthly returns do not promise future returns.",
+  "mandatory_disclaimer_heading": "Welcome to a transparent partnership",
+  "mandatory_disclaimer_subtitle_strip":
+      "Clarity, steady stewardship, and open reporting—so you can follow your capital story with confidence.",
+  "mandatory_disclaimer_p1":
+      "We are glad you are here. This space is designed around a simple idea: when people can see how information flows, trust has room to grow. That is why we favor plain language, visible activity, and a calm rhythm of updates—so your relationship with the platform feels less like a mystery and more like an ongoing conversation about purpose, patience, and progress.",
+  "mandatory_disclaimer_p2":
+      "Think of this application as a window into a structured investment narrative—not a bank account, not a trading terminal, and not a place where money moves without context. The tools you see help you track, understand, and stay aligned with a professionally guided portfolio story. What you view here is meant to support informed decisions, not to replace your own judgment or outside advice you may choose to rely on.",
+  "mandatory_disclaimer_p3":
+      "Growth and profit are words we use with care. Markets breathe; opportunities stretch and compress; months differ. Any numbers, charts, or illustrations you encounter may reflect reporting choices, reference histories, or administrative inputs meant to improve transparency. They are there to paint a fair picture—not to promise a straight line upward, a fixed schedule of gains, or outcomes that repeat on demand.",
+  "mandatory_disclaimer_p4":
+      "We believe transparency works best when it travels with humility: diversification as a habit, monitoring as a discipline, and communication as a bridge. Your long-term story may include calm stretches and lively chapters alike. Our aim is to keep the narrative readable—so you always know where to look when you want context about performance, allocation thinking, and how the platform explains what you are seeing.",
+  "mandatory_disclaimer_p5":
+      "No technology platform can remove uncertainty from investing, and past results—however clearly shown—should never be read as a contract for tomorrow. Participation here does not resemble a insured deposit product; capital journey paths can widen or narrow based on factors far beyond any single dashboard. Continuity, clarity, and an honest depiction of possibilities matter more than any headline percentage.",
+  "mandatory_disclaimer_p6":
+      "By tapping Continue, you acknowledge that you have taken a moment with this welcoming overview, that you understand the platform presents information for transparency and education in support of aligned investing—not as individualized investment advice—and that your forward path remains yours to steward with patience, curiosity, and the professional or personal counsel you deem appropriate.",
   "drawer_transparency": "Transparency & trust",
   "transparency_hub_title": "Transparency",
   "transparency_tab_founder": "About",
@@ -1269,13 +1277,21 @@ const _ur = <String, String>{
       "پورٹ فولیو، والیٹ اور اکاؤنٹ سرگرمی کی واضح رپورٹنگ۔",
   "legal_summary_point_2": "آن بورڈنگ، ویریفکیشن اور اپڈیٹس کے لیے منظم سپورٹ۔",
   "legal_summary_point_3": "ایپ کے اندر سادہ اور شفاف کمیونیکیشن۔",
-  "mandatory_disclaimer_heading": "خطرے کی وضاحت",
-  "mandatory_disclaimer_line_1":
-      "یہ نجی سرمایہ کاری ٹریکنگ پلیٹ فارم ہے۔ یہ نظام حقیقی فنڈز منظم نہیں کرتا اور نہ ہی تجارت چلاتا ہے۔",
-  "mandatory_disclaimer_line_2":
-      "واپسیوں کی ضمانت نہیں۔ منافع مثالی یا منتظم کے اندراج پر مبنی ہو سکتے ہیں، معاہدہ نہیں۔",
-  "mandatory_disclaimer_line_3":
-      "ماضی کی کارکردگی مستقبل کے نتائج کی ضمانت نہیں۔ تاریخی ترقی یا ماہانہ واپسیاں مستقبل کا وعدہ نہیں۔",
+  "mandatory_disclaimer_heading": "شفاف شراکت میں خوش آمدید",
+  "mandatory_disclaimer_subtitle_strip":
+      "واضح رپورٹنگ، پائیدار نگرانی اور کھلا تسلسل—تاکہ آپ اپنے سرمایے کی کہانی پر اعتماد کے ساتھ نظر رکھ سکیں۔",
+  "mandatory_disclaimer_p1":
+      "ہم خوش ہیں کہ آپ یہاں ہیں۔ یہ جگہ ایک سادہ خیال پر کھولتی ہےکہ جب لوگ جانتے ہیںکہ معلومات کیسے آتی ہے اعتماد پھیلنے کی جگہ بنتی ہے۔ اسی لیے ہم سادہ الفاظ، دکھائی جانے والی سرگرمی، اور خاموش انداز میں اپ ڈیٹس کو ترجیح دیتے ہیںتاکہ پلیٹ فارم سے آپ کا تعلق اندھیرے کے بجائے مقصد صبر اور ترقی پر مبنی کھلے مکالمہ جیسا محسوس ہو۔",
+  "mandatory_disclaimer_p2":
+      "اس ایپ کو ایک منظم سرمایہ کاری بیانیے کی کھڑکی تصور کریں— نہ بینک کھاتہ نہ تجارتی ٹرمینل اور نہ ہی ایسی جگہ جہاں بغیر سیاق کا پیسہ چل رہا ہو۔ آپ جو آلہ دیکھتے ہیں وہ ٹریک سمجھنے اور پیشہ ورانہ رہنمائی والے پورٹ فولیو کی کہانی سے ہم آہنگ رہنے میں مدد دیتے ہیں۔ یہاں جو کچھ دکھائی دیتا ہے آگاہ فیصلوں کی حمایت کے لیے ہے نہ کہ آپ کے اپنے فیصلے یا باہر سے مشورے کی جگہ لینے کے لیے۔",
+  "mandatory_disclaimer_p3":
+      "ترقی اور منافع ایسے الفاظ ہیں جنہیں ہم احتیاط سے استعمال کرتے ہیں۔ منڈیاں سانس لیتی ہیں مواقع پھیلتے اور سمٹتے ہیں اور ماہ مختلف ہوتے ہیں۔ کوئی بھی اعداد نقش یا مثالیں رپورٹنگ کے انداز مرجع ماضی یا شفافیت میں امداد کے منتظم اندراجات کی عکاسی کر سکتی ہیں۔ وہ منصفانہ تصویر کھینچنے کے لیے ہیں نہیں کہ ہر حال میں سیدھی لائن مسلسل منافع یا طے شدہ شیڈول ضمانت دیں۔",
+  "mandatory_disclaimer_p4":
+      "ہمارا یقین ہے کہ شفافیت فروتن کے ساتھ بہتر ہے: تنوع عادت نگرانی نظام اور مواصلات پُل آپ کی طویل مدتی داستان میں پرسکون دور اور زندہ ابواب دون ہو سکتے ہیں۔ ہماری کوشش ہے کہ بیانیہ پڑھنے لائق رہے تا کہ جب آپ کارکردمت تقسیم کے خیال اور پلیٹ فارم کی وضاحت دیکھنا چاہیں تو آپ کو یہ معلوم ہو کہ کہاں دیکھنا ہے۔",
+  "mandatory_disclaimer_p5":
+      "کوئی ٹیکنالوجی پلیٹ فارم سرمایہ کاری سے غیر یقینی ختم نہیں کر سکتا اور ماضی کے نتیجے چاہے کتنے ہی واضح ہوں کل کے معاہدے نہیں۔ یہاں شرکت بیمہ شدہ ڈپازٹ جسی نہیں سرمایے کے سفر چوڑے یا تنگ ہو سکتے ہیں۔ ہمیں استمرار وضاحت اور امکانات کی ایمانداری سے پیشکش اہم لگتی ہے کسی ایک سرخی فیصد سے زیادہ۔",
+  "mandatory_disclaimer_p6":
+      "آگے بڑھنے پر ٹیپ کر کے آپ تسلیم کرتے ہیں کہ آپ نے اس خوش آمدیدی جائزے کا ایک لمحہ لیا ہے کہ آپ سمجھتے ہیں کہ پلیٹ فارم شفافیت اور تعلیم کے لیے معلومات پیش کرتا ہے ہم آہنگ سرمایہ کاری کی حمایت میں ذاتی سرمایہ کاری مشورے کی جگہ نہیں—اور آپ کا آگے کا راستہ صبر تجسس اور آپ کے مناسب سمجھے گئے پیشہ ورانہ یا ذاتی مشورے کے ساتھ آپ کی ذمہ داری ہے۔",
   "drawer_transparency": "شفافیت و اعتماد",
   "transparency_hub_title": "شفافیت",
   "transparency_tab_founder": "تعارف",
