@@ -12,6 +12,9 @@
 #      FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN          (optional CI/staging only; not for public prod)
 #    ReCAPTCHA Enterprise: allow your *.vercel.app (and custom domain) in the key's domain settings.
 #
+# Optional env:
+#   FLUTTER_REVISION   — git SHA of flutter/flutter framework (pins CI to your dev SDK).
+
 set -euo pipefail
 
 # Vercel sets CI=1; Flutter only skips the root-user warning when CI is the string "true".
@@ -20,14 +23,30 @@ export CI=true
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Keep SDK under the project so Vercel's deployment build cache can reuse it.
-# Do not `rm -rf` each run — that forces a full Dart download + flutter_tools bootstrap every deploy.
+# Pin framework revision so CI matches a known-good stable SDK (avoid surprise stable drift vs local dev).
+FLUTTER_REVISION="${FLUTTER_REVISION:-cc0734ac716fbb8b90f3f9db8020958b1553afa7}"
+
 FLUTTER_DIR="$ROOT/flutter_sdk"
-if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
-  echo "[vercel_build] cloning Flutter into $FLUTTER_DIR (stable, shallow)..."
+
+_needs_flutter_install() {
+  if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
+    return 0
+  fi
+  local got
+  got="$(git -C "$FLUTTER_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+  [[ "$got" != "$FLUTTER_REVISION" ]]
+}
+
+if _needs_flutter_install; then
+  echo "[vercel_build] installing Flutter framework $FLUTTER_REVISION → $FLUTTER_DIR ..."
   rm -rf "$FLUTTER_DIR"
-  git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$FLUTTER_DIR"
+  mkdir -p "$FLUTTER_DIR"
+  git init "$FLUTTER_DIR"
+  git -C "$FLUTTER_DIR" remote add origin https://github.com/flutter/flutter.git
+  git -C "$FLUTTER_DIR" fetch --depth 1 origin "$FLUTTER_REVISION"
+  git -C "$FLUTTER_DIR" checkout -f FETCH_HEAD
 fi
+
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
 echo "[vercel_build] flutter --version:"
@@ -35,6 +54,10 @@ flutter --version
 
 echo "[vercel_build] flutter config..."
 flutter config --no-analytics
+
+echo "[vercel_build] flutter clean..."
+flutter clean
+
 echo "[vercel_build] flutter pub get..."
 flutter pub get
 
@@ -49,37 +72,66 @@ if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
   DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
 fi
 
-# Headless CI: no wasm dry-run. On 8GB / 2 vCPU builders, default release (-O4) + icon shaking
-# often fails or gets OOM-killed; these flags trim peak RAM and compiler work.
+# 8 GB / 2 vCPU builders: dart2js release defaults are heavy. Trim RAM + compiler work.
+# --no-tree-shake-icons: skip icon subsetting pass (loads full Material Icons).
+# --no-source-maps: smaller / faster dart2js, less peak memory.
 EXTRA_WEB_FLAGS=(
   --no-wasm-dry-run
-  --optimization-level=2
+  --optimization-level=1
   --no-tree-shake-icons
   --no-frequency-based-minification
+  --no-source-maps
 )
 
 BUILD_LOG=/tmp/portfolio_web_build.log
 rm -f "$BUILD_LOG"
 
-echo "[vercel_build] dart defines count: ${#DART_DEFINES[@]}"
-set +e
-if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
-  echo "[vercel_build] flutter build web (no dart-defines)..."
-  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee "$BUILD_LOG"
-else
-  echo "[vercel_build] flutter build web (with dart-defines)..."
-  flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee "$BUILD_LOG"
+run_web_release() {
+  echo "[vercel_build] dart defines count: ${#DART_DEFINES[@]}"
+  set +eo pipefail
+  if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
+    echo "[vercel_build] flutter build web --release (no dart-defines)..."
+    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee -a "$BUILD_LOG"
+  else
+    echo "[vercel_build] flutter build web --release (with dart-defines)..."
+    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
+  fi
+  web_status_release="${PIPESTATUS[0]:-1}"
+  set -euo pipefail
+}
+
+run_web_profile() {
+  echo "[vercel_build] release failed → trying flutter build web --profile (lighter compile, larger JS)."
+  set +eo pipefail
+  if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
+    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee -a "$BUILD_LOG"
+  else
+    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
+  fi
+  web_status_profile="${PIPESTATUS[0]:-1}"
+  set -euo pipefail
+}
+
+web_status_release=1
+run_web_release
+web_status="$web_status_release"
+
+if [ "$web_status" -ne 0 ]; then
+  web_status_profile=1
+  run_web_profile
+  web_status="$web_status_profile"
 fi
-web_status="${PIPESTATUS[0]}"
-set -euo pipefail
+
 if [ "$web_status" -ne 0 ]; then
   echo "[vercel_build] flutter build web failed (exit $web_status)."
-  echo "[vercel_build] grep (dart2js / Target failed / errors):"
+  echo "[vercel_build] grep (hints):"
   grep -a -E \
-    'Target .+ failed:|dart2js:|Error:|error: |Unhandled exception|Out of Memory|Killed process' \
-    "$BUILD_LOG" | tail -n 60 || true
+    'Target .+ failed:|dart compile js|dart2js|'\
+'Error:|error: |EXCEPTION|Exception|Unhandled|Unhandled exception|Unsupported operation|OOM|Out of Memory|SIGKILL|Killed process|'\
+'Broken pipe|E/warning: |fatal error' \
+    "$BUILD_LOG" | tail -n 120 || true
   echo "[vercel_build] tail log:"
-  tail -n 250 "$BUILD_LOG" || true
+  tail -n 300 "$BUILD_LOG" || true
   exit "$web_status"
 fi
 echo "[vercel_build] ok"
