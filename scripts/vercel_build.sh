@@ -13,17 +13,25 @@
 #    ReCAPTCHA Enterprise: allow your *.vercel.app (and custom domain) in the key's domain settings.
 #
 set -euo pipefail
+
+# Vercel sets CI=1; Flutter only skips the root-user warning when CI is the string "true".
+export CI=true
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Keep SDK under the project so Vercel's deployment build cache can reuse it.
+# Do not `rm -rf` each run — that forces a full Dart download + flutter_tools bootstrap every deploy.
 FLUTTER_DIR="$ROOT/flutter_sdk"
-rm -rf "$FLUTTER_DIR"
-echo "[vercel_build] cloning Flutter (stable, shallow)..."
-git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$FLUTTER_DIR"
+if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
+  echo "[vercel_build] cloning Flutter into $FLUTTER_DIR (stable, shallow)..."
+  rm -rf "$FLUTTER_DIR"
+  git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$FLUTTER_DIR"
+fi
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
 echo "[vercel_build] flutter --version:"
-flutter --version || true
+flutter --version
 
 echo "[vercel_build] flutter config..."
 flutter config --no-analytics
