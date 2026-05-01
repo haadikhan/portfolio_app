@@ -17,9 +17,6 @@ set -euo pipefail
 # Vercel sets CI=1; Flutter only skips the root-user warning when CI is the string "true".
 export CI=true
 
-# Release web defaults use dart2js -O4, which often exhausts RAM on standard CI runners (e.g. 8GB).
-export DART_VM_OPTIONS="--old_gen_heap_size=6144 ${DART_VM_OPTIONS:-}"
-
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -52,8 +49,14 @@ if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
   DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
 fi
 
-# Headless CI can fail wasm dry-run; omit it. Prefer -O3 over default -O4 to reduce dart2js memory.
-EXTRA_WEB_FLAGS=(--no-wasm-dry-run --optimization-level=3)
+# Headless CI: no wasm dry-run. On 8GB / 2 vCPU builders, default release (-O4) + icon shaking
+# often fails or gets OOM-killed; these flags trim peak RAM and compiler work.
+EXTRA_WEB_FLAGS=(
+  --no-wasm-dry-run
+  --optimization-level=2
+  --no-tree-shake-icons
+  --no-frequency-based-minification
+)
 
 BUILD_LOG=/tmp/portfolio_web_build.log
 rm -f "$BUILD_LOG"
@@ -70,8 +73,13 @@ fi
 web_status="${PIPESTATUS[0]}"
 set -euo pipefail
 if [ "$web_status" -ne 0 ]; then
-  echo "[vercel_build] flutter build web failed (exit $web_status). Look for Target dart2js failed above; tail:"
-  tail -n 200 "$BUILD_LOG" || true
+  echo "[vercel_build] flutter build web failed (exit $web_status)."
+  echo "[vercel_build] grep (dart2js / Target failed / errors):"
+  grep -a -E \
+    'Target .+ failed:|dart2js:|Error:|error: |Unhandled exception|Out of Memory|Killed process' \
+    "$BUILD_LOG" | tail -n 60 || true
+  echo "[vercel_build] tail log:"
+  tail -n 250 "$BUILD_LOG" || true
   exit "$web_status"
 fi
 echo "[vercel_build] ok"
