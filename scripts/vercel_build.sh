@@ -18,10 +18,16 @@ cd "$ROOT"
 
 FLUTTER_DIR="$ROOT/flutter_sdk"
 rm -rf "$FLUTTER_DIR"
+echo "[vercel_build] cloning Flutter (stable, shallow)..."
 git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$FLUTTER_DIR"
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
+echo "[vercel_build] flutter --version:"
+flutter --version || true
+
+echo "[vercel_build] flutter config..."
 flutter config --no-analytics
+echo "[vercel_build] flutter pub get..."
 flutter pub get
 
 DART_DEFINES=()
@@ -38,8 +44,12 @@ fi
 # Headless CI (e.g. Vercel) can fail on the default wasm dry run; match stable local JS builds.
 EXTRA_WEB_FLAGS=(--no-wasm-dry-run)
 
+echo "[vercel_build] dart defines count: ${#DART_DEFINES[@]}"
 if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
+  echo "[vercel_build] flutter build web (no dart-defines)..."
   flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}"
 else
+  echo "[vercel_build] flutter build web (with dart-defines)..."
   flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}"
 fi
+echo "[vercel_build] ok"
