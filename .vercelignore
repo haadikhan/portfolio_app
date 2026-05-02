@@ -16,6 +16,6 @@ build/
 # Local pub cache (avoids Vercel free-tier file upload limits)
 .pub-cache/
 
-# Not used by Flutter web build on Vercel
-firebase/
+# Firebase CLI / Emulator project dir at repo root only (NOT lib/src/core/firebase/)
+/firebase/
 
