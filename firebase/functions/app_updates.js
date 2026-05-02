@@ -22,10 +22,92 @@ async function assertAdmin(uid) {
   }
 }
 
+/**
+ * Matches Flutter client default bucket (`firebase_options` / Firebase Console).
+ * Bare `bucket()` often resolves to `project.appspot.com` while uploads use
+ * `project.firebasestorage.app`, so downloads 404 unless the bucket id matches.
+ */
+function resolveDefaultStorageBucketName() {
+  const explicit =
+    typeof process.env.STORAGE_BUCKET === "string"
+      ? process.env.STORAGE_BUCKET.trim()
+      : "";
+  if (explicit) return explicit;
+
+  try {
+    const cfg = JSON.parse(process.env.FIREBASE_CONFIG || "{}");
+    const fromCfg =
+      cfg.storageBucket && String(cfg.storageBucket).trim()
+        ? String(cfg.storageBucket).trim()
+        : "";
+    if (fromCfg) return fromCfg;
+  } catch (_) {
+    // FIREBASE_CONFIG may be unset locally.
+  }
+
+  const opt = admin.app()?.options?.storageBucket;
+  const fromOpts = typeof opt === "string" ? opt.trim() : "";
+  if (fromOpts) return fromOpts;
+
+  const projectId =
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT ||
+    parseFirebaseConfigSafe().projectId;
+  if (projectId) return `${projectId}.appspot.com`;
+
+  throw new Error(
+    "resolveDefaultStorageBucketName: missing STORAGE_BUCKET/FIREBASE_CONFIG storageBucket/GCLOUD_PROJECT",
+  );
+}
+
+function parseFirebaseConfigSafe() {
+  try {
+    return JSON.parse(process.env.FIREBASE_CONFIG || "{}");
+  } catch (_) {
+    return {};
+  }
+}
+
 function normalizeVersionCode(raw) {
   if (raw == null) return 0;
+  if (typeof raw === "bigint") {
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 && n <= Number.MAX_SAFE_INTEGER
+      ? Math.floor(n)
+      : 0;
+  }
   const parsed = Number.parseInt(String(raw), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function looksLikeTransientInfraFailure(error) {
+  const blob = `${error && error.code} ${error && error.message} ${String(error)}`;
+  return /ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|ECONNREFUSED|GaxiosError/i.test(
+    blob,
+  );
+}
+
+/** @returns {HttpsError | null} */
+function storageFailureToHttpsError(error) {
+  const message =
+    error && typeof error.message === "string"
+      ? error.message
+      : String(error ?? "");
+  const code = error && error.code;
+
+  if (code === 404 || /No such object|not found\b|404\b/i.test(message)) {
+    return new HttpsError(
+      "not-found",
+      "Uploaded APK was not found in Storage. Try uploading again.",
+    );
+  }
+  if (code === 403 || code === "403" || /\b403\b|access denied/i.test(message)) {
+    return new HttpsError(
+      "permission-denied",
+      "Storage refused access when reading the uploaded APK.",
+    );
+  }
+  return null;
 }
 
 exports.parseInvestorApkMetadata = onCall(
@@ -57,7 +139,20 @@ exports.parseInvestorApkMetadata = onCall(
     );
 
     try {
-      const bucket = storage().bucket();
+      let bucketName;
+      try {
+        bucketName = resolveDefaultStorageBucketName();
+      } catch (e) {
+        logger.error("parseInvestorApkMetadata_bucket_resolve", {
+          storagePath,
+          error: String(e),
+        });
+        throw new HttpsError(
+          "failed-precondition",
+          "Cloud Storage bucket is not configured correctly for APK parsing.",
+        );
+      }
+      const bucket = storage().bucket(bucketName);
       await bucket.file(storagePath).download({ destination: tmpPath });
 
       const reader = await ApkReader.open(tmpPath);
@@ -86,9 +181,19 @@ exports.parseInvestorApkMetadata = onCall(
       if (error instanceof HttpsError) {
         throw error;
       }
+      if (looksLikeTransientInfraFailure(error)) {
+        throw new HttpsError(
+          "unavailable",
+          "Could not reach Storage to finish parsing. Retry in a moment.",
+        );
+      }
+      const storageErr = storageFailureToHttpsError(error);
+      if (storageErr) {
+        throw storageErr;
+      }
       throw new HttpsError(
-        "internal",
-        "Failed to parse APK metadata from uploaded file.",
+        "failed-precondition",
+        "Could not read package/version metadata from this APK file.",
       );
     } finally {
       try {
