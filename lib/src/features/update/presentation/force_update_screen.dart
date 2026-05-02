@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../data/app_update_providers.dart";
@@ -32,6 +33,36 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
       if (mounted) {
         setState(() => _busy = false);
       }
+    }
+  }
+
+  Future<void> _acknowledgeAndMaybeExit(AppReleaseInfo release) async {
+    if (release.releaseGeneration <= 0) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(releaseAcknowledgedGenerationNotifierProvider.notifier)
+          .acknowledgeUpTo(release.releaseGeneration);
+      if (!mounted) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        final nextGate = ref.read(appUpdateGateProvider);
+        nextGate.whenData((g) {
+          if (!g.isBlocked && context.mounted) {
+            GoRouter.of(context).go("/");
+          }
+        });
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = context.tr("update_failed_retry"));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -87,7 +118,8 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -98,6 +130,14 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
                   icon: const Icon(Icons.download_rounded),
                   label: Text(context.tr("update_now")),
                 ),
+                const SizedBox(height: 12),
+                if (release != null && release.releaseGeneration > 0)
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () => _acknowledgeAndMaybeExit(release),
+                    child: Text(context.tr("update_continue_after_install")),
+                  ),
               ],
             ),
           ),

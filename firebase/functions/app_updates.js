@@ -12,15 +12,23 @@ function escapeRegexLit(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Must match Flutter web bucket in `lib/firebase_options.dart` (DefaultFirebaseOptions.web).
+ */
+const FIREBASE_WEB_STORAGE_BUCKET_ID = "portfolio-e97b1.firebasestorage.app";
+
 /** Origins permitted to call Firebase callable HTTPS from Flutter web / browsers. */
 function callableCorsAllowlist(projectId) {
   const pid = escapeRegexLit(projectId.trim() || "portfolio-e97b1");
   return [
+    // http://localhost and http://localhost:<port>
     /^http:\/\/localhost(?::\d+)?$/i,
     /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
-    new RegExp(`^https:\\/\\/([\\w.-]+\\.)*${pid}\\.web\\.app$`, "i"),
-    new RegExp(`^https:\\/\\/([\\w.-]+\\.)*${pid}\\.firebaseapp\\.com$`, "i"),
-    /^https:\/\/([\w.-]+\.)*vercel\.app$/i,
+    /^https:\/\/.*\.vercel\.app$/i,
+    "https://portfolio-e97b1.web.app",
+    "https://portfolio-e97b1.firebaseapp.com",
+    new RegExp(`^https:\\/\\/.*\\.${pid}\\.web\\.app$`, "i"),
+    new RegExp(`^https:\\/\\/.*\\.${pid}\\.firebaseapp\\.com$`, "i"),
   ];
 }
 
@@ -41,9 +49,8 @@ async function assertAdmin(uid) {
 }
 
 /**
- * Matches Flutter client default bucket (`firebase_options` / Firebase Console).
- * Bare `bucket()` often resolves to `project.appspot.com` while uploads use
- * `project.firebasestorage.app`, so downloads 404 unless the bucket id matches.
+ * Same bucket ID as Flutter web (`firebase_options` → storageBucket).
+ * Override with env STORAGE_BUCKET for non-default environments only.
  */
 function resolveDefaultStorageBucketName() {
   const explicit =
@@ -51,31 +58,7 @@ function resolveDefaultStorageBucketName() {
       ? process.env.STORAGE_BUCKET.trim()
       : "";
   if (explicit) return explicit;
-
-  try {
-    const cfg = JSON.parse(process.env.FIREBASE_CONFIG || "{}");
-    const fromCfg =
-      cfg.storageBucket && String(cfg.storageBucket).trim()
-        ? String(cfg.storageBucket).trim()
-        : "";
-    if (fromCfg) return fromCfg;
-  } catch (_) {
-    // FIREBASE_CONFIG may be unset locally.
-  }
-
-  const opt = admin.app()?.options?.storageBucket;
-  const fromOpts = typeof opt === "string" ? opt.trim() : "";
-  if (fromOpts) return fromOpts;
-
-  const projectId =
-    process.env.GCLOUD_PROJECT ||
-    process.env.GCP_PROJECT ||
-    parseFirebaseConfigSafe().projectId;
-  if (projectId) return `${projectId}.appspot.com`;
-
-  throw new Error(
-    "resolveDefaultStorageBucketName: missing STORAGE_BUCKET/FIREBASE_CONFIG storageBucket/GCLOUD_PROJECT",
-  );
+  return FIREBASE_WEB_STORAGE_BUCKET_ID;
 }
 
 function parseFirebaseConfigSafe() {
@@ -165,19 +148,7 @@ exports.parseInvestorApkMetadata = onCall(
 
     try {
       const ApkReader = require("adbkit-apkreader");
-      let bucketName;
-      try {
-        bucketName = resolveDefaultStorageBucketName();
-      } catch (e) {
-        logger.error("parseInvestorApkMetadata_bucket_resolve", {
-          storagePath,
-          error: String(e),
-        });
-        throw new HttpsError(
-          "failed-precondition",
-          "Cloud Storage bucket is not configured correctly for APK parsing.",
-        );
-      }
+      const bucketName = resolveDefaultStorageBucketName();
       const bucket = storage().bucket(bucketName);
       await bucket.file(storagePath).download({ destination: tmpPath });
 
@@ -201,8 +172,9 @@ exports.parseInvestorApkMetadata = onCall(
       };
     } catch (error) {
       logger.error("parseInvestorApkMetadata_failed", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         storagePath,
-        error: String(error),
       });
       if (error instanceof HttpsError) {
         throw error;

@@ -187,7 +187,10 @@ const _en = <String, String>{
   "admin_updates_retry_upload": "Retry upload",
   "admin_updates_upload_failed_detail": "Upload failed: {detail}",
   "admin_updates_required_after_days": "Force update after days",
-  "admin_updates_grace_days_invalid": "Grace days must be between 1 and 365.",
+  "admin_updates_required_after_days_helper":
+      "Days before usage is blocked. Use 0 to block investors immediately until they download the new APK (after acknowledging install). Otherwise use 1–365 for a grace banner first.",
+  "admin_updates_grace_days_invalid":
+      "Must be between 0 (immediate block) and 365.",
   "admin_updates_parsed_heading": "Detected APK metadata",
   "admin_updates_parsed_package": "Package: {package}",
   "admin_updates_parsed_version": "APK version: {name} ({code})",
@@ -202,6 +205,8 @@ const _en = <String, String>{
   "admin_updates_publish_cancelled": "Publish cancelled.",
   "admin_updates_current_release":
       "Current release: {name} ({code}) • Active: {active}",
+  "admin_updates_current_release_gen":
+      "Current release #{gen}: {name} ({code}) • Active: {active}",
   "admin_investor_delete_title": "Delete investor account",
   "admin_investor_delete_action": "Delete investor",
   "admin_investor_delete_confirm_body":
@@ -223,6 +228,8 @@ const _en = <String, String>{
   "install_update": "Installer opened. Complete update to continue.",
   "update_failed_retry": "Update failed. Please try again.",
   "update_version_info": "Installed: {installed} • Required: {required}",
+  "update_continue_after_install":
+      "I finished installing — continue",
   "live_profit_title": "Live projected profit",
   "live_profit_projected_value": "Projected live value",
   "live_profit_projected_profit": "Projected profit",
@@ -1148,7 +1155,10 @@ const _ur = <String, String>{
   "admin_updates_retry_upload": "اپ لوڈ دوبارہ کریں",
   "admin_updates_upload_failed_detail": "اپ لوڈ ناکام: {detail}",
   "admin_updates_required_after_days": "لازمی اپڈیٹ دن",
-  "admin_updates_grace_days_invalid": "گریس دن 1 سے 365 کے درمیان ہونے چاہییں۔",
+  "admin_updates_required_after_days_helper":
+      "انسٹال کے بعد بلاک سے پہلے والے دن۔ 0 دن = فوری بلاک جب تک وہ نئے APK کو ڈاؤن لوڈ نہیں کرتے۔ ورنہ پہلے بینر کے لیے 1–365۔",
+  "admin_updates_grace_days_invalid":
+      "0 (فوری بلاک) سے 365 کے درمیان ہونا ضروری ہے۔",
   "admin_updates_parsed_heading": "APK میٹاڈیٹا",
   "admin_updates_parsed_package": "پیکیج: {package}",
   "admin_updates_parsed_version": "APK ورژن: {name} ({code})",
@@ -1163,6 +1173,8 @@ const _ur = <String, String>{
   "admin_updates_publish_cancelled": "شائع کرنا منسوخ کر دیا گیا۔",
   "admin_updates_current_release":
       "موجودہ ریلیز: {name} ({code}) • فعال: {active}",
+  "admin_updates_current_release_gen":
+      "موجودہ ریلیز #{gen}: {name} ({code}) • فعال: {active}",
   "admin_investor_delete_title": "سرمایہ کار اکاؤنٹ حذف کریں",
   "admin_investor_delete_action": "سرمایہ کار حذف کریں",
   "admin_investor_delete_confirm_body":
@@ -1184,6 +1196,8 @@ const _ur = <String, String>{
   "install_update": "انسٹالر کھل گیا ہے۔ جاری رکھنے کے لیے اپڈیٹ مکمل کریں۔",
   "update_failed_retry": "اپڈیٹ ناکام ہوئی۔ دوبارہ کوشش کریں۔",
   "update_version_info": "موجودہ: {installed} • مطلوبہ: {required}",
+  "update_continue_after_install":
+      "میں نے انسٹال مکمل کر دیا — آگے",
   "live_profit_title": "لائیو متوقع منافع",
   "live_profit_projected_value": "متوقع لائیو ویلیو",
   "live_profit_projected_profit": "متوقع منافع",

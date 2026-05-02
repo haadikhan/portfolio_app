@@ -3,8 +3,34 @@ import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:package_info_plus/package_info_plus.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 import "../../../providers/auth_providers.dart";
+
+/// SharedPreferences key: last acknowledged publish generation from Firestore.
+const kAppReleaseAckGenerationKey = "app_release_ack_generation";
+
+final releaseAcknowledgedGenerationNotifierProvider =
+    AsyncNotifierProvider<ReleaseAcknowledgedGenerationNotifier, int>(
+  ReleaseAcknowledgedGenerationNotifier.new,
+);
+
+class ReleaseAcknowledgedGenerationNotifier extends AsyncNotifier<int> {
+  @override
+  Future<int> build() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt(kAppReleaseAckGenerationKey) ?? 0;
+  }
+
+  Future<void> acknowledgeUpTo(int generation) async {
+    if (generation <= 0) return;
+    final p = await SharedPreferences.getInstance();
+    final prev = p.getInt(kAppReleaseAckGenerationKey) ?? 0;
+    if (generation <= prev) return;
+    await p.setInt(kAppReleaseAckGenerationKey, generation);
+    state = AsyncData(generation);
+  }
+}
 
 class AppReleaseInfo {
   const AppReleaseInfo({
@@ -15,6 +41,7 @@ class AppReleaseInfo {
     required this.title,
     required this.message,
     required this.isActive,
+    this.releaseGeneration = 0,
     this.packageId,
     this.releaseRef,
     this.apkStoragePath,
@@ -23,11 +50,17 @@ class AppReleaseInfo {
 
   final String versionName;
   final int versionCode;
+
+  /// 0 = immediate block when outstanding; otherwise grace days after publish.
   final int requiredAfterDays;
   final DateTime? publishedAt;
   final String title;
   final String message;
   final bool isActive;
+
+  /// >0 once admin published with newer flow (`FieldValue.increment` on write).
+  /// When absent in Firestore, gate falls back to versionCode compares (legacy docs).
+  final int releaseGeneration;
   final String? packageId;
   final String? releaseRef;
   final String? apkStoragePath;
@@ -40,6 +73,7 @@ class AppReleaseInfo {
       versionName: (map["versionName"] ?? "").toString(),
       versionCode: (map["versionCode"] as num?)?.toInt() ?? 0,
       requiredAfterDays: (map["requiredAfterDays"] as num?)?.toInt() ?? 7,
+      releaseGeneration: (map["releaseGeneration"] as num?)?.toInt() ?? 0,
       publishedAt: date,
       title: (map["title"] ?? "").toString(),
       message: (map["message"] ?? "").toString(),
@@ -70,6 +104,101 @@ class AppUpdateGateState {
   final int daysLeft;
 
   bool get showGraceBanner => isOutdated && !isBlocked;
+}
+
+AppUpdateGateState _legacyVersionGate({
+  required int installedCode,
+  required String installedName,
+  required AppReleaseInfo release,
+}) {
+  final isOutdated = installedCode < release.versionCode;
+  final publishedAt = release.publishedAt;
+  final graceLegacy = release.requiredAfterDays <= 0
+      ? 7
+      : release.requiredAfterDays.clamp(1, 365);
+  if (!isOutdated || publishedAt == null) {
+    return AppUpdateGateState(
+      installedVersionCode: installedCode,
+      installedVersionName: installedName,
+      release: release,
+      isOutdated: isOutdated,
+      isBlocked: false,
+      daysLeft: isOutdated ? graceLegacy : 0,
+    );
+  }
+  final deadline = publishedAt.add(Duration(days: graceLegacy));
+  final now = DateTime.now();
+  final remaining = deadline.difference(now);
+  final rawDays = (remaining.inHours / 24).ceil();
+  final daysLeft = rawDays.clamp(0, graceLegacy);
+  final isBlocked = now.isAfter(deadline);
+  return AppUpdateGateState(
+    installedVersionCode: installedCode,
+    installedVersionName: installedName,
+    release: release,
+    isOutdated: isOutdated,
+    isBlocked: isBlocked,
+    daysLeft: daysLeft,
+  );
+}
+
+AppUpdateGateState _generationGate({
+  required int installedCode,
+  required String installedName,
+  required AppReleaseInfo release,
+  required int acknowledgedGeneration,
+}) {
+  final outstanding = release.releaseGeneration > acknowledgedGeneration;
+  final forceDays = release.requiredAfterDays.clamp(0, 365);
+  final publishedAt = release.publishedAt;
+  final now = DateTime.now();
+
+  if (!outstanding) {
+    return AppUpdateGateState(
+      installedVersionCode: installedCode,
+      installedVersionName: installedName,
+      release: release,
+      isOutdated: false,
+      isBlocked: false,
+      daysLeft: 0,
+    );
+  }
+
+  if (forceDays == 0) {
+    return AppUpdateGateState(
+      installedVersionCode: installedCode,
+      installedVersionName: installedName,
+      release: release,
+      isOutdated: true,
+      isBlocked: true,
+      daysLeft: 0,
+    );
+  }
+
+  if (publishedAt == null) {
+    return AppUpdateGateState(
+      installedVersionCode: installedCode,
+      installedVersionName: installedName,
+      release: release,
+      isOutdated: true,
+      isBlocked: false,
+      daysLeft: forceDays,
+    );
+  }
+
+  final deadline = publishedAt.add(Duration(days: forceDays));
+  final remaining = deadline.difference(now);
+  final rawDays = (remaining.inHours / 24).ceil();
+  final daysLeft = rawDays.clamp(0, forceDays);
+  final isBlocked = now.isAfter(deadline);
+  return AppUpdateGateState(
+    installedVersionCode: installedCode,
+    installedVersionName: installedName,
+    release: release,
+    isOutdated: true,
+    isBlocked: isBlocked,
+    daysLeft: daysLeft,
+  );
 }
 
 final appReleaseStreamProvider = StreamProvider<AppReleaseInfo?>((ref) {
@@ -108,6 +237,8 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
 
   final appVersionAsync = ref.watch(installedAppVersionProvider);
   final releaseAsync = ref.watch(appReleaseStreamProvider);
+  final ackAsync = ref.watch(releaseAcknowledgedGenerationNotifierProvider);
+
   if (appVersionAsync.hasError) {
     return AsyncError(
       appVersionAsync.error!,
@@ -120,7 +251,15 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
       releaseAsync.stackTrace ?? StackTrace.current,
     );
   }
-  if (appVersionAsync.isLoading || releaseAsync.isLoading) {
+  if (ackAsync.hasError) {
+    return AsyncError(
+      ackAsync.error!,
+      ackAsync.stackTrace ?? StackTrace.current,
+    );
+  }
+  if (appVersionAsync.isLoading ||
+      releaseAsync.isLoading ||
+      ackAsync.isLoading) {
     return const AsyncLoading();
   }
 
@@ -128,6 +267,8 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
   final release = releaseAsync.valueOrNull;
   final installedCode = appVersion.$1;
   final installedName = appVersion.$2;
+  final ack = ackAsync.value ?? 0;
+
   if (release == null || release.versionCode <= 0) {
     return AsyncData(
       AppUpdateGateState(
@@ -141,36 +282,22 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
     );
   }
 
-  final isOutdated = installedCode < release.versionCode;
-  final publishedAt = release.publishedAt;
-  if (!isOutdated || publishedAt == null) {
+  if (release.releaseGeneration <= 0) {
     return AsyncData(
-      AppUpdateGateState(
-        installedVersionCode: installedCode,
-        installedVersionName: installedName,
+      _legacyVersionGate(
+        installedCode: installedCode,
+        installedName: installedName,
         release: release,
-        isOutdated: isOutdated,
-        isBlocked: false,
-        daysLeft: isOutdated ? release.requiredAfterDays.clamp(1, 365) : 0,
       ),
     );
   }
-  final graceDays = release.requiredAfterDays.clamp(1, 365);
-  final deadline = publishedAt.add(Duration(days: graceDays));
-  final now = DateTime.now();
-  final remaining = deadline.difference(now);
-  final rawDays = (remaining.inHours / 24).ceil();
-  final daysLeft = rawDays.clamp(0, graceDays);
-  final isBlocked = now.isAfter(deadline);
 
   return AsyncData(
-    AppUpdateGateState(
-      installedVersionCode: installedCode,
-      installedVersionName: installedName,
+    _generationGate(
+      installedCode: installedCode,
+      installedName: installedName,
       release: release,
-      isOutdated: isOutdated,
-      isBlocked: isBlocked,
-      daysLeft: daysLeft,
+      acknowledgedGeneration: ack,
     ),
   );
 });
