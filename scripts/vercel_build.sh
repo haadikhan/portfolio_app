@@ -160,9 +160,9 @@ fi
 if [ -n "${FIREBASE_APP_CHECK_WEB_PROVIDER:-}" ]; then
   DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_PROVIDER="${FIREBASE_APP_CHECK_WEB_PROVIDER}")
 fi
-if [ -n "${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" ]; then
-  DART_DEFINES+=(--dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN}")
-fi
+
+# FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN is passed on every `flutter build web` via
+# --dart-define=...="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}". Set it in Vercel for pinned WebDebugProvider token.
 
 # 8 GB / 2 vCPU builders: dart2js release defaults are heavy. Trim RAM + compiler work.
 # --no-tree-shake-icons: skip icon subsetting pass (loads full Material Icons).
@@ -183,10 +183,13 @@ run_web_release() {
   set +eo pipefail
   if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
     echo "[vercel_build] flutter build web --release (no dart-defines)..."
-    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee -a "$BUILD_LOG"
+    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" \
+      --dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" 2>&1 | tee -a "$BUILD_LOG"
   else
     echo "[vercel_build] flutter build web --release (with dart-defines)..."
-    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
+    flutter build web --release -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" \
+      --dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" \
+      "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
   fi
   web_status_release="${PIPESTATUS[0]:-1}"
   set -euo pipefail
@@ -196,9 +199,12 @@ run_web_profile() {
   echo "[vercel_build] release failed → trying flutter build web --profile (lighter compile, larger JS)."
   set +eo pipefail
   if [ "${#DART_DEFINES[@]}" -eq 0 ]; then
-    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" 2>&1 | tee -a "$BUILD_LOG"
+    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" \
+      --dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" 2>&1 | tee -a "$BUILD_LOG"
   else
-    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
+    flutter build web --profile -t lib/admin_main.dart "${EXTRA_WEB_FLAGS[@]}" \
+      --dart-define=FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN="${FIREBASE_APP_CHECK_WEB_DEBUG_TOKEN:-}" \
+      "${DART_DEFINES[@]}" 2>&1 | tee -a "$BUILD_LOG"
   fi
   web_status_profile="${PIPESTATUS[0]:-1}"
   set -euo pipefail
