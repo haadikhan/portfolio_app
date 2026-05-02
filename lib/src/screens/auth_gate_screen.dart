@@ -20,17 +20,16 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   Future<void> _routeAuthenticatedUser() async {
     if (_isRouting || !mounted) return;
     _isRouting = true;
-    final contextRef = context;
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
     final security = await ref.read(userSecurityProvider.future);
     final verifiedPhone = security?.verifiedPhone?.trim() ?? "";
     if (verifiedPhone.isNotEmpty) {
-      final trusted = await ref.read(currentDeviceTrustedProvider.future);
+      final otpRequired = await ref.read(otpRequiredProvider.future);
       if (!mounted) return;
-      if (!trusted) {
-        contextRef.go(
+      if (otpRequired) {
+        context.go(
           "/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}",
         );
         return;
@@ -52,7 +51,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
           "[BIOMETRIC][AuthGate] Biometric disabled. Navigating /investor",
         );
       }
-      contextRef.go("/investor");
+      context.go("/investor");
       return;
     }
 
@@ -71,7 +70,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
           "[BIOMETRIC][AuthGate] Capability unavailable. Disabled biometric and going /login",
         );
       }
-      contextRef.go("/login");
+      context.go("/login");
       return;
     }
 
@@ -86,7 +85,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       if (kDebugMode) {
         debugPrint("[BIOMETRIC][AuthGate] Success. Navigating /investor");
       }
-      contextRef.go("/investor");
+      context.go("/investor");
       return;
     }
 
@@ -97,7 +96,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
         "[BIOMETRIC][AuthGate] Failed/cancelled. Session logged out and navigating /login",
       );
     }
-    contextRef.go("/login");
+    context.go("/login");
   }
 
   @override

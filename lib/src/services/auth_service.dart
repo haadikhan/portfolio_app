@@ -1,3 +1,4 @@
+import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_app_check/firebase_app_check.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:cloud_functions/cloud_functions.dart";
@@ -169,6 +170,17 @@ class AuthService {
       );
       await user.reauthenticateWithCredential(credential);
       await user.updatePassword(newPassword);
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .set(
+            {
+              "security": {
+                "passwordChangedAt": FieldValue.serverTimestamp(),
+              },
+            },
+            SetOptions(merge: true),
+          );
     } on FirebaseAuthException catch (e) {
       throw Exception(_messageForCode(e.code, fallback: e.message));
     } catch (e) {
