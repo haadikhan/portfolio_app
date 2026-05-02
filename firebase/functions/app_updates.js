@@ -6,31 +6,9 @@ const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
 
 /**
- * Regex-escape project id fragments when building ACAO matchers (Hosting / firebaseapp URLs).
- */
-function escapeRegexLit(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
  * Must match Flutter web bucket in `lib/firebase_options.dart` (DefaultFirebaseOptions.web).
  */
 const FIREBASE_WEB_STORAGE_BUCKET_ID = "portfolio-e97b1.firebasestorage.app";
-
-/** Origins permitted to call Firebase callable HTTPS from Flutter web / browsers. */
-function callableCorsAllowlist(projectId) {
-  const pid = escapeRegexLit(projectId.trim() || "portfolio-e97b1");
-  return [
-    // http://localhost and http://localhost:<port>
-    /^http:\/\/localhost(?::\d+)?$/i,
-    /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
-    /^https:\/\/.*\.vercel\.app$/i,
-    "https://portfolio-e97b1.web.app",
-    "https://portfolio-e97b1.firebaseapp.com",
-    new RegExp(`^https:\\/\\/.*\\.${pid}\\.web\\.app$`, "i"),
-    new RegExp(`^https:\\/\\/.*\\.${pid}\\.firebaseapp\\.com$`, "i"),
-  ];
-}
 
 const db = () => admin.firestore();
 const storage = () => admin.storage();
@@ -60,20 +38,6 @@ function resolveDefaultStorageBucketName() {
   if (explicit) return explicit;
   return FIREBASE_WEB_STORAGE_BUCKET_ID;
 }
-
-function parseFirebaseConfigSafe() {
-  try {
-    return JSON.parse(process.env.FIREBASE_CONFIG || "{}");
-  } catch (_) {
-    return {};
-  }
-}
-
-const gcloudProjectId =
-  process.env.GCLOUD_PROJECT ||
-  process.env.GCP_PROJECT ||
-  parseFirebaseConfigSafe().projectId ||
-  "portfolio-e97b1";
 
 function normalizeVersionCode(raw) {
   if (raw == null) return 0;
@@ -120,7 +84,7 @@ function storageFailureToHttpsError(error) {
 exports.parseInvestorApkMetadata = onCall(
   {
     region: "us-central1",
-    cors: callableCorsAllowlist(gcloudProjectId),
+    cors: true,
     enforceAppCheck: false,
     invoker: "public",
     memory: "512MiB",

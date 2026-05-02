@@ -37,7 +37,8 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
   }
 
   Future<void> _acknowledgeAndMaybeExit(AppReleaseInfo release) async {
-    if (release.releaseGeneration <= 0) return;
+    final gen = release.effectiveReleaseGenerationForGate;
+    if (gen <= 0) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -45,7 +46,7 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
     try {
       await ref
           .read(releaseAcknowledgedGenerationNotifierProvider.notifier)
-          .acknowledgeUpTo(release.releaseGeneration);
+          .acknowledgeUpTo(gen);
       if (!mounted) return;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -131,7 +132,8 @@ class _ForceUpdateScreenState extends ConsumerState<ForceUpdateScreen> {
                   label: Text(context.tr("update_now")),
                 ),
                 const SizedBox(height: 12),
-                if (release != null && release.releaseGeneration > 0)
+                if (release != null &&
+                    release.effectiveReleaseGenerationForGate > 0)
                   TextButton(
                     onPressed: _busy
                         ? null

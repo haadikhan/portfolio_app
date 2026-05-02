@@ -1,8 +1,15 @@
 [
   {
-    "origin": ["*"],
-    "method": ["GET", "HEAD"],
-    "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent"]
+    "origin": [
+      "http://localhost",
+      "http://localhost:*",
+      "https://portfolioapp-eight-nu.vercel.app",
+      "https://*.vercel.app",
+      "https://portfolio-e97b1.web.app",
+      "https://portfolio-e97b1.firebaseapp.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
   }
 ]
