@@ -32,10 +32,24 @@ FLUTTER_REF="${FLUTTER_REF:-${FLUTTER_REVISION:-3.41.9}}"
 FLUTTER_DIR="$ROOT/flutter_sdk"
 FLUTTER_RELEASES_BASE="https://storage.googleapis.com/flutter_infra_release/releases"
 
+# Flutter SDK tarball/vendor tree embeds `.git`. Git secure directory checks reject it when file
+# ownership mismatches the build user (common on Vercel / cached extracts). Flutter CLI invokes `git`.
+# MUST run before any `flutter ...` invocation (especially `flutter --version` during validation).
+_configure_git_safe_directories_for_flutter() {
+  command -v git >/dev/null 2>&1 || return 0
+  # Vercel default repo root layout (explicit) + '*' catch-all when path differs.
+  git config --global --add safe.directory /vercel/path0/flutter_sdk 2>/dev/null || true
+  git config --global --add safe.directory '*' 2>/dev/null || true
+  if [[ -d "$FLUTTER_DIR" ]]; then
+    git config --global --add safe.directory "$FLUTTER_DIR" 2>/dev/null || true
+  fi
+}
+
 _flutter_sdk_ok() {
   if [[ ! -x "$FLUTTER_DIR/bin/flutter" ]]; then
     return 1
   fi
+  _configure_git_safe_directories_for_flutter
   local want
   want="$(cat "$FLUTTER_DIR/.pinned_requested" 2>/dev/null || echo "")"
   if [[ "$want" != "$FLUTTER_REF" ]]; then
@@ -73,6 +87,7 @@ _install_flutter_from_linux_tarball() {
   fi
   mv "$(dirname "$FLUTTER_DIR")/flutter" "$FLUTTER_DIR"
   printf "%s\n" "${FLUTTER_REF}" > "$FLUTTER_DIR/.pinned_requested"
+  _configure_git_safe_directories_for_flutter
   return 0
 }
 
@@ -87,6 +102,7 @@ _install_flutter_from_git_tag() {
     return 1
   fi
   printf "%s\n" "${FLUTTER_REF}" > "$FLUTTER_DIR/.pinned_requested"
+  _configure_git_safe_directories_for_flutter
   return 0
 }
 
@@ -115,9 +131,13 @@ fi
 
 if ! _flutter_sdk_ok; then
   echo "[vercel_build] Flutter SDK still invalid after install."
+  _configure_git_safe_directories_for_flutter
   "$FLUTTER_DIR/bin/flutter" --version 2>&1 || true
   exit 1
 fi
+
+# Ensure tarball-extracted caches get safe.directory again before flutter runs (belt + suspenders).
+_configure_git_safe_directories_for_flutter
 
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
