@@ -4,7 +4,25 @@ const fs = require("fs/promises");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
-const ApkReader = require("adbkit-apkreader");
+
+/**
+ * Regex-escape project id fragments when building ACAO matchers (Hosting / firebaseapp URLs).
+ */
+function escapeRegexLit(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Origins permitted to call Firebase callable HTTPS from Flutter web / browsers. */
+function callableCorsAllowlist(projectId) {
+  const pid = escapeRegexLit(projectId.trim() || "portfolio-e97b1");
+  return [
+    /^http:\/\/localhost(?::\d+)?$/i,
+    /^http:\/\/127\.0\.0\.1(?::\d+)?$/i,
+    new RegExp(`^https:\\/\\/([\\w.-]+\\.)*${pid}\\.web\\.app$`, "i"),
+    new RegExp(`^https:\\/\\/([\\w.-]+\\.)*${pid}\\.firebaseapp\\.com$`, "i"),
+    /^https:\/\/([\w.-]+\.)*vercel\.app$/i,
+  ];
+}
 
 const db = () => admin.firestore();
 const storage = () => admin.storage();
@@ -68,6 +86,12 @@ function parseFirebaseConfigSafe() {
   }
 }
 
+const gcloudProjectId =
+  process.env.GCLOUD_PROJECT ||
+  process.env.GCP_PROJECT ||
+  parseFirebaseConfigSafe().projectId ||
+  "portfolio-e97b1";
+
 function normalizeVersionCode(raw) {
   if (raw == null) return 0;
   if (typeof raw === "bigint") {
@@ -113,7 +137,8 @@ function storageFailureToHttpsError(error) {
 exports.parseInvestorApkMetadata = onCall(
   {
     region: "us-central1",
-    cors: true,
+    cors: callableCorsAllowlist(gcloudProjectId),
+    enforceAppCheck: false,
     invoker: "public",
     memory: "512MiB",
     cpu: 0.25,
@@ -139,6 +164,7 @@ exports.parseInvestorApkMetadata = onCall(
     );
 
     try {
+      const ApkReader = require("adbkit-apkreader");
       let bucketName;
       try {
         bucketName = resolveDefaultStorageBucketName();
