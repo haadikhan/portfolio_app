@@ -20,83 +20,93 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   Future<void> _routeAuthenticatedUser() async {
     if (_isRouting || !mounted) return;
     _isRouting = true;
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
 
-    final security = await ref.read(userSecurityProvider.future);
-    final verifiedPhone = security?.verifiedPhone?.trim() ?? "";
-    if (verifiedPhone.isNotEmpty) {
-      final otpRequired = await ref.read(otpRequiredProvider.future);
-      if (!mounted) return;
-      if (otpRequired) {
-        context.go(
-          "/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}",
+      final security = await ref.read(userSecurityProvider.future);
+      final verifiedPhone = security?.verifiedPhone?.trim() ?? "";
+      if (verifiedPhone.isNotEmpty) {
+        // FutureProvider caches trusted=false; after markDeviceTrusted the cache
+        // would stay stale until uid/fingerprint change. Force a fresh Firestore read.
+        ref.invalidate(currentDeviceTrustedProvider);
+        ref.invalidate(otpRequiredProvider);
+        final otpRequired = await ref.read(otpRequiredProvider.future);
+        if (!mounted) return;
+        if (otpRequired) {
+          context.go(
+            "/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}",
+          );
+          return;
+        }
+      }
+
+      final biometricEnabledForUser = await ref.read(
+        biometricEnabledForCurrentUserProvider.future,
+      );
+      if (kDebugMode) {
+        debugPrint(
+          "[BIOMETRIC][AuthGate] user present. biometricEnabledForUser=$biometricEnabledForUser",
         );
+      }
+      if (!mounted) return;
+      if (!biometricEnabledForUser) {
+        if (kDebugMode) {
+          debugPrint(
+            "[BIOMETRIC][AuthGate] Biometric disabled. Navigating /investor",
+          );
+        }
+        context.go("/investor");
         return;
       }
-    }
 
-    final biometricEnabledForUser = await ref.read(
-      biometricEnabledForCurrentUserProvider.future,
-    );
-    if (kDebugMode) {
-      debugPrint(
-        "[BIOMETRIC][AuthGate] user present. biometricEnabledForUser=$biometricEnabledForUser",
-      );
-    }
-    if (!mounted) return;
-    if (!biometricEnabledForUser) {
+      final capability = await ref.read(biometricCapabilityProvider.future);
       if (kDebugMode) {
         debugPrint(
-          "[BIOMETRIC][AuthGate] Biometric disabled. Navigating /investor",
+          "[BIOMETRIC][AuthGate] capability available=${capability.isAvailable}, availability=${capability.availability}",
         );
       }
-      context.go("/investor");
-      return;
-    }
+      if (!mounted) return;
+      if (!capability.isAvailable) {
+        await ref.read(biometricControllerProvider.notifier).disable();
+        if (!mounted) return;
+        if (kDebugMode) {
+          debugPrint(
+            "[BIOMETRIC][AuthGate] Capability unavailable. Disabled biometric and going /login",
+          );
+        }
+        context.go("/login");
+        return;
+      }
 
-    final capability = await ref.read(biometricCapabilityProvider.future);
-    if (kDebugMode) {
-      debugPrint(
-        "[BIOMETRIC][AuthGate] capability available=${capability.isAvailable}, availability=${capability.availability}",
-      );
-    }
-    if (!mounted) return;
-    if (!capability.isAvailable) {
-      await ref.read(biometricControllerProvider.notifier).disable();
+      final ok = await ref
+          .read(biometricControllerProvider.notifier)
+          .authenticate();
+      if (kDebugMode) {
+        debugPrint("[BIOMETRIC][AuthGate] authenticate() result=$ok");
+      }
+      if (!mounted) return;
+      if (ok) {
+        if (kDebugMode) {
+          debugPrint("[BIOMETRIC][AuthGate] Success. Navigating /investor");
+        }
+        context.go("/investor");
+        return;
+      }
+
+      await ref.read(authControllerProvider.notifier).logout();
       if (!mounted) return;
       if (kDebugMode) {
         debugPrint(
-          "[BIOMETRIC][AuthGate] Capability unavailable. Disabled biometric and going /login",
+          "[BIOMETRIC][AuthGate] Failed/cancelled. Session logged out and navigating /login",
         );
       }
       context.go("/login");
-      return;
-    }
-
-    final ok = await ref
-        .read(biometricControllerProvider.notifier)
-        .authenticate();
-    if (kDebugMode) {
-      debugPrint("[BIOMETRIC][AuthGate] authenticate() result=$ok");
-    }
-    if (!mounted) return;
-    if (ok) {
-      if (kDebugMode) {
-        debugPrint("[BIOMETRIC][AuthGate] Success. Navigating /investor");
+    } finally {
+      if (mounted) {
+        _isRouting = false;
       }
-      context.go("/investor");
-      return;
     }
-
-    await ref.read(authControllerProvider.notifier).logout();
-    if (!mounted) return;
-    if (kDebugMode) {
-      debugPrint(
-        "[BIOMETRIC][AuthGate] Failed/cancelled. Session logged out and navigating /login",
-      );
-    }
-    context.go("/login");
   }
 
   @override

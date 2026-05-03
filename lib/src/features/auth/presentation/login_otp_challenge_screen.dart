@@ -2,9 +2,11 @@ import "package:cloud_functions/cloud_functions.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
+import "../../../features/security/data/security_providers.dart";
 import "../../../services/device_fingerprint.dart";
 import "../../../services/otp_auth_errors.dart";
 import "../../../services/otp_callable_errors.dart";
@@ -94,6 +96,10 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
             .httpsCallable("markDeviceTrusted")
             .call(fp.toCallablePayload());
       });
+      if (!mounted) return;
+      ProviderScope.containerOf(context, listen: false)
+        ..invalidate(currentDeviceTrustedProvider)
+        ..invalidate(otpRequiredProvider);
       if (!mounted) return;
       context.go("/investor");
     } on FirebaseAuthException catch (e) {

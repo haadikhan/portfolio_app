@@ -5,7 +5,6 @@ import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/foundation.dart";
 
 import "../core/firebase/app_check_auth_errors.dart";
-import "device_fingerprint.dart";
 
 class AuthService {
   AuthService(this._auth);
@@ -106,17 +105,10 @@ class AuthService {
 
   Future<void> logout() async {
     try {
-      final user = _auth.currentUser;
-      if (user != null) {
-        try {
-          final fp = await currentDeviceFingerprint(user.uid);
-          await _functions.httpsCallable("removeTrustedDevice").call({
-            "deviceHash": fp.deviceHash,
-          });
-        } catch (_) {
-          // Best effort only; logout must still proceed.
-        }
-      }
+      // Do not call removeTrustedDevice here: device trust is tied to the physical
+      // device + user, not the auth session. Clearing it on every sign-out forced
+      // OTP on every login for the same phone. Users can revoke a device from
+      // Profile → Trusted devices.
       await _auth.signOut();
     } catch (_) {
       throw Exception("Could not logout. Please try again.");

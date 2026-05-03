@@ -48,6 +48,18 @@ async function extractLinkedPhone(uid) {
   return linkedPhone;
 }
 
+/**
+ * Equality for Firebase Auth vs Firestore `security.verifiedPhone`:
+ * trims and compares digit-only strings so "+92 300 1234567" matches "+923001234567".
+ */
+function phonesMatchForTrust(linked, expected) {
+  const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
+  const dl = digitsOnly(linked);
+  const de = digitsOnly(expected);
+  if (!dl || !de) return false;
+  return dl === de;
+}
+
 async function upsertTrustedDevice(uid, data) {
   const deviceHash = requireDeviceHash(data);
   const now = admin.firestore.FieldValue.serverTimestamp();
@@ -102,7 +114,7 @@ exports.markDeviceTrusted = onCall(
       );
     }
     const linkedPhone = await extractLinkedPhone(uid);
-    if (linkedPhone !== expectedPhone) {
+    if (!phonesMatchForTrust(linkedPhone, expectedPhone)) {
       throw new HttpsError(
         "permission-denied",
         "Linked phone does not match the verified phone.",

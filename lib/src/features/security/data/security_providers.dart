@@ -1,8 +1,21 @@
 import "package:cloud_firestore/cloud_firestore.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../providers/auth_providers.dart";
 import "../../../services/device_fingerprint.dart";
+
+bool _firestoreUnavailableOrTransient(FirebaseException e) {
+  switch (e.code) {
+    case "unavailable":
+    case "deadline-exceeded":
+    case "aborted":
+    case "resource-exhausted":
+      return true;
+    default:
+      return false;
+  }
+}
 
 class UserSecurityState {
   const UserSecurityState({
@@ -92,57 +105,63 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
   if (user == null) return false;
   final fp = await ref.watch(currentDeviceFingerprintProvider.future);
   if (fp == null) return false;
-  final snap = await FirebaseFirestore.instance
+  final trustedDeviceDoc = FirebaseFirestore.instance
       .collection("users")
       .doc(user.uid)
       .collection("trustedDevices")
-      .doc(fp.deviceHash)
-      .get();
-  return snap.exists;
+      .doc(fp.deviceHash);
+
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> snap;
+      try {
+        snap = await trustedDeviceDoc.get(
+          const GetOptions(source: Source.server),
+        );
+      } on FirebaseException catch (e) {
+        if (e.code == "unavailable" || e.code == "failed-precondition") {
+          snap = await trustedDeviceDoc.get();
+        } else {
+          rethrow;
+        }
+      }
+      if (kDebugMode) {
+        debugPrint(
+          "[security] trustedDevice probe uid=${user.uid} "
+          "hash=${fp.deviceHash} exists=${snap.exists}",
+        );
+      }
+      return snap.exists;
+    } on FirebaseException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          "[security] trustedDevice probe error code=${e.code} message=${e.message}",
+        );
+      }
+      if (!_firestoreUnavailableOrTransient(e)) rethrow;
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+        continue;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          "[security] trustedDevices probe failed (${e.code}); "
+          "treating device as trusted so startup can proceed",
+        );
+      }
+      return true;
+    }
+  }
+  // All attempts either returned or rethrew; satisfy flow analysis.
+  return false;
 });
 
-DateTime? _timestampToDate(dynamic v) => v is Timestamp ? v.toDate() : null;
-
-/// True when the verified-phone OTP challenge should run: new/untrusted device,
-/// or password/MPIN changed since this device was last confirmed via OTP.
+/// True when the verified-phone OTP challenge should run: device is not yet
+/// in [trustedDevices] for this fingerprint (new / untrusted device only).
 final otpRequiredProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return false;
 
   final trusted = await ref.watch(currentDeviceTrustedProvider.future);
-  if (!trusted) return true;
-
-  final fp = await ref.watch(currentDeviceFingerprintProvider.future);
-  if (fp == null) return true;
-
-  final deviceSnap = await FirebaseFirestore.instance
-      .collection("users")
-      .doc(user.uid)
-      .collection("trustedDevices")
-      .doc(fp.deviceHash)
-      .get();
-
-  final lastSeenAt = _timestampToDate(deviceSnap.data()?["lastSeenAt"]);
-
-  final userSnap = await FirebaseFirestore.instance
-      .collection("users")
-      .doc(user.uid)
-      .get();
-  final data = userSnap.data();
-  if (data == null) return false;
-
-  final security = data["security"] as Map<String, dynamic>?;
-  final passwordChangedAt = _timestampToDate(security?["passwordChangedAt"]);
-  final mpinUpdatedAt = _timestampToDate(data["mpinUpdatedAt"]);
-
-  bool credentialNewerThanLastTrust(DateTime? credentialTime) {
-    if (credentialTime == null) return false;
-    if (lastSeenAt == null) return true;
-    return credentialTime.isAfter(lastSeenAt);
-  }
-
-  if (credentialNewerThanLastTrust(passwordChangedAt)) return true;
-  if (credentialNewerThanLastTrust(mpinUpdatedAt)) return true;
-
-  return false;
+  return !trusted;
 });

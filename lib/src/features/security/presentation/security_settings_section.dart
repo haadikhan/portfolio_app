@@ -76,6 +76,8 @@ class SecuritySettingsSection extends ConsumerWidget {
                     .httpsCallable("verifyPhoneAndTrustCurrentDevice")
                     .call(fp.toCallablePayload());
               });
+              ref.invalidate(currentDeviceTrustedProvider);
+              ref.invalidate(otpRequiredProvider);
               if (!ctx.mounted) return;
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
