@@ -63,46 +63,42 @@ Stream<T> authBoundFirestoreStream<T>(
   required T whenSignedOut,
   required Stream<T> Function(User user) body,
 }) {
-  return ref.read(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
-    if (user == null) return Stream<T>.value(whenSignedOut);
-    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
-      return body(user);
-    });
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream<T>.value(whenSignedOut);
+  return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+    return body(user);
   });
 }
 
 /// Follows [authStateChanges] then the Firestore user doc so restarts still load profile + kycStatus.
 final userProfileProvider = StreamProvider<AppUser?>((ref) {
-  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
-    if (user == null) {
-      return Stream<AppUser?>.value(null);
-    }
-    return Stream<void>.fromFuture(
-      _ensureProfileWithDiagnostics(
-        ref.read(firestoreServiceProvider),
-        user,
-      ),
-    ).asyncExpand<AppUser?>((_) {
-      return ref.read(firestoreServiceProvider).streamUser(user.uid);
-    });
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return Stream<AppUser?>.value(null);
+  }
+  return Stream<void>.fromFuture(
+    _ensureProfileWithDiagnostics(
+      ref.read(firestoreServiceProvider),
+      user,
+    ),
+  ).asyncExpand<AppUser?>((_) {
+    return ref.read(firestoreServiceProvider).streamUser(user.uid);
   });
 });
 
 final userKycProvider = StreamProvider<UserKycRecord?>((ref) {
-  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
-    if (user == null) return Stream<UserKycRecord?>.value(null);
-    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
-      return ref.read(firestoreServiceProvider).streamUserKyc(user.uid);
-    });
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream<UserKycRecord?>.value(null);
+  return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+    return ref.read(firestoreServiceProvider).streamUserKyc(user.uid);
   });
 });
 
 final consentAcceptedProvider = StreamProvider<bool>((ref) {
-  return ref.watch(firebaseAuthProvider).authStateChanges().asyncExpand((user) {
-    if (user == null) return Stream<bool>.value(false);
-    return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
-      return ref.read(firestoreServiceProvider).streamConsentAccepted(user.uid);
-    });
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream<bool>.value(false);
+  return Stream<void>.fromFuture(user.getIdToken(true)).asyncExpand((_) {
+    return ref.read(firestoreServiceProvider).streamConsentAccepted(user.uid);
   });
 });
 
