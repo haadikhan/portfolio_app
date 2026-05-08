@@ -60,11 +60,26 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    context.tr("market_ws_live_disclaimer"),
-                    maxLines: 4,
-                    softWrap: true,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr("market_ws_live_disclaimer"),
+                        maxLines: 4,
+                        softWrap: true,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (ws.valueOrNull == PsxWsStatus.disconnected) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          "Live stream unavailable. Showing latest snapshot data.",
+                          maxLines: 2,
+                          softWrap: true,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.orange.shade700),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

@@ -1,6 +1,7 @@
 import "dart:convert";
 
 import "package:http/http.dart" as http;
+import "package:rxdart/rxdart.dart";
 
 import "../models/kmi30_bar.dart";
 import "../models/kmi30_tick.dart";
@@ -16,7 +17,9 @@ class PsxRepository {
 
   Stream<Kmi30Tick> streamTicksForSymbol(String symbol) {
     final s = symbol.trim().toUpperCase();
-    return _ws.ticks.where((t) => t.symbol.toUpperCase() == s);
+    return _ws.ticks
+        .where((t) => t.symbol.toUpperCase() == s)
+        .throttleTime(const Duration(milliseconds: 500));
   }
 
   Stream<PsxWsStatus> connectionStatusStream() => _ws.status;

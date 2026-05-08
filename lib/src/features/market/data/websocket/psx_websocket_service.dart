@@ -2,9 +2,21 @@ import "dart:async";
 import "dart:convert";
 import "dart:math";
 
+import "package:flutter/foundation.dart";
 import "package:web_socket_channel/web_socket_channel.dart";
 
 import "../models/kmi30_tick.dart";
+
+Map<String, dynamic>? _parseMessage(String raw) {
+  try {
+    final parsed = jsonDecode(raw);
+    if (parsed is Map<String, dynamic>) return parsed;
+    if (parsed is Map) return parsed.cast<String, dynamic>();
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
 
 enum PsxWsStatus { connecting, connected, disconnected, reconnecting }
 
@@ -35,13 +47,28 @@ class PsxWebSocketService {
   void connect() {
     if (_disposed) return;
     if (_channel != null) return;
+    debugPrint("[PSX-WS] Attempting connection...");
+    debugPrint("[PSX-WS] URI: wss://psxterminal.com:443/");
     _setStatus(_attempt == 0 ? PsxWsStatus.connecting : PsxWsStatus.reconnecting);
     try {
-      final channel = WebSocketChannel.connect(Uri.parse("wss://psxterminal.com/"));
+      final wsUri = Uri(
+        scheme: "wss",
+        host: "psxterminal.com",
+        port: 443,
+        path: "/",
+      );
+      debugPrint("[PSX-WS] Built URI: $wsUri");
+      final channel = WebSocketChannel.connect(wsUri);
       _channel = channel;
+      channel.ready.then((_) {
+        debugPrint("[PSX-WS] Connection ready ✓");
+      }).catchError((Object e) {
+        debugPrint("[PSX-WS] ready failed: $e");
+        debugPrint("[PSX-WS] runtimeType: ${e.runtimeType}");
+      });
       _sub = channel.stream.listen(
         _handleMessage,
-        onError: (_) => _handleDisconnect(),
+        onError: (Object e) => _handleDisconnect(e),
         onDone: _handleDisconnect,
         cancelOnError: true,
       );
@@ -78,22 +105,9 @@ class PsxWebSocketService {
     _ticksController.add(tick);
   }
 
-  void _handleMessage(dynamic raw) {
-    Map<String, dynamic>? map;
-    if (raw is String) {
-      try {
-        final parsed = jsonDecode(raw);
-        if (parsed is Map<String, dynamic>) {
-          map = parsed;
-        } else if (parsed is Map) {
-          map = parsed.cast<String, dynamic>();
-        }
-      } catch (_) {
-        return;
-      }
-    } else if (raw is Map<String, dynamic>) {
-      map = raw;
-    }
+  void _handleMessage(dynamic raw) async {
+    if (raw is! String) return;
+    final map = await compute(_parseMessage, raw);
     if (map == null) return;
     final t = map["type"];
     if (t == "pong" || t == "ping") return;
@@ -126,12 +140,24 @@ class PsxWebSocketService {
     _ticksController.add(tick);
   }
 
-  void _handleDisconnect() {
+  bool _isWsUpgradeHandshakeError(Object? error) {
+    if (error == null) return false;
+    final text = error.toString().toLowerCase();
+    return text.contains("not upgraded to websocket") ||
+        text.contains("websocketchannelexception") && text.contains("https://");
+  }
+
+  void _handleDisconnect([Object? error]) {
     _sub?.cancel();
     _sub = null;
     _channel = null;
     if (_disposed) return;
     _setStatus(PsxWsStatus.disconnected);
+    // When the endpoint rejects websocket upgrade, reconnect loops only
+    // repeat the same exception noise; keep REST path active without thrashing.
+    if (_isWsUpgradeHandshakeError(error)) {
+      return;
+    }
     _scheduleReconnect();
   }
 
