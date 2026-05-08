@@ -1114,9 +1114,16 @@ class _ActionButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = enabled
-        ? _actionButtonBg(context, backgroundColor)
+        ? (isDark
+              ? scheme.surfaceContainerHighest
+              : _actionButtonBg(context, backgroundColor))
         : scheme.surfaceContainerHighest;
-    final fg = enabled ? foregroundColor : scheme.onSurfaceVariant;
+    final iconColor = enabled
+        ? (isDark ? scheme.primary : foregroundColor)
+        : scheme.onSurfaceVariant;
+    final labelColor = enabled
+        ? (isDark ? scheme.onSurface : foregroundColor)
+        : scheme.onSurfaceVariant;
 
     return Material(
       color: Colors.transparent,
@@ -1131,8 +1138,8 @@ class _ActionButton extends StatelessWidget {
             border: Border.all(
               color: enabled
                   ? (isDark
-                        ? fg.withValues(alpha: 0.34)
-                        : fg.withValues(alpha: 0.12))
+                        ? scheme.outline.withValues(alpha: 0.2)
+                        : labelColor.withValues(alpha: 0.12))
                   : scheme.outline.withValues(alpha: 0.4),
             ),
             boxShadow: enabled
@@ -1149,7 +1156,7 @@ class _ActionButton extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(icon, size: 22, color: fg),
+              Icon(icon, size: 22, color: iconColor),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -1159,7 +1166,7 @@ class _ActionButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: fg,
+                  color: labelColor,
                 ),
               ),
             ],

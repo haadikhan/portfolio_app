@@ -589,6 +589,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final updateState = ref.watch(profileUpdateProvider);
     final kycAsync = ref.watch(userKycProvider);
     final kycRecord = kycAsync.valueOrNull;
@@ -692,6 +693,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           _ProfileCard(
             title: context.tr("personal_information"),
             icon: Icons.person_outline_rounded,
+            useAdaptiveColors: true,
             children: [
               _ProfileFieldTile(
                 label: context.tr("email_address"),
@@ -699,38 +701,44 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                     ? widget.profile.email
                     : null,
                 locked: true,
+                useAdaptiveColors: true,
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               _editing
                   ? _EditableField(
                       label: context.tr("full_name"),
                       controller: _nameCtrl,
+                      useAdaptiveColors: true,
                     )
                   : _ProfileFieldTile(
                       label: context.tr("full_name"),
                       value: widget.profile.name.isNotEmpty
                           ? widget.profile.name
                           : null,
+                      useAdaptiveColors: true,
                     ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               _editing
                   ? _EditableField(
                       label: context.tr("profile_phone_number"),
                       controller: _phoneCtrl,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      useAdaptiveColors: true,
                     )
                   : _ProfileFieldTile(
                       label: context.tr("profile_phone_number"),
                       value: displayPhone,
+                      useAdaptiveColors: true,
                     ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               _ProfileFieldTile(
                 label: context.tr("cnic_label"),
                 value: displayCnic,
                 locked: true,
+                useAdaptiveColors: true,
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
               _ProfileFieldTile(
                 label: context.tr("profile_kyc_status_label"),
                 value: _kycLifecycleBadgeLabel(
@@ -738,6 +746,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   widget.profile.kycStatus,
                 ),
                 locked: true,
+                useAdaptiveColors: true,
               ),
             ],
           ),
@@ -758,7 +767,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 style: const TextStyle(fontSize: 12),
               ),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -795,7 +804,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 style: const TextStyle(fontSize: 12),
               ),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -867,8 +876,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       icon: const Icon(Icons.vpn_key_outlined, size: 18),
                       label: Text(context.tr("change_password_btn")),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -893,24 +904,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: scheme.outline.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
                   size: 15,
-                  color: AppColors.bodyMuted,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     context.tr("profile_changes_note"),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.bodyMuted,
+                      color: scheme.onSurfaceVariant,
                       height: 1.4,
                     ),
                   ),
@@ -931,6 +942,7 @@ class _AppPreferencesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
@@ -954,7 +966,7 @@ class _AppPreferencesCard extends ConsumerWidget {
               Icon(
                 isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                 size: 18,
-                color: AppColors.primary,
+                color: scheme.primary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -963,10 +975,10 @@ class _AppPreferencesCard extends ConsumerWidget {
                   children: [
                     Text(
                       context.tr("dark_mode"),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.heading,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -974,9 +986,9 @@ class _AppPreferencesCard extends ConsumerWidget {
                       isDark
                           ? context.tr("dark_mode")
                           : context.tr("light_mode"),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.bodyMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -995,10 +1007,10 @@ class _AppPreferencesCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.language_rounded,
                 size: 18,
-                color: AppColors.primary,
+                color: scheme.primary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1007,18 +1019,18 @@ class _AppPreferencesCard extends ConsumerWidget {
                   children: [
                     Text(
                       context.tr("language"),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.heading,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       isUrdu ? context.tr("urdu") : context.tr("english"),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.bodyMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -1047,8 +1059,8 @@ class _AppPreferencesCard extends ConsumerWidget {
                   Icons.fingerprint_rounded,
                   size: 18,
                   color: biometricAvailable
-                      ? AppColors.primary
-                      : AppColors.bodyMuted,
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1057,10 +1069,10 @@ class _AppPreferencesCard extends ConsumerWidget {
                     children: [
                       Text(
                         context.tr("biometric_login_label"),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.heading,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1068,9 +1080,9 @@ class _AppPreferencesCard extends ConsumerWidget {
                         biometricAvailable
                             ? context.tr("biometric_login_enabled_hint")
                             : context.tr("fingerprint_not_setup"),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.bodyMuted,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -1195,20 +1207,29 @@ class _ProfileCard extends StatelessWidget {
     required this.icon,
     required this.children,
     this.trailingAction,
+    this.useAdaptiveColors = true,
   });
 
   final String title;
   final IconData icon;
   final List<Widget> children;
   final Widget? trailingAction;
+  final bool useAdaptiveColors;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: useAdaptiveColors
+            ? scheme.surfaceContainerHighest
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: useAdaptiveColors
+              ? scheme.outline.withValues(alpha: 0.15)
+              : AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1217,14 +1238,18 @@ class _ProfileCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                Icon(icon, size: 16, color: AppColors.primary),
+                Icon(
+                  icon,
+                  size: 16,
+                  color: useAdaptiveColors ? scheme.primary : AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.heading,
+                    fontWeight: FontWeight.w600,
+                    color: useAdaptiveColors ? scheme.onSurface : AppColors.heading,
                   ),
                 ),
                 if (trailingAction != null) ...[
@@ -1235,7 +1260,10 @@ class _ProfileCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const Divider(height: 1, color: AppColors.border),
+          Divider(
+            height: 1,
+            color: useAdaptiveColors ? Theme.of(context).dividerColor : AppColors.border,
+          ),
           ...children,
         ],
       ),
@@ -1250,14 +1278,17 @@ class _ProfileFieldTile extends StatelessWidget {
     required this.label,
     this.value,
     this.locked = false,
+    this.useAdaptiveColors = true,
   });
 
   final String label;
   final String? value;
   final bool locked;
+  final bool useAdaptiveColors;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final displayValue = (value != null && value!.isNotEmpty)
         ? value!
         : "Not added";
@@ -1273,9 +1304,11 @@ class _ProfileFieldTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.bodyMuted,
+                    color: useAdaptiveColors
+                        ? scheme.onSurfaceVariant
+                        : AppColors.bodyMuted,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1285,7 +1318,11 @@ class _ProfileFieldTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isEmpty ? AppColors.bodyMuted : AppColors.heading,
+                    color: isEmpty
+                        ? (useAdaptiveColors
+                              ? scheme.onSurfaceVariant
+                              : AppColors.bodyMuted)
+                        : (useAdaptiveColors ? scheme.onSurface : AppColors.heading),
                     fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
@@ -1293,10 +1330,12 @@ class _ProfileFieldTile extends StatelessWidget {
             ),
           ),
           if (locked)
-            const Icon(
+            Icon(
               Icons.lock_outline_rounded,
               size: 16,
-              color: AppColors.bodyMuted,
+              color: useAdaptiveColors
+                  ? scheme.onSurfaceVariant
+                  : AppColors.bodyMuted,
             ),
         ],
       ),
@@ -1312,32 +1351,48 @@ class _EditableField extends StatelessWidget {
     required this.controller,
     this.keyboardType,
     this.inputFormatters,
+    this.useAdaptiveColors = true,
   });
 
   final String label;
   final TextEditingController controller;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final bool useAdaptiveColors;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        style: const TextStyle(fontSize: 14, color: AppColors.heading),
+        style: TextStyle(
+          fontSize: 14,
+          color: useAdaptiveColors ? scheme.onSurface : AppColors.heading,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(fontSize: 12, color: AppColors.bodyMuted),
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: useAdaptiveColors ? scheme.onSurfaceVariant : AppColors.bodyMuted,
+          ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: BorderSide(
+              color: useAdaptiveColors
+                  ? scheme.outline.withValues(alpha: 0.15)
+                  : AppColors.border,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderSide: BorderSide(
+              color: useAdaptiveColors ? scheme.primary : AppColors.primary,
+              width: 2,
+            ),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -1587,6 +1642,7 @@ class _MpinSecurityCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final statusAsync = ref.watch(mpinStatusStreamProvider);
     final status = statusAsync.maybeWhen(
       data: (s) => s,
@@ -1601,9 +1657,9 @@ class _MpinSecurityCard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
           child: Text(
             context.tr("mpin_security_card_subtitle"),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.bodyMuted,
+              color: scheme.onSurfaceVariant,
               height: 1.4,
             ),
           ),
@@ -1618,8 +1674,8 @@ class _MpinSecurityCard extends ConsumerWidget {
                 icon: const Icon(Icons.lock_open_rounded, size: 18),
                 label: Text(context.tr("mpin_setup_cta")),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
+                  foregroundColor: scheme.primary,
+                  side: BorderSide(color: scheme.primary),
                 ),
               ),
             ),
@@ -1649,8 +1705,8 @@ class _MpinSecurityCard extends ConsumerWidget {
                     icon: const Icon(Icons.password_rounded, size: 18),
                     label: Text(context.tr("mpin_change_cta")),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
+                      foregroundColor: scheme.primary,
+                      side: BorderSide(color: scheme.primary),
                     ),
                   ),
                 ),
@@ -1689,15 +1745,15 @@ class _MpinSecurityCard extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.08),
+                  color: scheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   context.trParams("mpin_locked", {
                     "time": _formatTime(status.lockedUntil!),
                   }),
-                  style: const TextStyle(
-                    color: AppColors.error,
+                  style: TextStyle(
+                    color: scheme.error,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
