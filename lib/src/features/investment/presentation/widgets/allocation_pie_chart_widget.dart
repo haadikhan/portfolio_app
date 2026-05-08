@@ -126,11 +126,12 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
           height: 220,
           child: Stack(
             alignment: Alignment.center,
+            clipBehavior: Clip.none,
             children: [
               PieChart(
                 PieChartData(
                   sectionsSpace: 2,
-                  centerSpaceRadius: 48,
+                  centerSpaceRadius: 50,
                   pieTouchData: PieTouchData(
                     touchCallback: (event, response) {
                       setState(() {
@@ -162,9 +163,9 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
               ),
               IgnorePointer(
                 child: Container(
-                  width: 92,
-                  height: 92,
-                  padding: const EdgeInsets.all(10),
+                  width: 100,
+                  height: 100,
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: scheme.surface,
                     shape: BoxShape.circle,
@@ -177,48 +178,68 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        context.tr("alloc_money").toUpperCase(),
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: scheme.onSurfaceVariant,
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          context.tr("alloc_money").toUpperCase(),
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatMoney(mmPkr),
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.1,
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurface,
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatMoney(mmPkr),
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${context.tr("total_investment_label")}\n${_formatMoney(widget.totalAmountPkr)}",
-                        maxLines: 3,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 8,
-                          height: 1.15,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant,
+                        const SizedBox(height: 4),
+                        Text(
+                          context.tr("total_investment_label"),
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: 8,
+                            height: 1.15,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    ],
+                        Text(
+                          _formatMoney(widget.totalAmountPkr),
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: 8,
+                            height: 1.15,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

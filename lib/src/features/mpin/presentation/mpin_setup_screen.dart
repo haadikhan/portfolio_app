@@ -147,6 +147,7 @@ class _MpinSetupScreenState extends ConsumerState<MpinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -157,7 +158,12 @@ class _MpinSetupScreenState extends ConsumerState<MpinSetupScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            bottomInset + kBottomNavigationBarHeight + 16,
+          ),
           child: Column(
             children: [
               const SizedBox(height: 8),
