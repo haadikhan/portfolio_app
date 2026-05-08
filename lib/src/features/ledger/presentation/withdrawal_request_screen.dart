@@ -97,7 +97,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     // MPIN gate: prompt the user when their MPIN is configured AND enabled.
     // No prompt for users who never set one (full backward-compat).
     String? mpin;
-    final mpinStatus = ref.read(mpinStatusStreamProvider).value;
+    final mpinStatus = await ref.read(mpinStatusStreamProvider.future);
     if (mpinStatus != null && mpinStatus.hasMpin && mpinStatus.enabled) {
       if (mpinStatus.isLockedNow) {
         _showFailure(
