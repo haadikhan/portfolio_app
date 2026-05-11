@@ -32,7 +32,7 @@ Color _stripeForType(String typeRaw) {
 class WalletLedgerScreen extends ConsumerStatefulWidget {
   const WalletLedgerScreen({super.key, this.initialTabIndex = 0});
 
-  /// 0 wallet, 1 transactions, 2 history (grouped).
+  /// 0 wallet, 1 grouped transactions (flat middle tab hidden; legacy 1/2 both open grouped).
   final int initialTabIndex;
 
   @override
@@ -47,8 +47,9 @@ class _WalletLedgerScreenState extends ConsumerState<WalletLedgerScreen>
   @override
   void initState() {
     super.initState();
-    final i = widget.initialTabIndex.clamp(0, 2);
-    _tabController = TabController(length: 3, vsync: this, initialIndex: i);
+    final legacy = widget.initialTabIndex.clamp(0, 2);
+    final i = legacy == 0 ? 0 : 1;
+    _tabController = TabController(length: 2, vsync: this, initialIndex: i);
   }
 
   @override
@@ -91,7 +92,7 @@ class _WalletLedgerScreenState extends ConsumerState<WalletLedgerScreen>
                 indicatorColor: scheme.primary,
                 tabs: [
                   Tab(text: context.tr("ledger_tab_wallet")),
-                  Tab(text: context.tr("ledger_tab_transactions")),
+                  // Tab(text: context.tr("ledger_tab_transactions")),
                   Tab(text: context.tr("ledger_tab_history")),
                 ],
               ),
@@ -103,10 +104,10 @@ class _WalletLedgerScreenState extends ConsumerState<WalletLedgerScreen>
                   _WalletTab(
                     onRefresh: _onRefresh,
                   ),
-                  _TransactionsOrHistoryTab(
-                    onRefresh: _onRefresh,
-                    groupByMonth: false,
-                  ),
+                  // _TransactionsOrHistoryTab(
+                  //   onRefresh: _onRefresh,
+                  //   groupByMonth: false,
+                  // ),
                   _TransactionsOrHistoryTab(
                     onRefresh: _onRefresh,
                     groupByMonth: true,
@@ -400,19 +401,7 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
               return cb.compareTo(ca);
             });
 
-          final children = <Widget>[
-            Text(
-              groupByMonth
-                  ? context.tr("ledger_tab_history")
-                  : context.tr("transaction_history"),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 10),
-          ];
+          final children = <Widget>[];
 
           if (groupByMonth) {
             String? lastMonth;

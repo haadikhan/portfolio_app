@@ -21,7 +21,10 @@ if (!admin.apps.length) {
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { logger } = require("firebase-functions");
 const { recalculateWallet } = require("./wallet_helpers");
-const { notifyAllAdmins } = require("./notifications");
+const {
+  notifyAllAdmins,
+  sendCustomerTransactionAlerts,
+} = require("./notifications");
 
 const walletLedger = require("./wallet_ledger");
 const notifications = require("./notifications");
@@ -73,6 +76,81 @@ exports.onKycSubmittedForReview = onDocumentUpdated(
       });
     } catch (e) {
       logger.warn("onKycSubmittedForReview_failed", { error: String(e) });
+    }
+  },
+);
+
+exports.onKycApproved = onDocumentUpdated(
+  {
+    document: "kyc/{userId}",
+    region: "us-central1",
+    memory: "256MiB",
+    cpu: 0.08,
+  },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after) return;
+
+    const beforeStatus = (before?.status || "").toLowerCase();
+    const afterStatus = (after.status || "").toLowerCase();
+
+    if (afterStatus !== "approved" || beforeStatus === "approved") {
+      return;
+    }
+
+    const uid = event.params.userId;
+    try {
+      await sendCustomerTransactionAlerts(uid, {
+        title: "KYC Approved",
+        body: "Congratulations! Your KYC verification has been approved.",
+        type: "kyc",
+        category: "kyc",
+        action: "open_kyc",
+        refId: uid,
+        amount: null,
+        currency: "PKR",
+      });
+    } catch (e) {
+      logger.warn("onKycApproved_notify_failed", { uid, error: String(e) });
+    }
+  },
+);
+
+exports.onKycRejected = onDocumentUpdated(
+  {
+    document: "kyc/{userId}",
+    region: "us-central1",
+    memory: "256MiB",
+    cpu: 0.08,
+  },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after) return;
+
+    const beforeStatus = (before?.status || "").toLowerCase();
+    const afterStatus = (after.status || "").toLowerCase();
+
+    if (afterStatus !== "rejected" || beforeStatus === "rejected") {
+      return;
+    }
+
+    const uid = event.params.userId;
+    const reason = after.rejectionReason || "Please contact support.";
+    try {
+      await sendCustomerTransactionAlerts(uid, {
+        title: "KYC Not Approved",
+        body: `Your KYC verification was not approved. ${reason}`,
+        type: "kyc",
+        category: "kyc",
+        action: "open_kyc",
+        refId: uid,
+        amount: null,
+        currency: "PKR",
+      });
+    } catch (e) {
+      logger.warn("onKycRejected_notify_failed", { uid, error: String(e) });
     }
   },
 );

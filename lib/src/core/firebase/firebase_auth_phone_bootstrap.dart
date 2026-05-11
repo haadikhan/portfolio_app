@@ -19,7 +19,7 @@ Future<void> configureFirebaseAndroidPhoneVerification() async {
 
   final bool forceRecaptcha = kDebugMode || !kAppCheckProductionAttestation;
   try {
-    if (forceRecaptcha) {
+    if (!kDebugMode && forceRecaptcha) {
       await FirebaseAuth.instance.setSettings(forceRecaptchaFlow: true);
       if (kDebugMode) {
         debugPrint(

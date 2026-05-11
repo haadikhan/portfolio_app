@@ -134,9 +134,10 @@ class NotificationsScreen extends ConsumerWidget {
       showNotificationAction: false,
       actions: [
         if (uid != null)
-          TextButton(
+          IconButton(
             onPressed: () => _markAllRead(context, ref, uid),
-            child: Text(context.tr("mark_all_read")),
+            tooltip: context.tr("mark_all_read"),
+            icon: const Icon(Icons.done_all),
           ),
       ],
       body: listBody,
