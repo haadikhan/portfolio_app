@@ -2,6 +2,7 @@ import "dart:io";
 
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
@@ -12,6 +13,7 @@ import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/wallet_providers.dart";
+import "../providers/deposit_instructions_provider.dart";
 
 const _paymentMethodKeys = <(String, String)>[
   ("bank_transfer", "method_bank_transfer"),
@@ -151,6 +153,16 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                   ],
                 ),
               ),
+              if (_selectedMethod == "bank_transfer") ...[
+                const SizedBox(height: 12),
+                ref.watch(depositInstructionsProvider).when(
+                      loading: () => const LinearProgressIndicator(minHeight: 3),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (DepositInstructions inst) => inst.isEmpty
+                          ? const SizedBox.shrink()
+                          : _BankDetailsCard(instructions: inst),
+                    ),
+              ],
               const SizedBox(height: 24),
               _SectionLabel(label: context.tr("amount_label")),
               const SizedBox(height: 8),
@@ -221,6 +233,145 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BankDetailsCard extends StatelessWidget {
+  const _BankDetailsCard({required this.instructions});
+
+  final DepositInstructions instructions;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final iban = instructions.ibanOrAccountNumber;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: scheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_rounded,
+                size: 20,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Transfer to",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _detailRow(
+            context,
+            label: "Bank",
+            value: instructions.companyBankName,
+            trailing: null,
+          ),
+          _detailRow(
+            context,
+            label: "Account name",
+            value: instructions.accountHolderName,
+            trailing: null,
+          ),
+          _detailRow(
+            context,
+            label: "Account / IBAN",
+            value: iban,
+            trailing: IconButton(
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon: Icon(
+                Icons.copy_rounded,
+                size: 18,
+                color: scheme.primary,
+              ),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: iban));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Account number copied")),
+                );
+              },
+            ),
+          ),
+          if (instructions.branchName != null &&
+              instructions.branchName!.isNotEmpty)
+            _detailRow(
+              context,
+              label: "Branch",
+              value: instructions.branchName!,
+              trailing: null,
+            ),
+          if (instructions.instructions != null &&
+              instructions.instructions!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              instructions.instructions!,
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    Widget? trailing,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 112,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
       ),
     );
   }
