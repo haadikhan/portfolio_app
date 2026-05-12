@@ -582,7 +582,7 @@ const _en = <String, String>{
   "deposit_info_banner":
       "Transfer funds to our account, then submit this form with your payment proof. An admin will verify and credit your balance.",
   "amount_label": "Amount",
-  "amount_hint_example": "e.g. 50000",
+  "amount_hint_example": "e.g. 50,000",
   "err_amount_valid": "Enter a valid amount",
   "err_min_deposit": "Minimum deposit is PKR 100",
   "payment_method": "Payment method",
@@ -1541,7 +1541,7 @@ const _ur = <String, String>{
   "deposit_info_banner":
       "ہمارے اکاؤنٹ میں رقم بھیجیں، پھر ادائیگی کی تصدیق کے ساتھ فارم جمع کرائیں۔ ایڈمن تصدیق کرے گا۔",
   "amount_label": "رقم",
-  "amount_hint_example": "مثال: 50000",
+  "amount_hint_example": "مثال: 50,000",
   "err_amount_valid": "درست رقم درج کریں",
   "err_min_deposit": "کم از کم جمع 100 PKR",
   "payment_method": "ادائیگی کا طریقہ",

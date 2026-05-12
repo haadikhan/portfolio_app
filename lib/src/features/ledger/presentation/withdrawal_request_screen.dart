@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/formatting/grouped_decimal_input.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_error_dialog.dart";
 import "../../../core/widgets/app_scaffold.dart";
@@ -58,7 +59,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
 
   Future<void> _submit() async {
     setState(() => _inlineError = null);
-    final parsed = double.tryParse(_amountController.text.trim());
+    final parsed = parseGroupedDecimal(_amountController.text);
     if (parsed == null || parsed <= 0) {
       _showFailure(context.tr("enter_valid_amount"));
       return;
@@ -98,7 +99,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
     // No prompt for users who never set one (full backward-compat).
     String? mpin;
     final mpinStatus = await ref.read(mpinStatusStreamProvider.future);
-    if (mpinStatus != null && mpinStatus.hasMpin && mpinStatus.enabled) {
+    if (mpinStatus.hasMpin && mpinStatus.enabled) {
       if (mpinStatus.isLockedNow) {
         _showFailure(
           context.trParams("mpin_locked", {
@@ -204,6 +205,7 @@ class _WithdrawalRequestScreenState extends ConsumerState<WithdrawalRequestScree
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [GroupedDecimalInputFormatter()],
             decoration: InputDecoration(
               labelText: context.tr("amount_pkr"),
               border: const OutlineInputBorder(),

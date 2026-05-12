@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
 
+import "../../../core/formatting/grouped_decimal_input.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_error_dialog.dart";
@@ -69,7 +70,13 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
         proofUrl = await storageRef.getDownloadURL();
       }
 
-      final amount = double.parse(_amountController.text.trim());
+      final parsedAmount = parseGroupedDecimal(_amountController.text);
+      if (parsedAmount == null) {
+        if (!mounted) return;
+        await showAppErrorMessageDialog(context, context.tr("err_amount_valid"));
+        return;
+      }
+      final amount = parsedAmount;
       await ref.read(walletLedgerFunctionsProvider).createDepositRequest(
             amount: amount,
             paymentMethod: _selectedMethod,
@@ -170,13 +177,19 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                 controller: _amountController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [GroupedDecimalInputFormatter()],
                 decoration: InputDecoration(
                   labelText: context.tr("amount_pkr"),
-                  prefixIcon: const Icon(Icons.attach_money_rounded),
+                  prefixText: "PKR ",
+                  prefixStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   hintText: context.tr("amount_hint_example"),
                 ),
                 validator: (v) {
-                  final n = double.tryParse(v?.trim() ?? "");
+                  final n = parseGroupedDecimal(v);
                   if (n == null || n <= 0) return context.tr("err_amount_valid");
                   if (n < 100) return context.tr("err_min_deposit");
                   return null;
