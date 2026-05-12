@@ -52,7 +52,7 @@ class AppBarPreferenceActions extends ConsumerWidget {
         if (showLogoutAction)
           IconButton(
             tooltip: context.tr("drawer_logout"),
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            icon: const Icon(Icons.power_settings_new, color: AppColors.error),
             onPressed: () async {
               try {
                 await ref.read(authControllerProvider.notifier).logout();

@@ -488,7 +488,7 @@ class _AppDrawer extends ConsumerWidget {
             ),
             const Divider(height: 1),
             _DrawerItem(
-              icon: Icons.logout_rounded,
+              icon: Icons.power_settings_new,
               label: context.tr("drawer_logout"),
               iconColor: AppColors.error,
               labelColor: AppColors.error,
