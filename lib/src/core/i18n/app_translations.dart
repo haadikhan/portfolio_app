@@ -748,7 +748,7 @@ const _en = <String, String>{
       "Add companies and daily opening/closing values. API sync is optional.",
   "mpin_security_card_title": "Withdrawal MPIN",
   "mpin_security_card_subtitle":
-      "Protect every withdrawal with a 4-digit PIN, like JazzCash and EasyPaisa.",
+      "Use a 4-digit PIN to protect each withdrawal.",
   "mpin_setup_cta": "Set up withdrawal MPIN",
   "mpin_change_cta": "Change MPIN",
   "mpin_forgot_cta": "Forgot MPIN?",
@@ -1706,7 +1706,7 @@ const _ur = <String, String>{
       "کمپنیاں اور روزانہ اوپن/کلوز اقدار شامل کریں۔ API سنک اختیاری ہے۔",
   "mpin_security_card_title": "نکالنے کا ایم پن",
   "mpin_security_card_subtitle":
-      "JazzCash اور EasyPaisa کی طرح، 4 ہندسوں کے پن سے ہر نکالنے کو محفوظ کریں۔",
+      "4 ہندسوں کے پن سے ہر نکالنے کو محفوظ رکھیں۔",
   "mpin_setup_cta": "نکالنے کے لیے ایم پن سیٹ کریں",
   "mpin_change_cta": "ایم پن تبدیل کریں",
   "mpin_forgot_cta": "ایم پن بھول گئے؟",
