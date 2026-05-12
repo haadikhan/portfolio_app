@@ -25,6 +25,13 @@ String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
   return formattedIfVisible;
 }
 
+/// Last segment of Firebase UID for compact "portfolio number" display.
+String _dashboardPortfolioTail(String uid) {
+  final t = uid.trim();
+  if (t.length <= 8) return t;
+  return t.substring(t.length - 8);
+}
+
 Color _actionButtonBg(BuildContext context, Color lightTint) {
   if (Theme.of(context).brightness == Brightness.dark) {
     return Color.alphaBlend(
@@ -153,7 +160,7 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
         ),
         child: CustomScrollView(
           slivers: [
-            _DashboardAppBar(profile: widget.profile),
+            _DashboardAppBar(),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               sliver: SliverList(
@@ -163,12 +170,14 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
                   walletAsync.when(
                     loading: () => const _WalletCardSkeleton(),
                     error: (e, _) => _WalletCard(
+                      profile: widget.profile,
                       wallet: null,
                       hideMoney: _hideMoney,
                       onToggleHideMoney: () =>
                           setState(() => _hideMoney = !_hideMoney),
                     ),
                     data: (w) => _WalletCard(
+                      profile: widget.profile,
                       wallet: w,
                       hideMoney: _hideMoney,
                       onToggleHideMoney: () =>
@@ -257,14 +266,12 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
 // ─── App bar ────────────────────────────────────────────────────────────────
 
 class _DashboardAppBar extends ConsumerWidget {
-  const _DashboardAppBar({required this.profile});
-  final AppUser profile;
+  const _DashboardAppBar();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final onSurface = scheme.onSurface;
-    final muted = scheme.onSurfaceVariant;
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
@@ -278,33 +285,15 @@ class _DashboardAppBar extends ConsumerWidget {
           onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            context.tr("good_day"),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12,
-              color: muted,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          Text(
-            profile.name.isNotEmpty
-                ? profile.name
-                : context.tr("investor_label"),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 17,
-              color: onSurface,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+      title: Text(
+        context.tr("good_day"),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 15,
+          color: onSurface,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       actions: const [AppBarPreferenceActions(), SizedBox(width: 8)],
     );
@@ -705,10 +694,12 @@ class _KycBanner extends StatelessWidget {
 
 class _WalletCard extends ConsumerWidget {
   const _WalletCard({
+    required this.profile,
     required this.wallet,
     required this.hideMoney,
     required this.onToggleHideMoney,
   });
+  final AppUser profile;
   final Map<String, dynamic>? wallet;
   final bool hideMoney;
   final VoidCallback onToggleHideMoney;
@@ -793,6 +784,51 @@ class _WalletCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profile.name.isNotEmpty
+                                ? profile.name
+                                : context.tr("investor_label"),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              height: 1.15,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "${context.tr("dashboard_portfolio_number_label")}: "
+                            "${_dashboardPortfolioTail(profile.id)}",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.82),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -1020,7 +1056,7 @@ class _WalletCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 190,
+      height: 268,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primary, AppColors.primaryDark],
