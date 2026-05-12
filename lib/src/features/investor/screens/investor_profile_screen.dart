@@ -1,7 +1,8 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:intl_phone_field/intl_phone_field.dart";
+import "package:intl_phone_field/phone_number.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/i18n/language_provider.dart";
@@ -26,6 +27,21 @@ String? _preferProfileThenKyc(String? profileField, String? kycField) {
   final k = kycField?.trim();
   if (k != null && k.isNotEmpty) return k;
   return null;
+}
+
+/// National number digits for [IntlPhoneField.initialValue] from stored E.164 or legacy local digits.
+String _nationalDigitsForIntlPhoneField(String stored) {
+  final t = stored.trim().replaceAll(" ", "");
+  if (t.isEmpty) return "";
+  if (t.startsWith("+")) {
+    try {
+      return PhoneNumber.fromCompleteNumber(completeNumber: t).number;
+    } catch (_) {
+      if (t.startsWith("+92")) return t.substring(3);
+      return t.replaceFirst(RegExp(r"^\+\d{1,4}"), "");
+    }
+  }
+  return t.replaceAll(RegExp(r"\D"), "");
 }
 
 String _kycLifecycleBadgeLabel(BuildContext context, KycLifecycleStatus s) {
@@ -719,12 +735,46 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                     ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
               _editing
-                  ? _EditableField(
-                      label: context.tr("profile_phone_number"),
-                      controller: _phoneCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      useAdaptiveColors: true,
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: IntlPhoneField(
+                        initialCountryCode: "PK",
+                        initialValue:
+                            _nationalDigitsForIntlPhoneField(_phoneCtrl.text),
+                        decoration: InputDecoration(
+                          labelText: context.tr("profile_phone_number"),
+                          labelStyle: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: scheme.outline.withValues(alpha: 0.15),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: scheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          isDense: true,
+                        ),
+                        keyboardType: TextInputType.phone,
+                        invalidNumberMessage: context.tr("mobile_invalid"),
+                        onChanged: (phone) {
+                          _phoneCtrl.text = phone.completeNumber;
+                        },
+                      ),
                     )
                   : _ProfileFieldTile(
                       label: context.tr("profile_phone_number"),
@@ -1349,15 +1399,11 @@ class _EditableField extends StatelessWidget {
   const _EditableField({
     required this.label,
     required this.controller,
-    this.keyboardType,
-    this.inputFormatters,
     this.useAdaptiveColors = true,
   });
 
   final String label;
   final TextEditingController controller;
-  final TextInputType? keyboardType;
-  final List<TextInputFormatter>? inputFormatters;
   final bool useAdaptiveColors;
 
   @override
@@ -1367,8 +1413,6 @@ class _EditableField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
         style: TextStyle(
           fontSize: 14,
           color: useAdaptiveColors ? scheme.onSurface : AppColors.heading,

@@ -5,6 +5,8 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
+import "package:intl_phone_field/intl_phone_field.dart";
+import "package:intl_phone_field/phone_number.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../services/device_fingerprint.dart";
@@ -12,6 +14,31 @@ import "../../../services/otp_auth_errors.dart";
 import "../../../services/otp_callable_errors.dart";
 import "../../../services/otp_service.dart";
 import "../data/security_providers.dart";
+
+String _securityNationalDigitsForIntlField(String stored) {
+  final t = stored.trim().replaceAll(" ", "");
+  if (t.isEmpty) return "";
+  if (t.startsWith("+")) {
+    try {
+      return PhoneNumber.fromCompleteNumber(completeNumber: t).number;
+    } catch (_) {
+      if (t.startsWith("+92")) return t.substring(3);
+      return t.replaceFirst(RegExp(r"^\+\d{1,4}"), "");
+    }
+  }
+  return t.replaceAll(RegExp(r"\D"), "");
+}
+
+String _securityNormalizePhoneToE164(String raw) {
+  final t = raw.trim().replaceAll(" ", "");
+  if (t.isEmpty) return "";
+  if (t.startsWith("+")) return t;
+  final d = t.replaceAll(RegExp(r"\D"), "");
+  if (d.isEmpty) return "";
+  if (d.startsWith("0")) return "+92${d.substring(1)}";
+  if (d.startsWith("92") && d.length >= 12) return "+$d";
+  return "+92$d";
+}
 
 class SecuritySettingsSection extends ConsumerWidget {
   const SecuritySettingsSection({super.key});
@@ -27,7 +54,9 @@ class SecuritySettingsSection extends ConsumerWidget {
     WidgetRef ref,
     UserSecurityState? security,
   ) async {
-    final phoneCtrl = TextEditingController(text: security?.verifiedPhone ?? "");
+    final normalizedInitial =
+        _securityNormalizePhoneToE164(security?.verifiedPhone ?? "");
+    final phoneCtrl = TextEditingController(text: normalizedInitial);
     final otpCtrl = TextEditingController();
     final otp = OtpService(FirebaseAuth.instance);
     final functions = FirebaseFunctions.instanceFor(region: "us-central1");
@@ -122,14 +151,20 @@ class SecuritySettingsSection extends ConsumerWidget {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: phoneCtrl,
+                IntlPhoneField(
+                  initialCountryCode: "PK",
+                  initialValue:
+                      _securityNationalDigitsForIntlField(phoneCtrl.text),
                   enabled: !pastSendPhase && !sending && !verifying,
                   decoration: InputDecoration(
                     labelText: context.tr("otp_enroll_phone_label"),
-                    hintText: context.tr("otp_enroll_phone_hint"),
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.phone,
+                  invalidNumberMessage: context.tr("otp_enroll_invalid_phone"),
+                  onChanged: (phone) {
+                    phoneCtrl.text = phone.completeNumber;
+                  },
                 ),
                 const SizedBox(height: 8),
                 if (verificationId != null) ...[
@@ -165,7 +200,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                       ? null
                       : () async {
                           final p = phoneCtrl.text.trim();
-                          if (!p.startsWith("+") || p.length < 10) {
+                          if (p.length < 11) {
                             setState(
                               () => err = context.tr("otp_enroll_invalid_phone"),
                             );

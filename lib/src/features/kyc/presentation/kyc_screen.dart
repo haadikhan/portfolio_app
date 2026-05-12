@@ -1,12 +1,13 @@
 import "dart:io";
 
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
-import "package:firebase_storage/firebase_storage.dart";
-import "package:cloud_firestore/cloud_firestore.dart";
+import "package:intl_phone_field/intl_phone_field.dart";
+import "package:intl_phone_field/phone_number.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
@@ -16,6 +17,33 @@ import "../../../providers/auth_providers.dart";
 import "../../../models/user_kyc.dart";
 
 enum _PaymentProofType { salaried, foreigner, businessOwner, inheritance }
+
+/// National digits for [IntlPhoneField.initialValue] (E.164 or legacy local).
+String _kycNationalDigitsForIntlField(String stored) {
+  final t = stored.trim().replaceAll(" ", "");
+  if (t.isEmpty) return "";
+  if (t.startsWith("+")) {
+    try {
+      return PhoneNumber.fromCompleteNumber(completeNumber: t).number;
+    } catch (_) {
+      if (t.startsWith("+92")) return t.substring(3);
+      return t.replaceFirst(RegExp(r"^\+\d{1,4}"), "");
+    }
+  }
+  return t.replaceAll(RegExp(r"\D"), "");
+}
+
+/// Normalizes legacy local storage to E.164 for `users`/`kyc` phone fields.
+String _kycNormalizePhoneToE164(String raw) {
+  final t = raw.trim().replaceAll(" ", "");
+  if (t.isEmpty) return "";
+  if (t.startsWith("+")) return t;
+  final d = t.replaceAll(RegExp(r"\D"), "");
+  if (d.isEmpty) return "";
+  if (d.startsWith("0")) return "+92${d.substring(1)}";
+  if (d.startsWith("92") && d.length >= 12) return "+$d";
+  return "+92$d";
+}
 
 class KycScreen extends ConsumerStatefulWidget {
   const KycScreen({super.key});
@@ -100,7 +128,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     if (_seeded) return;
     _seeded = true;
     _cnic.text = kyc?.cnicNumber ?? "";
-    _phone.text = kyc?.phone ?? "";
+    _phone.text = _kycNormalizePhoneToE164(kyc?.phone ?? "");
     _address.text = kyc?.address ?? "";
     _nomineeName.text = kyc?.nomineeName ?? "";
     _nomineeCnic.text = kyc?.nomineeCnic ?? "";
@@ -361,21 +389,25 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                       : null,
                 ),
                 const SizedBox(height: 10),
-                TextFormField(
-                  controller: _phone,
+                IntlPhoneField(
+                  initialCountryCode: "PK",
+                  initialValue: _kycNationalDigitsForIntlField(_phone.text),
                   enabled: !locked,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
                   decoration: InputDecoration(
                     labelText: context.tr("mobile_number"),
-                    hintText: context.tr("mobile_hint"),
-                    prefixIcon: const Icon(Icons.phone_outlined),
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (v) => (v == null || v.trim().length < 10)
-                      ? context.tr("mobile_invalid")
-                      : null,
+                  keyboardType: TextInputType.phone,
+                  invalidNumberMessage: context.tr("mobile_invalid"),
+                  onChanged: (phone) {
+                    _phone.text = phone.completeNumber;
+                  },
+                  validator: (p) {
+                    if (p == null || p.number.isEmpty) {
+                      return context.tr("mobile_invalid");
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
