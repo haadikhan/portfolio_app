@@ -10,21 +10,21 @@ final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 List<_Allocation> _allocationsFor(BuildContext context, double totalAmountPkr) => [
       _Allocation(
         context.tr("alloc_stock_market"),
-        40,
+        kStockMarketAllocationPercent,
         const Color(0xFF0F7A2C),
-        allocationAmountFromTotal(totalAmountPkr, 40),
+        stockSleeveAmountFromTotal(totalAmountPkr),
       ),
       _Allocation(
         context.tr("alloc_tech"),
-        25,
+        kTechAllocationPercent,
         const Color(0xFF2196F3),
-        allocationAmountFromTotal(totalAmountPkr, 25),
+        techSleeveAmountFromTotal(totalAmountPkr),
       ),
       _Allocation(
         context.tr("alloc_debt"),
-        25,
+        kDebtMarketAllocationPercent,
         const Color(0xFFFF9800),
-        allocationAmountFromTotal(totalAmountPkr, 25),
+        debtSleeveAmountFromTotal(totalAmountPkr),
       ),
       _Allocation(
         context.tr("alloc_money"),
@@ -34,9 +34,9 @@ List<_Allocation> _allocationsFor(BuildContext context, double totalAmountPkr) =
       ),
       _Allocation(
         context.tr("alloc_asset"),
-        5,
+        kAlternativeAssetAllocationPercent,
         const Color(0xFFE91E63),
-        allocationAmountFromTotal(totalAmountPkr, 5),
+        digitalGoldSleeveAmountFromTotal(totalAmountPkr),
       ),
     ];
 

@@ -344,5 +344,41 @@ service cloud.firestore {
         && request.resource.data.authorUid == request.auth.uid;
       allow update, delete: if false;
     }
+
+    // ── Five-market daily feature (Phase 1) ──────────────────────────
+
+    // Admin-editable market config (rates, allocations, benchmarks)
+    // Reads existing settings/** admin write access pattern
+    match /settings/five_market_calc {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Seeded + admin-managed Pakistan public holidays
+    match /settings/pakistan_holidays {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Per-date admin overrides (force close / force open)
+    // Investors need to read effective calendar for banner display
+    match /settings/five_market/five_market_day_overrides/{dayId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // EOD market close snapshots — server SDK writes only (like transactions)
+    match /investment_daily_market_close/{dayId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Per-user daily ledger rows — same access pattern as returnHistory
+    match /portfolios/{portfolioUid}/five_market_daily/{dayId} {
+      allow read: if isOwner(portfolioUid)
+        || isAdmin()
+        || crmManagesInvestor(portfolioUid);
+      allow write: if false;
+    }
   }
 }

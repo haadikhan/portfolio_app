@@ -47,3 +47,6 @@ app.*.map.json
 # Created only by scripts/vercel_build.sh during Vercel builds
 /flutter_sdk/
 .vercel
+
+# Firebase Admin SDK (full project access — never commit)
+firebase/functions/serviceAccountKey.json

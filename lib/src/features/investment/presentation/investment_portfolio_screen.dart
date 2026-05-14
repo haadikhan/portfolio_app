@@ -11,16 +11,45 @@ import "../../../providers/wallet_providers.dart";
 import "../data/allocation_money_market.dart";
 import "widgets/allocation_pie_chart_widget.dart";
 import "widgets/performance_metrics_widget.dart";
+import "widgets/portfolio_market_tab_content.dart";
 import "widgets/return_history_list_widget.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 final _dateFmt = DateFormat("dd MMM yyyy, HH:mm");
 
-class InvestmentPortfolioScreen extends ConsumerWidget {
+class InvestmentPortfolioScreen extends ConsumerStatefulWidget {
   const InvestmentPortfolioScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InvestmentPortfolioScreen> createState() =>
+      _InvestmentPortfolioScreenState();
+}
+
+class _InvestmentPortfolioScreenState
+    extends ConsumerState<InvestmentPortfolioScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _marketTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _marketTabController = TabController(length: 5, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _marketTabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onRefresh() async {
+    ref.invalidate(myPortfolioProvider);
+    ref.invalidate(myReturnHistoryProvider);
+    ref.invalidate(userWalletStreamProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final portfolioAsync = ref.watch(myPortfolioProvider);
     final historyAsync = ref.watch(myReturnHistoryProvider);
     final walletAsync = ref.watch(userWalletStreamProvider);
@@ -32,10 +61,7 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
     return AppScaffold(
       title: context.tr("my_portfolio_title"),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(myPortfolioProvider);
-          ref.invalidate(myReturnHistoryProvider);
-        },
+        onRefresh: _onRefresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -88,14 +114,21 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Portfolio value hero card
                       _PortfolioValueCard(portfolio: portfolio),
                       const SizedBox(height: 24),
-
-                      // Performance metrics
                       _SectionHeader(label: context.tr("performance")),
                       const SizedBox(height: 12),
                       PerformanceMetricsWidget(portfolio: portfolio),
+                      const SizedBox(height: 28),
+                      _SectionHeader(
+                        label: context.tr("portfolio_markets_section"),
+                      ),
+                      const SizedBox(height: 10),
+                      _PortfolioMarketTabsPanel(
+                        controller: _marketTabController,
+                        totalAllocationPkr: availableBalance,
+                        portfolio: portfolio,
+                      ),
                     ],
                   );
                 },
@@ -119,6 +152,116 @@ class InvestmentPortfolioScreen extends ConsumerWidget {
               const SizedBox(height: 32),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bounded-height tab region for illustrative sleeve detail (nested scroll).
+class _PortfolioMarketTabsPanel extends StatelessWidget {
+  const _PortfolioMarketTabsPanel({
+    required this.controller,
+    required this.totalAllocationPkr,
+    required this.portfolio,
+  });
+
+  final TabController controller;
+  final double totalAllocationPkr;
+  final PortfolioModel portfolio;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final screenH = MediaQuery.sizeOf(context).height;
+    final panelHeight = (screenH * 0.56).clamp(400.0, 620.0);
+
+    Widget tabLabel(String key) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            context.tr(key),
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            softWrap: false,
+          ),
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.28),
+      ),
+      padding: const EdgeInsets.only(top: 6, bottom: 10),
+      child: SizedBox(
+        height: panelHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TabBar(
+              controller: controller,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerHeight: 0,
+              dividerColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+              indicatorSize: TabBarIndicatorSize.label,
+              indicator: UnderlineTabIndicator(
+                borderSide: BorderSide(color: scheme.primary, width: 2.5),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              labelColor: scheme.primary,
+              unselectedLabelColor: scheme.onSurfaceVariant,
+              labelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              tabs: [
+                Tab(child: tabLabel("portfolio_tab_digital_gold")),
+                Tab(child: tabLabel("portfolio_tab_money")),
+                Tab(child: tabLabel("portfolio_tab_stock")),
+                Tab(child: tabLabel("portfolio_tab_tech")),
+                Tab(child: tabLabel("portfolio_tab_debt")),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: controller,
+                children: [
+                  PortfolioMarketTabPage(
+                    category: PortfolioMarketCategory.digitalGold,
+                    totalAllocationPkr: totalAllocationPkr,
+                    portfolio: portfolio,
+                  ),
+                  PortfolioMarketTabPage(
+                    category: PortfolioMarketCategory.money,
+                    totalAllocationPkr: totalAllocationPkr,
+                    portfolio: portfolio,
+                  ),
+                  PortfolioMarketTabPage(
+                    category: PortfolioMarketCategory.stock,
+                    totalAllocationPkr: totalAllocationPkr,
+                    portfolio: portfolio,
+                  ),
+                  PortfolioMarketTabPage(
+                    category: PortfolioMarketCategory.tech,
+                    totalAllocationPkr: totalAllocationPkr,
+                    portfolio: portfolio,
+                  ),
+                  PortfolioMarketTabPage(
+                    category: PortfolioMarketCategory.debt,
+                    totalAllocationPkr: totalAllocationPkr,
+                    portfolio: portfolio,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

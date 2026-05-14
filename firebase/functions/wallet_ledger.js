@@ -1468,6 +1468,11 @@ exports.applyMonthlyReturns = onCall(
       const uid = portfolioDoc.id;
       try {
         const data = portfolioDoc.data();
+        // Skip users opted into five-market daily ledger to avoid double credits
+        if (data.fiveMarketDailyLedger === true) {
+          logger.info("applyMonthlyReturns_skip_daily_user", { uid });
+          continue;
+        }
         const previousValue = Number(data.currentValue) || 0;
         if (previousValue <= 0) continue; // skip empty portfolios
 

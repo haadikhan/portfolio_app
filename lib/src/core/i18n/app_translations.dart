@@ -627,6 +627,62 @@ const _en = <String, String>{
   "alloc_debt": "Debt Market",
   "alloc_money": "Money Market",
   "alloc_asset": "Asset Market",
+  "portfolio_markets_section": "Market sleeves",
+  "portfolio_tab_digital_gold": "Digital Gold",
+  "portfolio_tab_money": "Money",
+  "portfolio_tab_stock": "Stock",
+  "portfolio_tab_tech": "Tech",
+  "portfolio_tab_debt": "Debt",
+  "portfolio_debt_ijara_badge": "Ijara Sukuk",
+  "portfolio_tab_target_pct": "Target allocation",
+  "portfolio_tab_sleeve_pkr": "Illustrative sleeve (PKR)",
+  "portfolio_tab_mix_footer":
+      "Amounts apply the illustrative mix to your allocation base; they are not a statement of underlying holdings.",
+  "portfolio_tab_digital_gold_title": "Digital Gold (Asset)",
+  "portfolio_tab_digital_gold_intro":
+      "Exposure oriented toward precious metals as a diversifier alongside equities and income sleeves.",
+  "portfolio_tab_digital_gold_detail_1":
+      "Designed to complement broader risk assets rather than replace them.",
+  "portfolio_tab_digital_gold_detail_2":
+      "Price paths can diverge sharply from stocks or Sukuk in stress periods.",
+  "portfolio_tab_digital_gold_detail_3":
+      "Target weights are illustrative and subject to change.",
+  "portfolio_tab_money_title": "Money",
+  "portfolio_tab_money_intro":
+      "Liquidity and stability sleeve — analogous to certificates or short-duration cash instruments.",
+  "portfolio_tab_money_detail_1":
+      "Supports withdrawals and buffers volatility from growth sleeves.",
+  "portfolio_tab_money_detail_2":
+      "Returns tend to be modest relative to equities or Sukuk coupons.",
+  "portfolio_tab_money_detail_3":
+      "Shown PKR applies your illustrative cash allocation to the portfolio base.",
+  "portfolio_tab_stock_title": "Stock Asset",
+  "portfolio_tab_stock_intro":
+      "Listed equities exposure aligned with Pakistan’s equity market narrative (PSX-oriented sleeve).",
+  "portfolio_tab_stock_detail_1":
+      "Acts as the primary growth engine in the illustrative mix.",
+  "portfolio_tab_stock_detail_2":
+      "Drawdown risk is materially higher than money-market or Sukuk sleeves.",
+  "portfolio_tab_stock_detail_3":
+      "Holdings at issuer level are managed separately from this overview.",
+  "portfolio_tab_tech_title": "Tech",
+  "portfolio_tab_tech_intro":
+      "Technology and innovation-oriented sleeve capturing secular digital trends.",
+  "portfolio_tab_tech_detail_1":
+      "Adds growth diversification beyond domestic cyclicals.",
+  "portfolio_tab_tech_detail_2":
+      "Can be more volatile than broad equities during sentiment shifts.",
+  "portfolio_tab_tech_detail_3":
+      "Weights remain illustrative within the overall allocation framework.",
+  "portfolio_tab_debt_title": "Debt Market",
+  "portfolio_tab_debt_intro":
+      "Income-focused sleeve emphasizing capital preservation relative to equities.",
+  "portfolio_tab_debt_detail_1":
+      "Ijara Sukuk structures highlight Sharia-compliant lease-based cash flows.",
+  "portfolio_tab_debt_detail_2":
+      "Credit and rate dynamics still affect outcomes — not risk-free.",
+  "portfolio_tab_debt_detail_3":
+      "Coupon schedules and credits are administered outside this summary view.",
   "welcome_back": "Welcome back",
   "sign_in_subtitle": "Sign in to continue to your secure dashboard.",
   "enter_valid_email": "Enter valid email",
@@ -1586,6 +1642,62 @@ const _ur = <String, String>{
   "alloc_debt": "قرض مارکیٹ",
   "alloc_money": "منی مارکیٹ",
   "alloc_asset": "اثاثہ مارکیٹ",
+  "portfolio_markets_section": "مارکیٹ سلائیوز",
+  "portfolio_tab_digital_gold": "ڈیجیٹل گولڈ",
+  "portfolio_tab_money": "منی",
+  "portfolio_tab_stock": "اسٹاک",
+  "portfolio_tab_tech": "ٹیک",
+  "portfolio_tab_debt": "قرض",
+  "portfolio_debt_ijara_badge": "اجارہ سکوک",
+  "portfolio_tab_target_pct": "ہدف مختصصد",
+  "portfolio_tab_sleeve_pkr": "مثالی سلائیو (PKR)",
+  "portfolio_tab_mix_footer":
+      "یہ رقم آپ کے مختصصد بیس پر مثالی مکس لاگو کرتی ہے؛ انفرادی سرمایہ کاری نہیں۔",
+  "portfolio_tab_digital_gold_title": "ڈیجیٹل گولڈ (اثاثہ)",
+  "portfolio_tab_digital_gold_intro":
+      "قدیم دھاتوں کا سلائیو جو خطرے والے اثاثوں میں تنوع بڑھاتا ہے۔",
+  "portfolio_tab_digital_gold_detail_1":
+      "اسٹاک اور آمدنی والے سلائیوز کے ساتھ تکمیل کے طور پر ڈیزائن کیا گیا۔",
+  "portfolio_tab_digital_gold_detail_2":
+      "اسٹاک یا سکوک سے قیمتوں کا راستہ مختلف ہو سکتا ہے۔",
+  "portfolio_tab_digital_gold_detail_3":
+      "وزن اشاریاتی ہیں اور وقت کے ساتھ بدل سکتے ہیں۔",
+  "portfolio_tab_money_title": "منی",
+  "portfolio_tab_money_intro":
+      "لیکویڈیٹی سلائیو — سرٹیفکیٹ یا مختصر مدت کیش جیسے آلات۔",
+  "portfolio_tab_money_detail_1":
+      "نکاسی اور اتار چڑھاؤ سے بفر کا کردار۔",
+  "portfolio_tab_money_detail_2":
+      "منافع عام طور پر اسٹاک یا سکوک سے کم ہوتا ہے۔",
+  "portfolio_tab_money_detail_3":
+      "PKR آپ کے مختصصد بیس پر نقد حصہ لاگو کرتا ہے۔",
+  "portfolio_tab_stock_title": "اسٹاک اثاثہ",
+  "portfolio_tab_stock_intro":
+      "لسٹیڈ ایکویٹیز؛ پاکستان اسٹاک مارکیٹ (PSX) سے متعلق بیانیہ۔",
+  "portfolio_tab_stock_detail_1":
+      "مثالی مکس میں بڑھوتری کا مرکزی حصہ۔",
+  "portfolio_tab_stock_detail_2":
+      "منی مارکیٹ یا سکوک سے زیادہ ٹھیس خطرہ۔",
+  "portfolio_tab_stock_detail_3":
+      "فراہم کنندگان کی سطح پر سرمایہ کاری کا انتظام اس خلاصے سے الگ ہوتا ہے۔",
+  "portfolio_tab_tech_title": "ٹیک",
+  "portfolio_tab_tech_intro":
+      "ٹیکنالوجی اور جدت؛ ڈیجیٹل رجحانات کا سلائیو۔",
+  "portfolio_tab_tech_detail_1":
+      "مقامی سائکل سے آگے بڑھوتری کا تنوع۔",
+  "portfolio_tab_tech_detail_2":
+      "جذبات بدلنے پر عام اسٹاک سے زیادہ اتار چڑھاؤ۔",
+  "portfolio_tab_tech_detail_3":
+      "کل مختصصد میں وزن اشاریاتی رہتے ہیں۔",
+  "portfolio_tab_debt_title": "قرض مارکیٹ",
+  "portfolio_tab_debt_intro":
+      "آمدنی پر مرکوز سلائیو؛ ایکویٹی سے زیادہ سرمایہ محفوظ رکھنے کا مقصد۔",
+  "portfolio_tab_debt_detail_1":
+      "اجارہ سکوک شیئریا کمپلائیلیس کرایہ پر مبنی بہاؤ کو ظاہر کرتا ہے۔",
+  "portfolio_tab_debt_detail_2":
+      "کریڈٹ اور شرحوں کا دباؤ اب بھی موجود — خطرہ صفر نہیں۔",
+  "portfolio_tab_debt_detail_3":
+      "کوپن اور کریڈٹ انتظامی سرگرمی یہ خلاصہ نہیں۔",
   "welcome_back": "خوش آمدید",
   "sign_in_subtitle": "محفوظ ڈیش بورڈ کے لیے سائن ان کریں۔",
   "enter_valid_email": "درست ای میل درج کریں",

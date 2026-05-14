@@ -174,3 +174,11 @@ exports.onTransactionUpdated = onDocumentUpdated(
     }
   },
 );
+
+// ── Five-market daily feature (Phase 2) ──────────────────────────
+const fiveMarketDaily = require("./five_market_daily");
+exports.fiveMarketEodSnapshot = fiveMarketDaily.fiveMarketEodSnapshot;
+exports.fiveMarketDailyCredit = fiveMarketDaily.fiveMarketDailyCredit;
+exports.saveFiveMarketConfig = fiveMarketDaily.saveFiveMarketConfig;
+exports.saveFiveMarketDayOverride = fiveMarketDaily.saveFiveMarketDayOverride;
+exports.setFiveMarketDailyLedger = fiveMarketDaily.setFiveMarketDailyLedger;

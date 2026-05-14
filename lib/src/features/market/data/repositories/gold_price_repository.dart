@@ -49,35 +49,41 @@ class GoldPriceRepository {
       final source = metals.usdPkr != null
           ? "metals.dev"
           : "metals.dev + ${_usdPkrSourceLabel()}";
-      return _quote(
-        xauUsd: metals.xauUsd,
-        usdPkr: usdPkr,
-        source: source,
+      return await _withOptionalPriorClosePkr(
+        _quote(
+          xauUsd: metals.xauUsd,
+          usdPkr: usdPkr,
+          source: source,
+        ),
       );
     }
 
     try {
       final q = await _fetchQuoteFromFreeUsdCurrencyTable();
-      return q;
+      return await _withOptionalPriorClosePkr(q);
     } catch (_) {}
 
     try {
       final xauUsd = await _fetchXauUsdBinancePaxg();
       final usdPkr = await _fetchUsdPkrWithFallbacks();
-      return _quote(
-        xauUsd: xauUsd,
-        usdPkr: usdPkr,
-        source: "binance PAXG/USDT + ${_usdPkrSourceLabel()}",
+      return await _withOptionalPriorClosePkr(
+        _quote(
+          xauUsd: xauUsd,
+          usdPkr: usdPkr,
+          source: "binance PAXG/USDT + ${_usdPkrSourceLabel()}",
+        ),
       );
     } catch (_) {}
 
     try {
       final xauUsd = await _fetchXauUsdCoinbasePaxg();
       final usdPkr = await _fetchUsdPkrWithFallbacks();
-      return _quote(
-        xauUsd: xauUsd,
-        usdPkr: usdPkr,
-        source: "coinbase PAXG/USD + ${_usdPkrSourceLabel()}",
+      return await _withOptionalPriorClosePkr(
+        _quote(
+          xauUsd: xauUsd,
+          usdPkr: usdPkr,
+          source: "coinbase PAXG/USD + ${_usdPkrSourceLabel()}",
+        ),
       );
     } catch (e) {
       throw Exception("Could not load gold rates: $e");
@@ -88,6 +94,7 @@ class GoldPriceRepository {
     required double xauUsd,
     required double usdPkr,
     required String source,
+    double? previousClosePkr,
   }) {
     return GoldPriceQuote(
       xauUsd: xauUsd,
@@ -95,7 +102,51 @@ class GoldPriceRepository {
       xauPkr: xauUsd * usdPkr,
       timestamp: DateTime.now(),
       source: source,
+      previousClosePkr: previousClosePkr,
     );
+  }
+
+  /// Prior calendar-day PAXG close in PKR (Binance 1d kline [0] close × [usdPkr]).
+  Future<double?> _priorPaxgClosePkr(double usdPkr) async {
+    final uri = Uri.parse(
+      "https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1d&limit=2",
+    );
+    final res = await _client.get(uri, headers: _jsonHeaders).timeout(_timeout);
+    if (res.statusCode != 200) {
+      return null;
+    }
+    final parsed = jsonDecode(res.body);
+    if (parsed is! List || parsed.isEmpty) {
+      return null;
+    }
+    final row0 = parsed.first;
+    if (row0 is! List || row0.length < 5) {
+      return null;
+    }
+    final prevCloseUsd = _readNum(row0[4]);
+    if (prevCloseUsd == null || prevCloseUsd <= 0) {
+      return null;
+    }
+    return prevCloseUsd * usdPkr;
+  }
+
+  Future<GoldPriceQuote> _withOptionalPriorClosePkr(GoldPriceQuote q) async {
+    try {
+      final prior = await _priorPaxgClosePkr(q.usdPkr);
+      if (prior == null || prior <= 0) {
+        return q;
+      }
+      return GoldPriceQuote(
+        xauUsd: q.xauUsd,
+        usdPkr: q.usdPkr,
+        xauPkr: q.xauPkr,
+        timestamp: q.timestamp,
+        source: q.source,
+        previousClosePkr: prior,
+      );
+    } catch (_) {
+      return q;
+    }
   }
 
   String _usdPkrSourceLabel() {

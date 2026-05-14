@@ -1,6 +1,20 @@
-/// Percentage of the illustrative allocation assigned to Money Market
-/// ([`allocation_pie_chart_widget.dart`]). Keep in sync with that UI.
+// Illustrative allocation percentages — single source for pie chart + portfolio tabs.
+// Must sum to 100.
+
+/// Money market / liquidity sleeve ([`allocation_pie_chart_widget.dart`]).
 const double kMoneyMarketAllocationPercent = 5.0;
+
+/// Listed equities / PSX-oriented sleeve.
+const double kStockMarketAllocationPercent = 40.0;
+
+/// Technology-oriented growth sleeve.
+const double kTechAllocationPercent = 25.0;
+
+/// Debt / income sleeve (e.g. Sukuk).
+const double kDebtMarketAllocationPercent = 25.0;
+
+/// Alternative sleeve represented here as digital gold / commodities-style exposure.
+const double kAlternativeAssetAllocationPercent = 5.0;
 
 /// Same rule as segment amounts in the allocation pie: [percentage] of [total].
 double allocationAmountFromTotal(double total, double percentage) {
@@ -11,6 +25,22 @@ double allocationAmountFromTotal(double total, double percentage) {
 /// PKR in the Money Market slice for a given allocation base total.
 double moneyMarketAmountFromAllocationTotal(double total) =>
     allocationAmountFromTotal(total, kMoneyMarketAllocationPercent);
+
+/// PKR in the alternative / digital-gold illustrative sleeve.
+double digitalGoldSleeveAmountFromTotal(double total) =>
+    allocationAmountFromTotal(total, kAlternativeAssetAllocationPercent);
+
+/// PKR in the stock illustrative sleeve.
+double stockSleeveAmountFromTotal(double total) =>
+    allocationAmountFromTotal(total, kStockMarketAllocationPercent);
+
+/// PKR in the tech illustrative sleeve.
+double techSleeveAmountFromTotal(double total) =>
+    allocationAmountFromTotal(total, kTechAllocationPercent);
+
+/// PKR in the debt illustrative sleeve.
+double debtSleeveAmountFromTotal(double total) =>
+    allocationAmountFromTotal(total, kDebtMarketAllocationPercent);
 
 double _safeNum(dynamic raw) {
   if (raw is num && raw.isFinite) return raw.toDouble();
