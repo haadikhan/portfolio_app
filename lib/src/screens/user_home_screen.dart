@@ -423,6 +423,14 @@ class _AppDrawer extends ConsumerWidget {
                     },
                   ),
                   _DrawerItem(
+                    icon: Icons.multiline_chart_rounded,
+                    label: context.tr("drawer_five_market_daily"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/five-market-daily");
+                    },
+                  ),
+                  _DrawerItem(
                     icon: Icons.show_chart_rounded,
                     label: context.tr("drawer_kmi30_companies"),
                     onTap: () {
@@ -1267,6 +1275,16 @@ class _QuickAccessGrid extends StatelessWidget {
             AppColors.quickAccessProfile,
           ),
           onTap: () => context.push("/profile"),
+        ),
+        _QuickAccessTile(
+          label: context.tr("qa_daily_markets"),
+          icon: Icons.multiline_chart_rounded,
+          watermark: Icons.stacked_line_chart_rounded,
+          backgroundColor: _quickAccessTileBg(
+            context,
+            AppColors.quickAccessDailyMarkets,
+          ),
+          onTap: () => context.push("/five-market-daily"),
         ),
       ],
     );

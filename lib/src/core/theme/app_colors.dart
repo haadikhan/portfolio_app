@@ -39,6 +39,7 @@ class AppColors {
   static const Color quickAccessWallet = Color(0xFF1565C0);
   static const Color quickAccessTransactions = Color(0xFF4A148C);
   static const Color quickAccessProfile = Color(0xFF00695C);
+  static const Color quickAccessDailyMarkets = Color(0xFF37474F);
 
   /// Decorative circles on wallet hero (low alpha).
   static const Color walletHeroOverlayA = Color(0x33FFFFFF);

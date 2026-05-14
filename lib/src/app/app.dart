@@ -15,6 +15,7 @@ import "../features/crm/presentation/crm_dashboard_screen.dart";
 import "../features/home/presentation/home_screen.dart";
 import "../features/investment/presentation/investment_portfolio_screen.dart";
 import "../features/investment/presentation/investor_dashboard_screen.dart";
+import "../features/investment/presentation/five_market_daily_screen.dart";
 import "../features/investment/presentation/live_profit_screen.dart";
 import "../features/investor/screens/investor_profile_screen.dart";
 import "../features/kyc/presentation/kyc_screen.dart";
@@ -183,6 +184,14 @@ class WakalatInvestApp extends ConsumerWidget {
           builder: (_, __) => const KycApprovedGateScreen(
             featureName: "portfolio",
             child: LiveProfitScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market-daily",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: FiveMarketDailyScreen(),
           ),
         ),
         GoRoute(
