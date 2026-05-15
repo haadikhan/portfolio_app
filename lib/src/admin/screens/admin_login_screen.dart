@@ -7,7 +7,6 @@ import "../../core/branding/brand_assets.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_error_dialog.dart";
-import "../../core/widgets/design_system_widgets.dart";
 import "../../providers/auth_providers.dart";
 import "../providers/admin_providers.dart";
 
@@ -80,11 +79,21 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authBusy = ref.watch(adminAuthControllerProvider).isLoading;
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
+          colors: isDark
+              ? [
+                  scheme.surface,
+                  scheme.surfaceContainerHighest,
+                ]
+              : const [
+                  AppColors.backgroundTop,
+                  AppColors.backgroundBottom,
+                ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -96,54 +105,80 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
             constraints: const BoxConstraints(maxWidth: 440),
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: SoftCard(
-                padding: const EdgeInsets.all(28),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Image.asset(
-                          BrandAssets.logoPng,
-                          height: 96,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: isDark ? scheme.surface : AppColors.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: isDark
+                        ? scheme.outline.withValues(alpha: 0.35)
+                        : AppColors.border,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.35 : 0.05,
+                      ),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Image.asset(
+                            BrandAssets.logoPng,
+                            height: 96,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        "Admin sign in",
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "ISC-WAI — KYC operations",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 24),
-                      TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: "Work email",
-                          prefixIcon: Icon(Icons.email_outlined),
+                        const SizedBox(height: 20),
+                        Text(
+                          "Admin sign in",
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
-                        validator: (v) =>
-                            (v == null || !v.contains("@")) ? "Valid email required" : null,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Password",
-                          prefixIcon: Icon(Icons.lock_outline),
+                        const SizedBox(height: 8),
+                        Text(
+                          "ISC-WAI — KYC operations",
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
                         ),
-                        validator: (v) =>
-                            (v == null || v.length < 6) ? "Min 6 characters" : null,
-                      ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: "Work email",
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                          validator: (v) => (v == null || !v.contains("@"))
+                              ? "Valid email required"
+                              : null,
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: "Password",
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          validator: (v) => (v == null || v.length < 6)
+                              ? "Min 6 characters"
+                              : null,
+                        ),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
                         child: TextButton(
@@ -164,7 +199,8 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                               )
                             : const Text("Sign in"),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
