@@ -4,6 +4,7 @@ import "package:intl/intl.dart";
 import "../../../../core/i18n/app_translations.dart";
 import "../../../../models/portfolio_model.dart";
 import "../../data/allocation_money_market.dart";
+import "../../domain/market_sleeve_balance.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 final _pctFmt = NumberFormat("#0.#");
@@ -44,6 +45,16 @@ double targetPercentForCategory(PortfolioMarketCategory category) {
     case PortfolioMarketCategory.debt:
       return kDebtMarketAllocationPercent;
   }
+}
+
+MarketSleeve marketSleeveFor(PortfolioMarketCategory category) {
+  return switch (category) {
+    PortfolioMarketCategory.digitalGold => MarketSleeve.gold,
+    PortfolioMarketCategory.money => MarketSleeve.money,
+    PortfolioMarketCategory.stock => MarketSleeve.stock,
+    PortfolioMarketCategory.tech => MarketSleeve.tech,
+    PortfolioMarketCategory.debt => MarketSleeve.debt,
+  };
 }
 
 Color _accentFor(PortfolioMarketCategory category) {
@@ -122,15 +133,17 @@ class PortfolioMarketTabPage extends StatelessWidget {
     super.key,
     required this.category,
     required this.totalAllocationPkr,
+    this.sleeveEntry,
     this.portfolio,
   });
 
   final PortfolioMarketCategory category;
   final double totalAllocationPkr;
+  final SleeveBalanceEntry? sleeveEntry;
   final PortfolioModel? portfolio;
 
   String _formatSleeve(double v) {
-    if (!v.isFinite || v <= 0) return _money.format(0);
+    if (!v.isFinite) return _money.format(0);
     return _money.format(v);
   }
 
@@ -139,7 +152,10 @@ class PortfolioMarketTabPage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final accent = _accentFor(category);
     final pct = targetPercentForCategory(category);
-    final sleeve = sleeveAmountForCategory(totalAllocationPkr, category);
+    final sleeveDisplay = sleeveEntry?.displayPkr;
+    final sleeve = (sleeveDisplay != null && sleeveDisplay.isFinite)
+        ? sleeveDisplay
+        : sleeveAmountForCategory(totalAllocationPkr, category);
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -259,6 +275,15 @@ class PortfolioMarketTabPage extends StatelessWidget {
               ),
             ],
           ),
+          if (category == PortfolioMarketCategory.money &&
+              sleeveEntry != null) ...[
+            const SizedBox(height: 10),
+            _StatTile(
+              label: context.tr("portfolio_tab_money_withdrawable_label"),
+              value: _formatSleeve(sleeveEntry!.basePkr),
+              accent: accent,
+            ),
+          ],
           if (portfolio != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -276,6 +301,14 @@ class PortfolioMarketTabPage extends StatelessWidget {
             icon: Icons.topic_rounded,
             body: context.tr(_introKey(category)),
           ),
+          if (category == PortfolioMarketCategory.money)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: _DetailCard(
+                icon: Icons.account_balance_wallet_outlined,
+                body: context.tr("portfolio_tab_money_mm_note"),
+              ),
+            ),
           ..._detailKeys(category).map(
             (key) => Padding(
               padding: const EdgeInsets.only(top: 10),

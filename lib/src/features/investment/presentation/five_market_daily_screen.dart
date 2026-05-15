@@ -7,7 +7,9 @@ import "package:portfolio_app/src/core/i18n/app_translations.dart";
 import "package:portfolio_app/src/core/widgets/app_scaffold.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
+import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
+import "package:portfolio_app/src/features/investment/providers/market_sleeve_balance_provider.dart";
 import "package:portfolio_app/src/features/investment/presentation/five_market_daily_providers.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_bar.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_index_tick.dart";
@@ -33,6 +35,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
     final indexTick = ref.watch(kmi30IndexTickProvider);
     final eodAsync = ref.watch(latestEodSnapshotProvider);
     final klinesAsync = ref.watch(kmi30IndexDailyKlinesProvider);
+    final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
 
     return AppScaffold(
       title: context.tr("five_market_daily_title"),
@@ -41,6 +44,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
           ref.invalidate(kmi30IndexDailyKlinesProvider);
           ref.invalidate(fiveMarketConfigProvider);
           ref.invalidate(userWalletStreamProvider);
+          ref.invalidate(fiveMarketDailyHistoryProvider);
           ref.invalidate(kmi30IndexTickProvider);
           await Future<void>.delayed(const Duration(milliseconds: 500));
         },
@@ -91,6 +95,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
                 eodAsync,
                 klinesAsync,
                 walletAsync.valueOrNull,
+                sleeveSnap,
               ),
           ],
         ),
@@ -108,6 +113,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
     AsyncValue<Map<String, dynamic>?> eodAsync,
     AsyncValue<List<Kmi30Bar>> klinesAsync,
     Map<String, dynamic>? wallet,
+    SleeveBalanceSnapshot? sleeveSnap,
   ) {
     final base = allocationTotalFromWallet(wallet);
     final slivers = <Widget>[
@@ -189,7 +195,14 @@ class FiveMarketDailyScreen extends ConsumerWidget {
     );
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 8)));
 
-    void addRow(String labelKey, MarketSliceResult slice, String route) {
+    final todayCredited = sleeveSnap?.todayFiveMarketCredited ?? false;
+    void addRow(
+      String labelKey,
+      MarketSliceResult slice,
+      String route,
+      MarketSleeve sleeve,
+    ) {
+      final entry = sleeveSnap?[sleeve];
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -198,6 +211,8 @@ class FiveMarketDailyScreen extends ConsumerWidget {
               label: context.tr(labelKey),
               slice: slice,
               scheme: scheme,
+              displayPkr: entry?.displayPkr,
+              todayCreditedToWallet: todayCredited,
               onTap: () => context.push(route),
             ),
           ),
@@ -205,11 +220,36 @@ class FiveMarketDailyScreen extends ConsumerWidget {
       );
     }
 
-    addRow("five_market_row_stock", dailyResult.stock, "/five-market/stock");
-    addRow("five_market_row_tech", dailyResult.tech, "/five-market/tech");
-    addRow("five_market_row_debt", dailyResult.debt, "/five-market/debt");
-    addRow("five_market_row_money", dailyResult.money, "/five-market/money");
-    addRow("five_market_row_gold", dailyResult.gold, "/five-market/gold");
+    addRow(
+      "five_market_row_stock",
+      dailyResult.stock,
+      "/five-market/stock",
+      MarketSleeve.stock,
+    );
+    addRow(
+      "five_market_row_tech",
+      dailyResult.tech,
+      "/five-market/tech",
+      MarketSleeve.tech,
+    );
+    addRow(
+      "five_market_row_debt",
+      dailyResult.debt,
+      "/five-market/debt",
+      MarketSleeve.debt,
+    );
+    addRow(
+      "five_market_row_money",
+      dailyResult.money,
+      "/five-market/money",
+      MarketSleeve.money,
+    );
+    addRow(
+      "five_market_row_gold",
+      dailyResult.gold,
+      "/five-market/gold",
+      MarketSleeve.gold,
+    );
 
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
     slivers.add(
@@ -218,6 +258,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: _TotalProfitCard(
             total: dailyResult.totalProfitPkr,
+            portfolioTotalPkr: sleeveSnap?.totalDisplayPkr,
             scheme: scheme,
           ),
         ),
@@ -552,12 +593,17 @@ class _MarketSliceTile extends StatelessWidget {
     required this.label,
     required this.slice,
     required this.scheme,
+    this.displayPkr,
+    this.todayCreditedToWallet = false,
     this.onTap,
   });
 
   final String label;
   final MarketSliceResult slice;
   final ColorScheme scheme;
+  /// Dashboard sleeve total (incl. pending when not yet credited).
+  final double? displayPkr;
+  final bool todayCreditedToWallet;
   final VoidCallback? onTap;
 
   String _sliceSubtitle(BuildContext context) {
@@ -637,6 +683,38 @@ class _MarketSliceTile extends StatelessWidget {
                             color: scheme.onSurfaceVariant,
                           ),
                     ),
+                    if (displayPkr != null && displayPkr!.isFinite) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        context.trParams(
+                          "five_market_sleeve_value_label",
+                          {"amount": _money.format(displayPkr!)},
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                    if (todayCreditedToWallet) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        context.tr("five_market_credited_to_wallet_status"),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ] else if (slice.status == MarketSliceStatus.realized) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        context.tr("five_market_pending_overnight_credit"),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -687,10 +765,12 @@ class _MarketSliceTile extends StatelessWidget {
 class _TotalProfitCard extends StatelessWidget {
   const _TotalProfitCard({
     required this.total,
+    this.portfolioTotalPkr,
     required this.scheme,
   });
 
   final double total;
+  final double? portfolioTotalPkr;
   final ColorScheme scheme;
 
   @override
@@ -700,6 +780,7 @@ class _TotalProfitCard extends StatelessWidget {
         : total < 0
             ? scheme.error
             : scheme.onSurfaceVariant;
+    final pt = portfolioTotalPkr;
     return Card(
       elevation: 0,
       color: scheme.primaryContainer.withValues(alpha: 0.22),
@@ -709,23 +790,51 @@ class _TotalProfitCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Text(
-                context.tr("five_market_total_label"),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-            Text(
-              "${total >= 0 ? "+" : ""}${_money.format(total)}",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: c,
-                    fontWeight: FontWeight.w800,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.tr("five_market_total_label"),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
+                ),
+                Text(
+                  "${total >= 0 ? "+" : ""}${_money.format(total)}",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: c,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
             ),
+            if (pt != null && pt.isFinite && pt > 0) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.tr("five_market_portfolio_total_incl_pending"),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
+                          ),
+                    ),
+                  ),
+                  Text(
+                    _money.format(pt),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                        ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

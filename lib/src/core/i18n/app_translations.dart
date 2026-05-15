@@ -99,6 +99,16 @@ const _en = <String, String>{
   "available": "Available",
   "reserved": "Pending",
   "profit_label": "Profit",
+  "dashboard_total_portfolio_label": "Total portfolio value",
+  "dashboard_profit_credited_label": "Profit (credited to wallet)",
+  "dashboard_profit_pending_overnight_label": "Today (pending overnight credit)",
+  "dashboard_mm_withdrawable_hint":
+      "Withdrawable liquidity bucket (5% of deposits, less withdrawals). Daily sleeve gains add to total portfolio; wallet credit runs overnight.",
+  "portfolio_tab_money_withdrawable_label": "Withdrawable (money bucket)",
+  "portfolio_tab_money_mm_note":
+      "Full sleeve value includes attributed gains. Withdrawals use the withdrawable amount below until profits credit to your wallet overnight.",
+  "portfolio_sleeve_total_footnote":
+      "Sleeve-based total {amount} includes today’s estimate before overnight wallet credit.",
   "total_deposited_prefix": "Total deposited",
   "deposit": "Deposit",
   "withdraw": "Withdraw",
@@ -1140,6 +1150,10 @@ const _en = <String, String>{
   "five_market_status_closed": "CLOSED",
   "five_market_status_non_trading": "OFF DAY",
   "five_market_total_label": "Estimated total today",
+  "five_market_sleeve_value_label": "Sleeve value: {amount}",
+  "five_market_pending_overnight_credit": "Pending overnight wallet credit",
+  "five_market_credited_to_wallet_status": "Credited to wallet",
+  "five_market_portfolio_total_incl_pending": "Portfolio total (incl. pending)",
   // Market detail screens
   "mkt_gold_price_today": "Gold Price Today",
   "mkt_gold_source_note": "Spot converted to PKR • 1 Pakistani tola = 11.664 g",
@@ -1279,6 +1293,16 @@ const _ur = <String, String>{
   "available": "دستیاب",
   "reserved": "زیر التواء",
   "profit_label": "منافع",
+  "dashboard_total_portfolio_label": "پورٹ فولیو کی کل قیمت",
+  "dashboard_profit_credited_label": "منافع (والٹ میں کریڈٹ)",
+  "dashboard_profit_pending_overnight_label": "آج (رات کو کریڈٹ زیر التواء)",
+  "dashboard_mm_withdrawable_hint":
+      "نکالنے کے قابل رقم (جمع کا 5%، منہا نکالیاں)۔ روزانہ منافع کل پورٹ فولیو میں شامل؛ والٹ کریڈٹ رات کو ہوتا ہے۔",
+  "portfolio_tab_money_withdrawable_label": "نکالنے کے قابل (منی بکٹ)",
+  "portfolio_tab_money_mm_note":
+      "مکمل سلائیو میں منسوب منافع شامل ہے۔ نکاسی یہاں تک محدود رہتی ہے جب تک منافع رات کو والٹ میں کریڈٹ نہ ہو۔",
+  "portfolio_sleeve_total_footnote":
+      "سلائیو پر مبنی کل {amount} میں آج کا تخمینہ (رات کے والٹ کریڈٹ سے پہلے) شامل ہے۔",
   "total_deposited_prefix": "کل جمع",
   "deposit": "جمع",
   "withdraw": "نکالیں",
@@ -2313,6 +2337,10 @@ const _ur = <String, String>{
   "five_market_status_closed": "بند",
   "five_market_status_non_trading": "چھٹی",
   "five_market_total_label": "آج کا تخمینی کل منافع",
+  "five_market_sleeve_value_label": "سلائیو کی قیمت: {amount}",
+  "five_market_pending_overnight_credit": "رات کو والٹ کریڈٹ زیر التواء",
+  "five_market_credited_to_wallet_status": "والٹ میں کریڈٹ",
+  "five_market_portfolio_total_incl_pending": "پورٹ فولیو کل (زیر التواء سمیت)",
   // Market detail screens
   "mkt_gold_price_today": "آج سونے کی قیمت",
   "mkt_gold_source_note": "PKR میں اسپاٹ • 1 پاکستانی تولہ = 11.664 گرام",

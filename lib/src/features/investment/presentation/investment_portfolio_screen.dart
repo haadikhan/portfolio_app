@@ -10,6 +10,8 @@ import "../../../models/portfolio_model.dart";
 import "../../../providers/portfolio_providers.dart";
 import "../../../providers/wallet_providers.dart";
 import "../data/allocation_money_market.dart";
+import "../domain/market_sleeve_balance.dart";
+import "../providers/market_sleeve_balance_provider.dart";
 import "widgets/allocation_pie_chart_widget.dart";
 import "widgets/performance_metrics_widget.dart";
 import "widgets/portfolio_market_tab_content.dart";
@@ -56,6 +58,7 @@ class _InvestmentPortfolioScreenState
     ref.invalidate(myPortfolioProvider);
     ref.invalidate(myReturnHistoryProvider);
     ref.invalidate(userWalletStreamProvider);
+    ref.invalidate(fiveMarketDailyHistoryProvider);
   }
 
   @override
@@ -63,10 +66,13 @@ class _InvestmentPortfolioScreenState
     final portfolioAsync = ref.watch(myPortfolioProvider);
     final historyAsync = ref.watch(myReturnHistoryProvider);
     final walletAsync = ref.watch(userWalletStreamProvider);
+    final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
     final double availableBalance = walletAsync.maybeWhen(
       data: (wallet) => _readAvailableBalance(wallet),
       orElse: () => 0.0,
     );
+    final double chartTotalPkr =
+        sleeveSnap?.totalDisplayPkr ?? availableBalance;
 
     return AppScaffold(
       title: context.tr("my_portfolio_title"),
@@ -106,7 +112,8 @@ class _InvestmentPortfolioScreenState
                       ],
                     ),
                     child: AllocationPieChartWidget(
-                      totalAmountPkr: availableBalance,
+                      totalAmountPkr: chartTotalPkr,
+                      sleeveEntries: sleeveSnap?.sleeves,
                     ),
                   );
                 },
@@ -124,7 +131,10 @@ class _InvestmentPortfolioScreenState
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _PortfolioValueCard(portfolio: portfolio),
+                      _PortfolioValueCard(
+                        portfolio: portfolio,
+                        sleeveAlignedTotalPkr: sleeveSnap?.totalDisplayPkr,
+                      ),
                       const SizedBox(height: 24),
                       _SectionHeader(label: context.tr("performance")),
                       const SizedBox(height: 12),
@@ -137,6 +147,7 @@ class _InvestmentPortfolioScreenState
                       _PortfolioMarketTabsPanel(
                         controller: _marketTabController,
                         totalAllocationPkr: availableBalance,
+                        sleeveSnap: sleeveSnap,
                         portfolio: portfolio,
                       ),
                     ],
@@ -173,11 +184,13 @@ class _PortfolioMarketTabsPanel extends StatelessWidget {
   const _PortfolioMarketTabsPanel({
     required this.controller,
     required this.totalAllocationPkr,
+    this.sleeveSnap,
     required this.portfolio,
   });
 
   final TabController controller;
   final double totalAllocationPkr;
+  final SleeveBalanceSnapshot? sleeveSnap;
   final PortfolioModel portfolio;
 
   @override
@@ -247,26 +260,36 @@ class _PortfolioMarketTabsPanel extends StatelessWidget {
                   PortfolioMarketTabPage(
                     category: PortfolioMarketCategory.digitalGold,
                     totalAllocationPkr: totalAllocationPkr,
+                    sleeveEntry:
+                        sleeveSnap?[marketSleeveFor(PortfolioMarketCategory.digitalGold)],
                     portfolio: portfolio,
                   ),
                   PortfolioMarketTabPage(
                     category: PortfolioMarketCategory.money,
                     totalAllocationPkr: totalAllocationPkr,
+                    sleeveEntry:
+                        sleeveSnap?[marketSleeveFor(PortfolioMarketCategory.money)],
                     portfolio: portfolio,
                   ),
                   PortfolioMarketTabPage(
                     category: PortfolioMarketCategory.stock,
                     totalAllocationPkr: totalAllocationPkr,
+                    sleeveEntry:
+                        sleeveSnap?[marketSleeveFor(PortfolioMarketCategory.stock)],
                     portfolio: portfolio,
                   ),
                   PortfolioMarketTabPage(
                     category: PortfolioMarketCategory.tech,
                     totalAllocationPkr: totalAllocationPkr,
+                    sleeveEntry:
+                        sleeveSnap?[marketSleeveFor(PortfolioMarketCategory.tech)],
                     portfolio: portfolio,
                   ),
                   PortfolioMarketTabPage(
                     category: PortfolioMarketCategory.debt,
                     totalAllocationPkr: totalAllocationPkr,
+                    sleeveEntry:
+                        sleeveSnap?[marketSleeveFor(PortfolioMarketCategory.debt)],
                     portfolio: portfolio,
                   ),
                 ],
@@ -286,8 +309,12 @@ double _readAvailableBalance(Map<String, dynamic>? wallet) {
 // ── Portfolio value hero card ────────────────────────────────────────────────
 
 class _PortfolioValueCard extends StatelessWidget {
-  const _PortfolioValueCard({required this.portfolio});
+  const _PortfolioValueCard({
+    required this.portfolio,
+    this.sleeveAlignedTotalPkr,
+  });
   final PortfolioModel portfolio;
+  final double? sleeveAlignedTotalPkr;
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +352,22 @@ class _PortfolioValueCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
+          if (sleeveAlignedTotalPkr != null &&
+              sleeveAlignedTotalPkr!.isFinite &&
+              (sleeveAlignedTotalPkr! - portfolio.currentValue).abs() > 1) ...[
+            const SizedBox(height: 8),
+            Text(
+              context.trParams(
+                "portfolio_sleeve_total_footnote",
+                {"amount": _money.format(sleeveAlignedTotalPkr!)},
+              ),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.82),
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
           const SizedBox(height: 14),

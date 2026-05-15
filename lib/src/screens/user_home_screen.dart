@@ -10,6 +10,7 @@ import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
 import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
+import "../features/investment/providers/market_sleeve_balance_provider.dart";
 import "../features/investment/data/allocation_money_market.dart";
 import "../features/update/data/app_update_providers.dart";
 import "../features/update/presentation/update_action.dart";
@@ -715,8 +716,10 @@ class _WalletCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
     final allocationTotalPkr = allocationTotalFromWallet(wallet);
     final moneyMarketPkr = moneyMarketAvailableFromWallet(wallet);
+    final totalPortfolioPkr = sleeveSnap?.totalDisplayPkr ?? allocationTotalPkr;
     final avail = (wallet?["availableBalance"] as num?)?.toDouble() ?? 0;
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
@@ -727,10 +730,6 @@ class _WalletCard extends ConsumerWidget {
         .tr("totals_line_deposited")
         .replaceAll(":", "")
         .trim();
-
-    final totalAllocationDisplay = wallet == null
-        ? dash
-        : _dashboardMoneyDisplay(hideMoney, _money.format(allocationTotalPkr));
 
     return Container(
       decoration: BoxDecoration(
@@ -841,7 +840,7 @@ class _WalletCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          context.tr("money_market_withdrawable_label"),
+                          context.tr("dashboard_total_portfolio_label"),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -910,7 +909,7 @@ class _WalletCard extends ConsumerWidget {
                         ? dash
                         : _dashboardMoneyDisplay(
                             hideMoney,
-                            _money.format(moneyMarketPkr),
+                            _money.format(totalPortfolioPkr),
                           ),
                     style: const TextStyle(
                       color: Colors.white,
@@ -919,14 +918,38 @@ class _WalletCard extends ConsumerWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 14),
                   Text(
-                    "${context.tr("total_investment_label")}: "
-                    "$totalAllocationDisplay",
+                    context.tr("money_market_withdrawable_label"),
                     style: const TextStyle(
                       color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    wallet == null
+                        ? dash
+                        : _dashboardMoneyDisplay(
+                            hideMoney,
+                            _money.format(moneyMarketPkr),
+                          ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    context.tr("dashboard_mm_withdrawable_hint"),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      height: 1.35,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -998,14 +1021,33 @@ class _WalletCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(
-                          "${context.tr("profit_label")}: "
-                          "${wallet == null ? dash : _dashboardMoneyDisplay(hideMoney, _money.format(tp))}",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${context.tr("dashboard_profit_credited_label")}: "
+                              "${wallet == null ? dash : _dashboardMoneyDisplay(hideMoney, _money.format(tp))}",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (sleeveSnap != null &&
+                                sleeveSnap.pendingTodayTotalPkr != 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  "${context.tr("dashboard_profit_pending_overnight_label")}: "
+                                  "${_dashboardMoneyDisplay(hideMoney, _money.format(sleeveSnap.pendingTodayTotalPkr))}",
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
