@@ -28,6 +28,7 @@ import "screens/admin_returns_screen.dart";
 import "screens/admin_upload_reports_screen.dart";
 import "screens/admin_withdrawals_queue_screen.dart";
 import "screens/admin_market_screen.dart";
+import "screens/admin_five_market_screen.dart";
 import "screens/admin_app_updates_screen.dart";
 import "widgets/admin_shell.dart";
 
@@ -126,6 +127,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/returns",
             builder: (_, __) => const AdminReturnsScreen(),
+          ),
+          GoRoute(
+            path: "/five-market",
+            builder: (_, __) => const AdminFiveMarketScreen(),
           ),
           GoRoute(
             path: "/fees",

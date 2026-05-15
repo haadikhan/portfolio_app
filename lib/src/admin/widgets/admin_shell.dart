@@ -19,6 +19,7 @@ const _kAdminShellRoutes = <String>[
   "/crm/investors",
   "/crm/team",
   "/returns",
+  "/five-market",
   "/fees",
   "/earnings",
   "/upload-reports",
@@ -226,6 +227,14 @@ class AdminShell extends ConsumerWidget {
                       title: Text(context.tr("returns")),
                       selected: loc.startsWith("/returns"),
                       onTap: () => _go(context, "/returns"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: const Icon(Icons.pie_chart_outline_rounded),
+                      title: Text(context.tr("admin_nav_five_market")),
+                      selected: loc.startsWith("/five-market"),
+                      onTap: () => _go(context, "/five-market"),
                     ),
                     ListTile(
                       dense: true,
@@ -553,6 +562,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("returns")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.pie_chart_outline_rounded),
+          selectedIcon: const Icon(Icons.pie_chart_rounded),
+          label: Text(context.tr("admin_nav_five_market")),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.payments_outlined),
           selectedIcon: const Icon(Icons.payments_rounded),
           label: Text(context.tr("nav_fees")),
@@ -595,12 +609,13 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 14;
-  if (loc.startsWith("/notifications")) return 13;
-  if (loc.startsWith("/app-updates")) return 12;
-  if (loc.startsWith("/upload-reports")) return 11;
-  if (loc.startsWith("/earnings")) return 10;
-  if (loc.startsWith("/fees")) return 9;
+  if (loc.startsWith("/broadcast")) return 15;
+  if (loc.startsWith("/notifications")) return 14;
+  if (loc.startsWith("/app-updates")) return 13;
+  if (loc.startsWith("/upload-reports")) return 12;
+  if (loc.startsWith("/earnings")) return 11;
+  if (loc.startsWith("/fees")) return 10;
+  if (loc.startsWith("/five-market")) return 9;
   if (loc.startsWith("/returns")) return 8;
   if (loc.startsWith("/crm/team")) return 7;
   if (loc.startsWith("/crm/investors")) return 6;

@@ -11,6 +11,8 @@ import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
 import "../models/kyc_admin_models.dart";
 import "../providers/admin_providers.dart";
+import "../providers/five_market_admin_providers.dart";
+import "../services/five_market_admin_service.dart";
 
 class AdminInvestorDetailScreen extends ConsumerStatefulWidget {
   const AdminInvestorDetailScreen({super.key, required this.userId});
@@ -418,8 +420,137 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                 ),
               ),
             ),
+          if (isAdmin) ...[
+            const SizedBox(height: 28),
+            _FiveMarketLedgerSection(userId: user.userId),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _FiveMarketLedgerSection extends ConsumerStatefulWidget {
+  const _FiveMarketLedgerSection({required this.userId});
+
+  final String userId;
+
+  @override
+  ConsumerState<_FiveMarketLedgerSection> createState() =>
+      _FiveMarketLedgerSectionState();
+}
+
+class _FiveMarketLedgerSectionState
+    extends ConsumerState<_FiveMarketLedgerSection> {
+  bool _saving = false;
+
+  Future<void> _setLedger(bool enabled) async {
+    final title = context.tr("admin_five_market_ledger_confirm_title");
+    final body = enabled
+        ? context.tr("admin_five_market_ledger_confirm_body_enable")
+        : context.tr("admin_five_market_ledger_confirm_body_disable");
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr("cancel")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(context.tr("save_btn")),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(fiveMarketAdminServiceProvider).setDailyLedger(
+            userId: widget.userId,
+            enabled: enabled,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("admin_five_market_ledger_saved"))),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${context.tr("admin_five_market_ledger_save_failed")}: "
+            "${fiveMarketAdminCallableErrorMessage(e)}",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${context.tr("admin_five_market_ledger_save_failed")}: $e",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection("portfolios")
+          .doc(widget.userId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final enabled =
+            snapshot.data?.data()?["fiveMarketDailyLedger"] == true;
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: scheme.outline.withValues(alpha: 0.2)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("admin_five_market_ledger_title"),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr("admin_five_market_ledger_subtitle"),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.tr("admin_five_market_ledger_enabled")),
+                  value: enabled,
+                  onChanged: _saving
+                      ? null
+                      : (v) {
+                          if (v != enabled) _setLedger(v);
+                        },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
