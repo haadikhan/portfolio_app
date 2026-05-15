@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "../../../core/i18n/app_translations.dart";
@@ -16,6 +17,15 @@ import "widgets/return_history_list_widget.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 final _dateFmt = DateFormat("dd MMM yyyy, HH:mm");
+
+/// Portfolio tab index → five-market detail route (push on tab tap).
+const _tabRoutes = <String>[
+  "/five-market/gold", // 0 — Digital Gold
+  "/five-market/money", // 1 — Money
+  "/five-market/stock", // 2 — Stock
+  "/five-market/tech", // 3 — Tech
+  "/five-market/debt", // 4 — Debt
+];
 
 class InvestmentPortfolioScreen extends ConsumerStatefulWidget {
   const InvestmentPortfolioScreen({super.key});
@@ -200,6 +210,7 @@ class _PortfolioMarketTabsPanel extends StatelessWidget {
           children: [
             TabBar(
               controller: controller,
+              onTap: (index) => context.push(_tabRoutes[index]),
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               dividerHeight: 0,

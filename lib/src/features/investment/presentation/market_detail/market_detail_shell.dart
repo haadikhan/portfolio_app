@@ -23,39 +23,17 @@ class MarketDetailShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canPop = GoRouter.of(context).canPop();
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: accentColor,
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () {
-            if (canPop) {
-              context.pop();
-            } else {
-              context.go(fallbackRoute);
-            }
-          },
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
           if (backgroundImageProvider != null)
             Positioned.fill(
               child: Opacity(
-                opacity: 0.08,
+                opacity: 0.30,
                 child: Image(
                   image: backgroundImageProvider!,
                   fit: BoxFit.cover,
@@ -63,7 +41,59 @@ class MarketDetailShell extends StatelessWidget {
                 ),
               ),
             ),
-          SingleChildScrollView(child: child),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    accentColor.withValues(alpha: 0.55),
+                    scheme.surface,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 0,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                foregroundColor: Colors.white,
+                iconTheme: const IconThemeData(color: Colors.white),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                  onPressed: () {
+                    if (canPop) {
+                      context.pop();
+                    } else {
+                      context.go(fallbackRoute);
+                    }
+                  },
+                ),
+                title: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: child,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -34,18 +34,17 @@ class TechMarketDetailScreen extends ConsumerWidget {
       backgroundImageProvider: const NetworkImage(
         "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=60",
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _TechRateHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          _TechRateHeroCard(
               scheme: scheme,
               benchmarkRate: benchmarkRate,
               targetRate: targetRate,
             ),
-            const SizedBox(height: 12),
-            if (dailyResult == null)
+          const SizedBox(height: 14),
+          if (dailyResult == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(child: CircularProgressIndicator()),
@@ -56,10 +55,9 @@ class TechMarketDetailScreen extends ConsumerWidget {
                 slice: dailyResult.tech,
                 techAllocationPercent: techAllocationPercent,
               ),
-            const SizedBox(height: 12),
-            const _AboutTechSleeveCard(),
-          ],
-        ),
+          const SizedBox(height: 14),
+          const _AboutTechSleeveCard(),
+        ],
       ),
     );
   }
@@ -82,10 +80,14 @@ class _TechRateHeroCard extends StatelessWidget {
     final dailyLow = benchmarkRate / 365;
     final dailyHigh = targetRate / 365;
 
-    return Card(
-      color: _indigo.withValues(alpha: 0.10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return _GlassCard(
+      accentColor: _indigo,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _indigo.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -236,89 +238,87 @@ class _TechHoldingsCard extends StatelessWidget {
     }
     final statusKey = _statusTranslationKey(slice.status);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return _GlassCard(
+      accentColor: _indigo,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.memory_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_tech_holdings_title"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _StatRow(
+            label: "Allocated (PKR)",
+            value: _money.format(slice.allocatedPkr),
+            scheme: scheme,
+          ),
+          _StatRow(
+            label: context.tr("mkt_todays_profit"),
+            value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
+            scheme: scheme,
+            valueColor: profitColor,
+          ),
+          _StatRow(
+            label: context.tr("mkt_change"),
+            value: changeText,
+            scheme: scheme,
+            valueColor: changeColor,
+          ),
+          _StatRow(
+            label: context.tr("mkt_allocation_pct"),
+            value: "${techAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            scheme: scheme,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.memory_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_tech_holdings_title"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    context.tr("mkt_status"),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr(statusKey),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _StatRow(
-              label: "Allocated (PKR)",
-              value: _money.format(slice.allocatedPkr),
-              scheme: scheme,
-            ),
-            _StatRow(
-              label: context.tr("mkt_todays_profit"),
-              value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
-              scheme: scheme,
-              valueColor: profitColor,
-            ),
-            _StatRow(
-              label: context.tr("mkt_change"),
-              value: changeText,
-              scheme: scheme,
-              valueColor: changeColor,
-            ),
-            _StatRow(
-              label: context.tr("mkt_allocation_pct"),
-              value: "${techAllocationPercent.toStringAsFixed(0)}% of portfolio",
-              scheme: scheme,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      context.tr("mkt_status"),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr(statusKey),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -332,26 +332,25 @@ class _AboutTechSleeveCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_about_sleeve"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _indigo,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_about_sleeve"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
@@ -395,12 +394,43 @@ class _AboutTechSleeveCard extends StatelessWidget {
               "benchmarked against world-class tech indices with an "
               "aggressive performance target, making this the highest-growth "
               "sleeve in your portfolio.",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.accentColor});
+  final Widget child;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (accentColor ?? scheme.primary).withValues(alpha: 0.25),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
       ),
     );
   }

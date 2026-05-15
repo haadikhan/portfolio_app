@@ -32,15 +32,14 @@ class MoneyMarketDetailScreen extends ConsumerWidget {
       backgroundImageProvider: const NetworkImage(
         "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=60",
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _MoneyRateHeroCard(scheme: scheme, rate: rate),
-            const SizedBox(height: 12),
-            _UnderlyingInstrumentsCard(scheme: scheme, rate: rate),
-            const SizedBox(height: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          _MoneyRateHeroCard(scheme: scheme, rate: rate),
+          const SizedBox(height: 14),
+          _UnderlyingInstrumentsCard(scheme: scheme, rate: rate),
+          const SizedBox(height: 14),
             if (dailyResult == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
@@ -53,10 +52,9 @@ class MoneyMarketDetailScreen extends ConsumerWidget {
                 rate: rate,
                 moneyAllocationPercent: moneyAllocationPercent,
               ),
-            const SizedBox(height: 12),
-            const _AboutMoneySleeveCard(),
-          ],
-        ),
+          const SizedBox(height: 14),
+          const _AboutMoneySleeveCard(),
+        ],
       ),
     );
   }
@@ -75,10 +73,14 @@ class _MoneyRateHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      color: _blue.withValues(alpha: 0.10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return _GlassCard(
+      accentColor: _blue,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _blue.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -210,26 +212,25 @@ class _UnderlyingInstrumentsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.library_books_rounded, color: _blue),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_debt_instruments_title"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.library_books_rounded, color: _blue),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_debt_instruments_title"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _InstrumentRow(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _InstrumentRow(
               icon: Icons.timer_outlined,
               name: "Treasury Bills (T-Bills)",
               description: "Short-term Govt paper, 3–12 months",
@@ -252,8 +253,7 @@ class _UnderlyingInstrumentsCard extends StatelessWidget {
               badge: "Liquid",
               scheme: scheme,
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -348,97 +348,95 @@ class _MoneyHoldingsCard extends StatelessWidget {
     final monthlyReturn = slice.allocatedPkr * rate / 100 / 12;
     final statusKey = _statusTranslationKey(slice.status);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return _GlassCard(
+      accentColor: _blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pie_chart_outline_rounded,
+                  color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_money_holdings_title"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _StatRow(
+            label: "Allocated (PKR)",
+            value: _money.format(slice.allocatedPkr),
+            scheme: scheme,
+          ),
+          _StatRow(
+            label: context.tr("mkt_debt_implied_monthly"),
+            value: "PKR ${monthlyReturn.toStringAsFixed(2)}",
+            scheme: scheme,
+            valueColor: _blue,
+          ),
+          _StatRow(
+            label: context.tr("mkt_todays_profit"),
+            value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
+            scheme: scheme,
+            valueColor: profitColor,
+          ),
+          _StatRow(
+            label: context.tr("mkt_annual_rate"),
+            value: "${rate.toStringAsFixed(1)}% p.a.",
+            scheme: scheme,
+            valueColor: _blue,
+          ),
+          _StatRow(
+            label: context.tr("mkt_allocation_pct"),
+            value:
+                "${moneyAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            scheme: scheme,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.pie_chart_outline_rounded,
-                    color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_money_holdings_title"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    context.tr("mkt_status"),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr(statusKey),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _StatRow(
-              label: "Allocated (PKR)",
-              value: _money.format(slice.allocatedPkr),
-              scheme: scheme,
-            ),
-            _StatRow(
-              label: context.tr("mkt_debt_implied_monthly"),
-              value: "PKR ${monthlyReturn.toStringAsFixed(2)}",
-              scheme: scheme,
-              valueColor: _blue,
-            ),
-            _StatRow(
-              label: context.tr("mkt_todays_profit"),
-              value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
-              scheme: scheme,
-              valueColor: profitColor,
-            ),
-            _StatRow(
-              label: context.tr("mkt_annual_rate"),
-              value: "${rate.toStringAsFixed(1)}% p.a.",
-              scheme: scheme,
-              valueColor: _blue,
-            ),
-            _StatRow(
-              label: context.tr("mkt_allocation_pct"),
-              value:
-                  "${moneyAllocationPercent.toStringAsFixed(0)}% of portfolio",
-              scheme: scheme,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      context.tr("mkt_status"),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr(statusKey),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -452,26 +450,25 @@ class _AboutMoneySleeveCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_about_sleeve"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_about_sleeve"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
@@ -507,19 +504,50 @@ class _AboutMoneySleeveCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              "The money market sleeve holds ultra-short-duration Pakistan "
-              "government securities — primarily Treasury Bills and money "
-              "market instruments. This is the most conservative sleeve in "
-              "your portfolio, designed for capital preservation, high "
-              "liquidity, and stable short-term returns with minimal risk.",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+          const SizedBox(height: 12),
+          Text(
+            "The money market sleeve holds ultra-short-duration Pakistan "
+            "government securities — primarily Treasury Bills and money "
+            "market instruments. This is the most conservative sleeve in "
+            "your portfolio, designed for capital preservation, high "
+            "liquidity, and stable short-term returns with minimal risk.",
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.accentColor});
+  final Widget child;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (accentColor ?? scheme.primary).withValues(alpha: 0.25),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
       ),
     );
   }

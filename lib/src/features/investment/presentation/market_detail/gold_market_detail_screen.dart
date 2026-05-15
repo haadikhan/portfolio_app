@@ -62,12 +62,11 @@ class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen>
       backgroundImageProvider: const NetworkImage(
         "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=800&q=60",
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _PriceHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          _PriceHeroCard(
               scheme: scheme,
               quote: quote,
               pricePerTola: pricePerTola,
@@ -76,7 +75,7 @@ class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen>
               onRetry: () =>
                   ref.read(goldPriceRefreshCounterProvider.notifier).refresh(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             _HoldingsCard(
               scheme: scheme,
               allocatedPkr: slice?.allocatedPkr ??
@@ -88,7 +87,7 @@ class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen>
                       : null),
               pricePerTola: pricePerTola,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             if (dailyResult == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
@@ -100,10 +99,9 @@ class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen>
                 slice: slice!,
                 goldAllocationPercent: config?.allocations.gold ?? 5,
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             const _AboutGoldSleeveCard(),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -166,10 +164,14 @@ class _PriceHeroCard extends StatelessWidget {
       }
     }
 
-    return Card(
-      color: _amberGold.withValues(alpha: 0.12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return _GlassCard(
+      accentColor: _amberGold,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _amberGold.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -242,37 +244,35 @@ class _HoldingsCard extends StatelessWidget {
         ? "${_tolaFmt.format(allocated / price)} tola"
         : "—";
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.diamond_outlined, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_gold_holdings_title"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _amberGold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.diamond_outlined, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_gold_holdings_title"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _GoldStatRow(
-              label: context.tr("mkt_gold_allocated_pkr"),
-              value: allocated != null ? _money.format(allocated) : "—",
-              scheme: scheme,
-            ),
-            _GoldStatRow(
-              label: context.tr("mkt_gold_equivalent_tola"),
-              value: tolaText,
-              scheme: scheme,
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _GoldStatRow(
+            label: context.tr("mkt_gold_allocated_pkr"),
+            value: allocated != null ? _money.format(allocated) : "—",
+            scheme: scheme,
+          ),
+          _GoldStatRow(
+            label: context.tr("mkt_gold_equivalent_tola"),
+            value: tolaText,
+            scheme: scheme,
+          ),
+        ],
       ),
     );
   }
@@ -309,38 +309,37 @@ class _PerformanceCard extends StatelessWidget {
         : "${change.toStringAsFixed(2)}%";
     final statusKey = _statusTranslationKey(slice.status);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.trending_up_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_todays_return"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _amberGold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_todays_return"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _GoldStatRow(
-              label: context.tr("mkt_profit_pkr"),
-              value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
-              scheme: scheme,
-              valueColor: profitColor,
-            ),
-            _GoldStatRow(
-              label: context.tr("mkt_change"),
-              value: changeText,
-              scheme: scheme,
-              valueColor: changeColor,
-            ),
-            Padding(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _GoldStatRow(
+            label: context.tr("mkt_profit_pkr"),
+            value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
+            scheme: scheme,
+            valueColor: profitColor,
+          ),
+          _GoldStatRow(
+            label: context.tr("mkt_change"),
+            value: changeText,
+            scheme: scheme,
+            valueColor: changeColor,
+          ),
+          Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,14 +379,13 @@ class _PerformanceCard extends StatelessWidget {
                 ],
               ),
             ),
-            _GoldStatRow(
-              label: context.tr("mkt_allocation_pct"),
-              value:
-                  "${goldAllocationPercent.toStringAsFixed(0)}% of portfolio",
-              scheme: scheme,
-            ),
-          ],
-        ),
+          _GoldStatRow(
+            label: context.tr("mkt_allocation_pct"),
+            value:
+                "${goldAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            scheme: scheme,
+          ),
+        ],
       ),
     );
   }
@@ -401,36 +399,66 @@ class _AboutGoldSleeveCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return Card(
+    return _GlassCard(
+      accentColor: _amberGold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_about_sleeve"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Your portfolio's gold allocation tracks international spot "
+            "gold prices converted to PKR. Gold acts as a hedge against "
+            "inflation and currency risk. Returns vary daily based on "
+            "XAU/USD and PKR/USD rates.",
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.accentColor});
+  final Widget child;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (accentColor ?? scheme.primary).withValues(alpha: 0.25),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_about_sleeve"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Your portfolio's gold allocation tracks international spot "
-              "gold prices converted to PKR. Gold acts as a hedge against "
-              "inflation and currency risk. Returns vary daily based on "
-              "XAU/USD and PKR/USD rates.",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+        child: child,
       ),
     );
   }

@@ -38,18 +38,17 @@ class StockMarketDetailScreen extends ConsumerWidget {
       backgroundImageProvider: const NetworkImage(
         "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=60",
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Kmi30LiveIndexCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          _Kmi30LiveIndexCard(
               scheme: scheme,
               indexTick: indexTick,
               klinesAsync: klinesAsync,
             ),
-            const SizedBox(height: 12),
-            if (dailyResult == null)
+          const SizedBox(height: 14),
+          if (dailyResult == null)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(child: CircularProgressIndicator()),
@@ -60,10 +59,9 @@ class StockMarketDetailScreen extends ConsumerWidget {
                 slice: slice!,
                 stockAllocationPercent: config?.allocations.stock ?? 40,
               ),
-            const SizedBox(height: 12),
-            const _AboutStockSleeveCard(),
-          ],
-        ),
+          const SizedBox(height: 14),
+          const _AboutStockSleeveCard(),
+        ],
       ),
     );
   }
@@ -84,10 +82,14 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      color: _psxGreen.withValues(alpha: 0.10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return _GlassCard(
+      accentColor: _psxGreen,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _psxGreen.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -257,90 +259,88 @@ class _StockHoldingsCard extends StatelessWidget {
         : "${change.toStringAsFixed(2)}%";
     final statusKey = _statusTranslationKey(slice.status);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return _GlassCard(
+      accentColor: _psxGreen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.show_chart_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_stock_holdings_title"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _StatRow(
+            label: "Allocated (PKR)",
+            value: _money.format(slice.allocatedPkr),
+            scheme: scheme,
+          ),
+          _StatRow(
+            label: context.tr("mkt_todays_profit"),
+            value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
+            scheme: scheme,
+            valueColor: profitColor,
+          ),
+          _StatRow(
+            label: context.tr("mkt_change"),
+            value: changeText,
+            scheme: scheme,
+            valueColor: changeColor,
+          ),
+          _StatRow(
+            label: context.tr("mkt_allocation_pct"),
+            value:
+                "${stockAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            scheme: scheme,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.show_chart_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_stock_holdings_title"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    context.tr("mkt_status"),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr(statusKey),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _StatRow(
-              label: "Allocated (PKR)",
-              value: _money.format(slice.allocatedPkr),
-              scheme: scheme,
-            ),
-            _StatRow(
-              label: context.tr("mkt_todays_profit"),
-              value: "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
-              scheme: scheme,
-              valueColor: profitColor,
-            ),
-            _StatRow(
-              label: context.tr("mkt_change"),
-              value: changeText,
-              scheme: scheme,
-              valueColor: changeColor,
-            ),
-            _StatRow(
-              label: context.tr("mkt_allocation_pct"),
-              value:
-                  "${stockAllocationPercent.toStringAsFixed(0)}% of portfolio",
-              scheme: scheme,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      context.tr("mkt_status"),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr(statusKey),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -354,36 +354,66 @@ class _AboutStockSleeveCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr("mkt_about_sleeve"),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+    return _GlassCard(
+      accentColor: _psxGreen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.tr("mkt_about_sleeve"),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
               "Your stock allocation tracks the KMI-30 index — Pakistan's top "
               "30 Shariah-compliant companies listed on the Pakistan Stock "
               "Exchange (PSX). Returns reflect daily index movements during "
-              "market hours (Mon–Fri, 09:00–16:00 PKT).",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              "              market hours (Mon–Fri, 09:00–16:00 PKT).",
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.accentColor});
+  final Widget child;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (accentColor ?? scheme.primary).withValues(alpha: 0.25),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
       ),
     );
   }
