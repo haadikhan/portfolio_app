@@ -16,6 +16,11 @@ import "../features/home/presentation/home_screen.dart";
 import "../features/investment/presentation/investment_portfolio_screen.dart";
 import "../features/investment/presentation/investor_dashboard_screen.dart";
 import "../features/investment/presentation/five_market_daily_screen.dart";
+import "../features/investment/presentation/market_detail/gold_market_detail_screen.dart";
+import "../features/investment/presentation/market_detail/stock_market_detail_screen.dart";
+import "../features/investment/presentation/market_detail/tech_market_detail_screen.dart";
+import "../features/investment/presentation/market_detail/debt_market_detail_screen.dart";
+import "../features/investment/presentation/market_detail/money_market_detail_screen.dart";
 import "../features/investment/presentation/live_profit_screen.dart";
 import "../features/investor/screens/investor_profile_screen.dart";
 import "../features/kyc/presentation/kyc_screen.dart";
@@ -192,6 +197,46 @@ class WakalatInvestApp extends ConsumerWidget {
           builder: (_, __) => const KycApprovedGateScreen(
             featureName: "portfolio",
             child: FiveMarketDailyScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market/gold",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: GoldMarketDetailScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market/stock",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: StockMarketDetailScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market/tech",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: TechMarketDetailScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market/debt",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: DebtMarketDetailScreen(),
+          ),
+        ),
+        GoRoute(
+          path: "/five-market/money",
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const KycApprovedGateScreen(
+            featureName: "portfolio",
+            child: MoneyMarketDetailScreen(),
           ),
         ),
         GoRoute(

@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
@@ -188,7 +189,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
     );
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 8)));
 
-    void addRow(String labelKey, MarketSliceResult slice) {
+    void addRow(String labelKey, MarketSliceResult slice, String route) {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -197,17 +198,18 @@ class FiveMarketDailyScreen extends ConsumerWidget {
               label: context.tr(labelKey),
               slice: slice,
               scheme: scheme,
+              onTap: () => context.push(route),
             ),
           ),
         ),
       );
     }
 
-    addRow("five_market_row_stock", dailyResult.stock);
-    addRow("five_market_row_tech", dailyResult.tech);
-    addRow("five_market_row_debt", dailyResult.debt);
-    addRow("five_market_row_money", dailyResult.money);
-    addRow("five_market_row_gold", dailyResult.gold);
+    addRow("five_market_row_stock", dailyResult.stock, "/five-market/stock");
+    addRow("five_market_row_tech", dailyResult.tech, "/five-market/tech");
+    addRow("five_market_row_debt", dailyResult.debt, "/five-market/debt");
+    addRow("five_market_row_money", dailyResult.money, "/five-market/money");
+    addRow("five_market_row_gold", dailyResult.gold, "/five-market/gold");
 
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
     slivers.add(
@@ -550,11 +552,13 @@ class _MarketSliceTile extends StatelessWidget {
     required this.label,
     required this.slice,
     required this.scheme,
+    this.onTap,
   });
 
   final String label;
   final MarketSliceResult slice;
   final ColorScheme scheme;
+  final VoidCallback? onTap;
 
   String _sliceSubtitle(BuildContext context) {
     final annual = slice.annualPercent;
@@ -591,77 +595,89 @@ class _MarketSliceTile extends StatelessWidget {
       MarketSliceStatus.closed => "five_market_status_closed",
       MarketSliceStatus.nonTradingDay => "five_market_status_non_trading",
     };
-    return Card(
-      color: scheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: scheme.outline.withValues(alpha: 0.12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Card(
+        color: scheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: scheme.outline.withValues(alpha: 0.12),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _sliceSubtitle(context),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _sliceSubtitleColor(),
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.trParams(
+                        "five_market_allocated_label",
+                        {"amount": _money.format(slice.allocatedPkr)},
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    label,
+                    "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _sliceSubtitle(context),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: _sliceSubtitleColor(),
+                          color: profitColor,
+                          fontWeight: FontWeight.w700,
                         ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    context.trParams(
-                      "five_market_allocated_label",
-                      {"amount": _money.format(slice.allocatedPkr)},
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
                     ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      context.tr(statusKey),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: profitColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    context.tr(statusKey),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
