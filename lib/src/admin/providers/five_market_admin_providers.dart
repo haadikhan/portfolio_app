@@ -86,18 +86,25 @@ final adminEodSnapshotsProvider =
       });
 });
 
-/// `userId` → opted in to five-market daily ledger.
+/// `userId` → daily ledger enabled (default ON unless `fiveMarketDailyLedger == false`).
 final adminPortfolioLedgerMapProvider =
     StreamProvider<Map<String, bool>>((ref) {
   return ref
       .watch(firebaseFirestoreProvider)
       .collection("portfolios")
-      .where("fiveMarketDailyLedger", isEqualTo: true)
       .snapshots()
       .map((snap) {
-        return {for (final d in snap.docs) d.id: true};
+        return {
+          for (final d in snap.docs)
+            d.id: d.data()["fiveMarketDailyLedger"] != false,
+        };
       });
 });
+
+/// True when daily ledger is on (missing portfolio doc = default ON).
+bool adminDailyLedgerEnabled(Map<String, bool> map, String userId) {
+  return map[userId] ?? true;
+}
 
 /// PKT wall calendar date `yyyy-MM-dd` (UTC+5, no DST).
 String adminTodayPktDateString() {

@@ -508,26 +508,34 @@ exports.fiveMarketDailyCredit = onSchedule(
     }
     const config = configSnap.data();
 
-    const portfoliosSnap = await db()
-      .collection("portfolios")
-      .where("fiveMarketDailyLedger", "==", true)
-      .get();
+    // Default ON: every wallet holder is eligible unless portfolios/{uid}
+    // explicitly sets fiveMarketDailyLedger === false.
+    const walletsSnap = await db().collection("wallets").get();
 
-    if (portfoliosSnap.empty) {
-      logger.info("fiveMarketDailyCredit_no_opted_in_portfolios", { datePkt });
+    if (walletsSnap.empty) {
+      logger.info("fiveMarketDailyCredit_no_wallets", { datePkt });
       return;
     }
 
     logger.info("fiveMarketDailyCredit_processing", {
       datePkt,
-      count: portfoliosSnap.size,
+      count: walletsSnap.size,
     });
 
     const results = { success: 0, skipped: 0, failed: 0 };
 
-    for (const portfolioDoc of portfoliosSnap.docs) {
-      const uid = portfolioDoc.id;
+    for (const walletDoc of walletsSnap.docs) {
+      const uid = walletDoc.id;
       try {
+        const portfolioSnap = await db().collection("portfolios").doc(uid).get();
+        if (
+          portfolioSnap.exists &&
+          portfolioSnap.data().fiveMarketDailyLedger === false
+        ) {
+          results.skipped++;
+          continue;
+        }
+
         const existingCredit = await db()
           .collection("portfolios")
           .doc(uid)
@@ -541,15 +549,7 @@ exports.fiveMarketDailyCredit = onSchedule(
           continue;
         }
 
-        const walletSnap = await db().collection("wallets").doc(uid).get();
-
-        if (!walletSnap.exists) {
-          logger.warn("fiveMarketDailyCredit_no_wallet", { uid, datePkt });
-          results.skipped++;
-          continue;
-        }
-
-        const wallet = walletSnap.data();
+        const wallet = walletDoc.data();
         const basePkr = parseFloat(
           (
             (Number(wallet.totalDeposited) || 0) +
@@ -779,6 +779,7 @@ exports.setFiveMarketDailyLedger = onCall({ region: REGION }, async (request) =>
   const beforeLedger = prevSnap.exists
     ? prevSnap.data().fiveMarketDailyLedger
     : undefined;
+  const wasEnabled = beforeLedger !== false;
 
   await db()
     .collection("portfolios")
@@ -791,7 +792,7 @@ exports.setFiveMarketDailyLedger = onCall({ region: REGION }, async (request) =>
     "setFiveMarketDailyLedger",
     "portfolios",
     userId,
-    { fiveMarketDailyLedger: beforeLedger === true },
+    { fiveMarketDailyLedger: wasEnabled },
     { fiveMarketDailyLedger: enabled },
   );
 

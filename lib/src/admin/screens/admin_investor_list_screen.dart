@@ -231,7 +231,7 @@ class _InvestorTable extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Switch(
-                            value: ledgerMap[i.userId] ?? false,
+                            value: adminDailyLedgerEnabled(ledgerMap, i.userId),
                             onChanged: (v) => onLedgerChanged(i.userId, v),
                           ),
                   ),

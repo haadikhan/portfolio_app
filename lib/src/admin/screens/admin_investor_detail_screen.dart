@@ -513,8 +513,10 @@ class _FiveMarketLedgerSectionState
           .doc(widget.userId)
           .snapshots(),
       builder: (context, snapshot) {
-        final enabled =
-            snapshot.data?.data()?["fiveMarketDailyLedger"] == true;
+        final data = snapshot.data?.data();
+        final enabled = snapshot.data?.exists != true
+            ? true
+            : data?["fiveMarketDailyLedger"] != false;
         return Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
