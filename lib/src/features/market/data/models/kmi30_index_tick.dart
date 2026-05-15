@@ -9,6 +9,9 @@ class Kmi30IndexTick {
     this.high,
     this.low,
     this.volume,
+    this.previousClose,
+    this.sessionOpen,
+    this.dayChangeUsesPriorClose = true,
     required this.receivedAt,
   });
 
@@ -18,6 +21,15 @@ class Kmi30IndexTick {
   final double? high;
   final double? low;
   final double? volume;
+
+  /// Prior **daily** bar close when [dayChangeUsesPriorClose] is true (PSX baseline).
+  final double? previousClose;
+
+  /// Latest bar session open (today’s 1d open).
+  final double? sessionOpen;
+
+  /// False when only one 1d bar was available and change uses open → close fallback.
+  final bool dayChangeUsesPriorClose;
   final DateTime receivedAt;
 
   /// Parse from psxterminal REST tick response for IDX/KMI30.
@@ -46,17 +58,30 @@ class Kmi30IndexTick {
       high: data["high"] != null ? d(data["high"]) : null,
       low: data["low"] != null ? d(data["low"]) : null,
       volume: data["volume"] != null ? d(data["volume"]) : null,
+      previousClose: null,
+      sessionOpen: open != 0 ? open : null,
+      dayChangeUsesPriorClose: true,
       receivedAt: DateTime.now(),
     );
   }
 
-  Kmi30IndexTick copyWith({double? changePercent}) => Kmi30IndexTick(
+  Kmi30IndexTick copyWith({
+    double? changePercent,
+    double? previousClose,
+    double? sessionOpen,
+    bool? dayChangeUsesPriorClose,
+  }) =>
+      Kmi30IndexTick(
         currentValue: currentValue,
         changeAbsolute: changeAbsolute,
         changePercent: changePercent ?? this.changePercent,
         high: high,
         low: low,
         volume: volume,
+        previousClose: previousClose ?? this.previousClose,
+        sessionOpen: sessionOpen ?? this.sessionOpen,
+        dayChangeUsesPriorClose:
+            dayChangeUsesPriorClose ?? this.dayChangeUsesPriorClose,
         receivedAt: receivedAt,
       );
 }

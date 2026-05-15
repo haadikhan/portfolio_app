@@ -110,6 +110,8 @@ function getPktDateString(offsetDays = 0) {
  * Fetches KMI30 daily bar from psxterminal.com/api/klines/KMI30/1d
  * Returns { closingValue, openingValue, high, low, volume,
  *           changeAbsolute, changePercent } or null on failure.
+ * change* use **previous bar close** vs last close when two bars exist (PSX-style);
+ * with one bar, uses session open as baseline (matches Flutter `fetchIndexTick`).
  */
 async function fetchKmi30Eod() {
   try {
@@ -121,27 +123,53 @@ async function fetchKmi30Eod() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const bars = Array.isArray(data) ? data : data.data || data.bars || [];
-    if (!bars.length) return null;
+    const rawBars = Array.isArray(data) ? data : data.data || data.bars || [];
+    if (!rawBars.length) return null;
 
-    const bar = bars[bars.length - 1];
-    const open = Number(bar[1] ?? bar.open ?? 0);
-    const high = Number(bar[2] ?? bar.high ?? 0);
-    const low = Number(bar[3] ?? bar.low ?? 0);
-    const close = Number(bar[4] ?? bar.close ?? 0);
-    const vol = Number(bar[5] ?? bar.volume ?? 0);
+    /** @param {unknown} bar */
+    const normBar = (bar) => {
+      if (Array.isArray(bar)) {
+        return {
+          t: Number(bar[0] ?? 0),
+          open: Number(bar[1] ?? 0),
+          high: Number(bar[2] ?? 0),
+          low: Number(bar[3] ?? 0),
+          close: Number(bar[4] ?? 0),
+          vol: Number(bar[5] ?? 0),
+        };
+      }
+      const o = bar && typeof bar === "object" ? bar : {};
+      return {
+        t: Number(o.timestamp ?? o.time ?? o.t ?? 0),
+        open: Number(o.open ?? 0),
+        high: Number(o.high ?? 0),
+        low: Number(o.low ?? 0),
+        close: Number(o.close ?? 0),
+        vol: Number(o.volume ?? 0),
+      };
+    };
 
-    if (!close || !open) return null;
+    const norm = rawBars.map(normBar).sort((a, b) => a.t - b.t);
+    const today = norm[norm.length - 1];
+    if (!today.close) return null;
 
-    const changeAbsolute = parseFloat((close - open).toFixed(2));
-    const changePercent = parseFloat(((changeAbsolute / open) * 100).toFixed(4));
+    const usesPriorClose = norm.length >= 2;
+    const baseline = usesPriorClose
+      ? norm[norm.length - 2].close
+      : today.open;
+    if (!baseline) return null;
+
+    const changeAbsolute = parseFloat((today.close - baseline).toFixed(2));
+    const changePercent = parseFloat(
+      ((changeAbsolute / baseline) * 100).toFixed(4),
+    );
 
     return {
-      closingValue: close,
-      openingValue: open,
-      high,
-      low,
-      volume: vol,
+      closingValue: today.close,
+      openingValue: today.open,
+      high: today.high,
+      low: today.low,
+      volume: today.vol,
       changeAbsolute,
       changePercent,
     };

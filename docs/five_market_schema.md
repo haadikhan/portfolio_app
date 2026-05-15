@@ -181,3 +181,17 @@ Add **only** this field to the existing portfolio document (do not restructure o
 
 - Default: field **missing** or `false` → legacy behavior (no daily five-market credits).
 - `true` → opted into daily five-market credits (**admin-only** write in a later phase).
+
+---
+
+## KMI30 display & EOD (PSX-style day change)
+
+**Investor app** ([`fetchIndexTick`](../lib/src/features/market/data/repositories/psx_repository.dart)) and **EOD snapshot** ([`fetchKmi30Eod`](../firebase/functions/five_market_daily.js)) use the same rule:
+
+- Request at least **two** daily (`1d`) klines bars, **sort by time ascending**.
+- **Last** = latest bar’s **close** (shown as “Last”).
+- **Day change** (points and %) = `lastClose - baseline`, where `baseline` is the **previous bar’s close** when two bars exist (**same idea as PSX “vs previous close”**).
+- If only **one** bar is returned, `baseline` = that bar’s **open**; the UI may show a short note that prior-close comparison is unavailable.
+
+Session **high / low / volume** on the index card come from the **latest** bar only.
+

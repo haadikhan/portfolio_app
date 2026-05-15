@@ -88,107 +88,52 @@ class PsxRepository {
         .toList();
   }
 
-  /// Latest index level from **klines** (ticks/IDX is unreliable from Flutter HTTP).
+  /// Latest index from **daily klines** (same path as charts). Bars are sorted by
+  /// time so API order (asc/desc) does not matter. Day change matches PSX **vs
+  /// previous close** when two bars exist; with one bar only, change uses
+  /// session open → last (approximate; UI may show a footnote).
   Future<Kmi30IndexTick?> fetchIndexTick(String symbol) async {
     try {
       final s = symbol.trim().toUpperCase();
-      final uri = Uri.parse("https://psxterminal.com/api/klines/$s/1d?limit=2");
-      final response = await _client.get(uri).timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        return null;
-      }
-      final decoded = jsonDecode(response.body);
-
-      List<dynamic> bars = [];
-      if (decoded is List) {
-        bars = decoded;
-      } else if (decoded is Map) {
-        final m = Map<String, dynamic>.from(decoded);
-        if (m["success"] != true) {
-          return null;
-        }
-        final inner = m["data"] ?? m["bars"] ?? m["candles"];
-        if (inner is List) {
-          bars = inner;
-        }
-      }
+      final bars = await fetchKlines(s, "1d", limit: 2)
+          .timeout(const Duration(seconds: 10));
       if (bars.isEmpty) {
         return null;
       }
-
-      double v(dynamic x) =>
-          x == null ? 0.0 : double.tryParse(x.toString()) ?? 0.0;
-
-      double openFromBar(dynamic bar) {
-        if (bar is List && bar.length > 2) {
-          return v(bar[1]);
-        }
-        if (bar is Map) {
-          return v(Map<String, dynamic>.from(bar)["open"]);
-        }
-        return 0;
-      }
-
-      double closeFromBar(dynamic bar) {
-        if (bar is List && bar.length > 5) {
-          return v(bar[4]);
-        }
-        if (bar is Map) {
-          return v(Map<String, dynamic>.from(bar)["close"]);
-        }
-        return 0;
-      }
-
-      double? highFromBar(dynamic bar) {
-        if (bar is List && bar.length > 3) {
-          return v(bar[2]);
-        }
-        if (bar is Map) {
-          final h = Map<String, dynamic>.from(bar)["high"];
-          return h != null ? v(h) : null;
-        }
+      final sorted = [...bars]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      final today = sorted.last;
+      if (today.close == 0) {
         return null;
       }
 
-      double? lowFromBar(dynamic bar) {
-        if (bar is List && bar.length > 4) {
-          return v(bar[3]);
-        }
-        if (bar is Map) {
-          final l = Map<String, dynamic>.from(bar)["low"];
-          return l != null ? v(l) : null;
-        }
+      final bool usesPriorClose = sorted.length >= 2;
+      final double baseline;
+      final double? previousClose;
+      if (usesPriorClose) {
+        final prev = sorted[sorted.length - 2];
+        baseline = prev.close;
+        previousClose = prev.close;
+      } else {
+        baseline = today.open;
+        previousClose = null;
+      }
+      if (baseline == 0) {
         return null;
       }
 
-      double? volFromBar(dynamic bar) {
-        if (bar is List && bar.length > 6) {
-          return v(bar[5]);
-        }
-        if (bar is Map) {
-          final vol = Map<String, dynamic>.from(bar)["volume"];
-          return vol != null ? v(vol) : null;
-        }
-        return null;
-      }
-
-      final bar = bars.last;
-      final open = openFromBar(bar);
-      final close = closeFromBar(bar);
-      if (close == 0 || open == 0) {
-        return null;
-      }
-
-      final changeAbs = close - open;
-      final changePct = (changeAbs / open) * 100;
+      final changeAbs = today.close - baseline;
+      final changePct = (changeAbs / baseline) * 100;
 
       return Kmi30IndexTick(
-        currentValue: close,
+        currentValue: today.close,
         changeAbsolute: double.parse(changeAbs.toStringAsFixed(2)),
         changePercent: double.parse(changePct.toStringAsFixed(4)),
-        high: highFromBar(bar),
-        low: lowFromBar(bar),
-        volume: volFromBar(bar),
+        high: today.high,
+        low: today.low,
+        volume: today.volume,
+        previousClose: previousClose,
+        sessionOpen: today.open != 0 ? today.open : null,
+        dayChangeUsesPriorClose: usesPriorClose,
         receivedAt: DateTime.now(),
       );
     } catch (_) {

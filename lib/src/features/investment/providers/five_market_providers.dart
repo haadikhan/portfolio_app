@@ -115,13 +115,17 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   final kmi30Pct = kmi30Tick?.changePercent ?? 0.0;
   final goldPct = goldQuote?.changePercent ?? 0.0;
 
+  // LIVE only during market hours (09:00–16:00 PKT) on trading days
+  // REALIZED after 16:00 PKT on trading days
+  final isIntraday = tradingDay.isTradingDay && _isWithinMarketHours();
+
   return FiveMarketDailyEngine.calculate(
     basePkr: basePkr,
     config: config,
     tradingDay: tradingDay,
     kmi30Percent: kmi30Pct,
     goldPercent: goldPct,
-    isIntraday: tradingDay.isTradingDay,
+    isIntraday: isIntraday,
   );
 });
 
@@ -129,4 +133,15 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
 String _todayPkt() {
   final pktWall = DateTime.now().toUtc().add(const Duration(hours: 5));
   return DateFormat("yyyy-MM-dd").format(pktWall);
+}
+
+/// Returns current hour in PKT (Asia/Karachi, UTC+5).
+int _currentPktHour() {
+  return DateTime.now().toUtc().add(const Duration(hours: 5)).hour;
+}
+
+/// True when current PKT time is within PSX market hours (09:00–16:00).
+bool _isWithinMarketHours() {
+  final hour = _currentPktHour();
+  return hour >= 9 && hour < 16;
 }

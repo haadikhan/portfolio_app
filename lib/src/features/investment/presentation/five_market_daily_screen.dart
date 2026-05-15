@@ -15,6 +15,8 @@ import "package:portfolio_app/src/features/market/providers/kmi30_index_provider
 import "package:portfolio_app/src/providers/wallet_providers.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
+final _indexFmt = NumberFormat.decimalPatternDigits(decimalDigits: 2);
+final _indexVolFmt = NumberFormat.decimalPattern();
 
 /// Investor dashboard: estimated daily P&amp;L across five market sleeves (Phase 4).
 class FiveMarketDailyScreen extends ConsumerWidget {
@@ -38,6 +40,8 @@ class FiveMarketDailyScreen extends ConsumerWidget {
           ref.invalidate(kmi30IndexDailyKlinesProvider);
           ref.invalidate(fiveMarketConfigProvider);
           ref.invalidate(userWalletStreamProvider);
+          ref.invalidate(kmi30IndexTickProvider);
+          await Future<void>.delayed(const Duration(milliseconds: 500));
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -363,23 +367,88 @@ class _Kmi30HeroCard extends StatelessWidget {
                     : pct < 0
                         ? scheme.error
                         : scheme.onSurfaceVariant;
-                return Row(
+                final ptsStr =
+                    "${tick.changeAbsolute >= 0 ? "+" : ""}${_indexFmt.format(tick.changeAbsolute)}";
+                final dash = context.tr("five_market_kmi30_value_dash");
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _money.format(tick.currentValue),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
                     Text(
-                      "${pct >= 0 ? "+" : ""}${pct.toStringAsFixed(2)}%",
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: pctColor,
-                            fontWeight: FontWeight.w600,
+                      context.tr("five_market_kmi30_last_label"),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _indexFmt.format(tick.currentValue),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          ptsStr,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: pctColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        Text(
+                          "${pct >= 0 ? "+" : ""}${pct.toStringAsFixed(2)}%",
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: pctColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                    if (!tick.dayChangeUsesPriorClose) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr("five_market_kmi30_change_fallback_note"),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _Kmi30StatRow(
+                      label: context.tr("five_market_kmi30_previous_close"),
+                      value: tick.previousClose != null
+                          ? _indexFmt.format(tick.previousClose!)
+                          : dash,
+                      scheme: scheme,
+                    ),
+                    if (tick.sessionOpen != null)
+                      _Kmi30StatRow(
+                        label: context.tr("five_market_kmi30_open"),
+                        value: _indexFmt.format(tick.sessionOpen!),
+                        scheme: scheme,
+                      ),
+                    if (tick.high != null)
+                      _Kmi30StatRow(
+                        label: context.tr("five_market_kmi30_high"),
+                        value: _indexFmt.format(tick.high!),
+                        scheme: scheme,
+                      ),
+                    if (tick.low != null)
+                      _Kmi30StatRow(
+                        label: context.tr("five_market_kmi30_low"),
+                        value: _indexFmt.format(tick.low!),
+                        scheme: scheme,
+                      ),
+                    if (tick.volume != null)
+                      _Kmi30StatRow(
+                        label: context.tr("five_market_kmi30_volume"),
+                        value: _indexVolFmt.format(tick.volume!),
+                        scheme: scheme,
+                      ),
                   ],
                 );
               },
@@ -432,6 +501,50 @@ class _Kmi30HeroCard extends StatelessWidget {
   }
 }
 
+class _Kmi30StatRow extends StatelessWidget {
+  const _Kmi30StatRow({
+    required this.label,
+    required this.value,
+    required this.scheme,
+  });
+
+  final String label;
+  final String value;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MarketSliceTile extends StatelessWidget {
   const _MarketSliceTile({
     required this.label,
@@ -442,6 +555,27 @@ class _MarketSliceTile extends StatelessWidget {
   final String label;
   final MarketSliceResult slice;
   final ColorScheme scheme;
+
+  String _sliceSubtitle(BuildContext context) {
+    final annual = slice.annualPercent;
+    if (annual != null) {
+      return "${annual.toStringAsFixed(1)}% ${context.tr("five_market_per_annum")}";
+    }
+    final pct = slice.changePercent;
+    return pct >= 0
+        ? "+${pct.toStringAsFixed(2)}%"
+        : "${pct.toStringAsFixed(2)}%";
+  }
+
+  Color _sliceSubtitleColor() {
+    if (slice.annualPercent != null) {
+      return scheme.onSurfaceVariant;
+    }
+    final pct = slice.changePercent;
+    if (pct > 0) return scheme.primary;
+    if (pct < 0) return scheme.error;
+    return scheme.onSurfaceVariant;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -477,6 +611,13 @@ class _MarketSliceTile extends StatelessWidget {
                     label,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _sliceSubtitle(context),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: _sliceSubtitleColor(),
                         ),
                   ),
                   const SizedBox(height: 4),

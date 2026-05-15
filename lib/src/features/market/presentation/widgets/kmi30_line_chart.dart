@@ -9,10 +9,12 @@ class Kmi30LineChart extends StatelessWidget {
     super.key,
     required this.bars,
     required this.timeframe,
+    this.color,
   });
 
   final List<Kmi30Bar> bars;
   final String timeframe;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +22,11 @@ class Kmi30LineChart extends StatelessWidget {
       return const Center(child: Text("Not enough chart data"));
     }
     final scheme = Theme.of(context).colorScheme;
+    final lineColor = color ?? scheme.primary;
+    final gradientColors = [
+      lineColor.withValues(alpha: 0.3),
+      lineColor.withValues(alpha: 0.0),
+    ];
     final spots = bars
         .asMap()
         .entries
@@ -100,13 +107,13 @@ class Kmi30LineChart extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: spots.length >= 3,
-            color: const Color(0xFF1D9E75),
+            color: lineColor,
             barWidth: 2.5,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              gradient: const LinearGradient(
-                colors: [Color(0x441D9E75), Color(0x001D9E75)],
+              gradient: LinearGradient(
+                colors: gradientColors,
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
