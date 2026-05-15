@@ -207,6 +207,33 @@ const _en = <String, String>{
       "Disable five-market daily ledger? Monthly returns can apply again on the next distribution run.",
   "admin_five_market_ledger_saved": "Daily ledger setting saved.",
   "admin_five_market_ledger_save_failed": "Could not update ledger",
+  "admin_five_market_tab_holidays": "Holidays",
+  "admin_five_market_tab_eod": "EOD log",
+  "admin_five_market_holidays_title": "Pakistan public holidays",
+  "admin_five_market_holidays_subtitle":
+      "Seeded calendar used by the trading-day resolver. Edit to correct Islamic holiday dates after moon sighting.",
+  "admin_five_market_holidays_date": "Date (PKT, yyyy-MM-dd)",
+  "admin_five_market_holidays_name": "Holiday name",
+  "admin_five_market_holidays_islamic": "Islamic holiday",
+  "admin_five_market_holidays_estimated": "Estimated date",
+  "admin_five_market_holidays_add": "Add holiday",
+  "admin_five_market_holidays_saved": "Holidays calendar saved.",
+  "admin_five_market_holidays_save_failed": "Could not save holidays",
+  "admin_five_market_holidays_empty": "No holidays on file. Add one below.",
+  "admin_five_market_holidays_duplicate_date":
+      "A holiday with this date already exists.",
+  "admin_five_market_holidays_delete_title": "Remove holiday?",
+  "admin_five_market_holidays_delete_body":
+      "Remove {name} ({date}) from the calendar?",
+  "admin_five_market_eod_title": "EOD snapshots",
+  "admin_five_market_eod_subtitle":
+      "Last 30 snapshots written by fiveMarketEodSnapshot (16:05 PKT Mon–Fri).",
+  "admin_five_market_eod_empty":
+      "No EOD snapshots yet. The job runs at 16:05 PKT on trading weekdays.",
+  "admin_five_market_eod_trading": "TRADING",
+  "admin_five_market_eod_non_trading": "NON-TRADING",
+  "admin_five_market_eod_credited": "Credited: {n}",
+  "admin_investor_list_col_ledger": "Daily ledger",
   "admin_reports_heading": "Upload investor report (PDF)",
   "admin_reports_subtitle":
       "Files appear under “Statements from your team” in the investor app for all accounts.",
@@ -1320,6 +1347,32 @@ const _ur = <String, String>{
       "روزانہ لیجر بند کریں؟ اگلی تقسیم پر ماہانہ واپسی دوبارہ لاگو ہو سکتی ہے۔",
   "admin_five_market_ledger_saved": "روزانہ لیجر کی ترتیب محفوظ ہو گئی۔",
   "admin_five_market_ledger_save_failed": "لیجر اپڈیٹ نہیں ہو سکی",
+  "admin_five_market_tab_holidays": "چھٹیاں",
+  "admin_five_market_tab_eod": "EOD لاگ",
+  "admin_five_market_holidays_title": "پاکستان کی سرکاری تعطیلات",
+  "admin_five_market_holidays_subtitle":
+      "تجارتی دن کے حساب کتاب میں استعمال ہونے والا کیلنڈر۔ چاند نظر آنے پر اسلامی تعطیلات کی تاریخیں درست کریں۔",
+  "admin_five_market_holidays_date": "تاریخ (PKT، yyyy-MM-dd)",
+  "admin_five_market_holidays_name": "تعطیل کا نام",
+  "admin_five_market_holidays_islamic": "اسلامی تعطیل",
+  "admin_five_market_holidays_estimated": "تخمینی تاریخ",
+  "admin_five_market_holidays_add": "تعطیل شامل کریں",
+  "admin_five_market_holidays_saved": "تعطیلات کیلنڈر محفوظ ہو گیا۔",
+  "admin_five_market_holidays_save_failed": "تعطیلات محفوظ نہیں ہو سکیں",
+  "admin_five_market_holidays_empty": "کوئی تعطیل نہیں۔ نیچے شامل کریں۔",
+  "admin_five_market_holidays_duplicate_date":
+      "اس تاریخ کی تعطیل پہلے سے موجود ہے۔",
+  "admin_five_market_holidays_delete_title": "تعطیل ہٹائیں؟",
+  "admin_five_market_holidays_delete_body": "{name} ({date}) کیلنڈر سے ہٹائیں؟",
+  "admin_five_market_eod_title": "EOD سنیپ شاٹس",
+  "admin_five_market_eod_subtitle":
+      "fiveMarketEodSnapshot (16:05 PKT پیر–جمعہ) کے آخری 30 ریکارڈز۔",
+  "admin_five_market_eod_empty":
+      "ابھی تک کوئی EOD سنیپ شاٹ نہیں۔ جاب تجارتی دنوں میں 16:05 PKT پر چلتی ہے۔",
+  "admin_five_market_eod_trading": "تجارت",
+  "admin_five_market_eod_non_trading": "غیر تجارتی",
+  "admin_five_market_eod_credited": "کریڈٹ: {n}",
+  "admin_investor_list_col_ledger": "روزانہ لیجر",
   "admin_reports_heading": "سرمایہ کار رپورٹ اپ لوڈ (PDF)",
   "admin_reports_subtitle":
       "فائلیں سرمایہ کار ایپ میں تمام اکاؤنٹس کے لیے “آپ کی ٹیم سے بیانات” میں دکھائی جائیں گی۔",

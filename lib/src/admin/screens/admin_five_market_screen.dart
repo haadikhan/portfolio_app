@@ -44,7 +44,7 @@ class _AdminFiveMarketScreenState extends ConsumerState<AdminFiveMarketScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _overrideDate = _pktDateFromString(adminTodayPktDateString());
     for (final c in [
       _stock,
@@ -260,9 +260,12 @@ class _AdminFiveMarketScreenState extends ConsumerState<AdminFiveMarketScreen>
         ),
         TabBar(
           controller: _tabs,
+          isScrollable: true,
           tabs: [
             Tab(text: context.tr("admin_five_market_tab_config")),
             Tab(text: context.tr("admin_five_market_tab_overrides")),
+            Tab(text: context.tr("admin_five_market_tab_holidays")),
+            Tab(text: context.tr("admin_five_market_tab_eod")),
           ],
         ),
         Expanded(
@@ -303,6 +306,8 @@ class _AdminFiveMarketScreenState extends ConsumerState<AdminFiveMarketScreen>
                 onModeChanged: (m) => setState(() => _overrideMode = m),
                 onSave: _saveOverride,
               ),
+              const _HolidaysTab(),
+              const _EodDiagnosticsTab(),
             ],
           ),
         ),
@@ -586,6 +591,446 @@ class _PctField extends StatelessWidget {
           labelText: label,
           suffixText: "%",
         ),
+      ),
+    );
+  }
+}
+
+class _HolidaysTab extends ConsumerStatefulWidget {
+  const _HolidaysTab();
+
+  @override
+  ConsumerState<_HolidaysTab> createState() => _HolidaysTabState();
+}
+
+class _HolidaysTabState extends ConsumerState<_HolidaysTab> {
+  final _nameController = TextEditingController();
+  DateTime _pickedDate = DateTime.now();
+  bool _isIslamic = false;
+  bool _estimated = false;
+  String? _editingDate;
+  bool _saving = false;
+  String? _formError;
+
+  @override
+  void initState() {
+    super.initState();
+    _pickedDate = _pktFromString(adminTodayPktDateString());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  DateTime _pktFromString(String yyyyMmDd) {
+    final parts = yyyyMmDd.split("-");
+    if (parts.length != 3) return DateTime.now();
+    return DateTime(
+      int.tryParse(parts[0]) ?? DateTime.now().year,
+      int.tryParse(parts[1]) ?? DateTime.now().month,
+      int.tryParse(parts[2]) ?? DateTime.now().day,
+    );
+  }
+
+  String _formatPktDate(DateTime dt) =>
+      DateFormat("yyyy-MM-dd").format(DateTime(dt.year, dt.month, dt.day));
+
+  void _clearForm() {
+    _nameController.clear();
+    _isIslamic = false;
+    _estimated = false;
+    _editingDate = null;
+    _formError = null;
+    _pickedDate = _pktFromString(adminTodayPktDateString());
+  }
+
+  void _loadIntoForm(PkHoliday h) {
+    setState(() {
+      _editingDate = h.date;
+      _pickedDate = _pktFromString(h.date);
+      _nameController.text = h.name;
+      _isIslamic = h.isIslamicHoliday;
+      _estimated = h.estimatedDate;
+      _formError = null;
+    });
+  }
+
+  void _snack(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: error ? Colors.red : null,
+      ),
+    );
+  }
+
+  Future<void> _persist(List<PkHoliday> holidays) async {
+    setState(() => _saving = true);
+    try {
+      await ref.read(fiveMarketAdminServiceProvider).saveHolidays(
+            holidays: holidays,
+          );
+      if (!mounted) return;
+      _snack(context.tr("admin_five_market_holidays_saved"));
+      _clearForm();
+    } catch (e) {
+      if (!mounted) return;
+      _snack(
+        "${context.tr("admin_five_market_holidays_save_failed")}: $e",
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _addOrUpdate(List<PkHoliday> current) async {
+    final dateStr = _formatPktDate(_pickedDate);
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _formError = context.tr("admin_five_market_holidays_name"));
+      return;
+    }
+    final duplicate = current.any(
+      (h) => h.date == dateStr && h.date != _editingDate,
+    );
+    if (duplicate) {
+      setState(
+        () => _formError = context.tr("admin_five_market_holidays_duplicate_date"),
+      );
+      return;
+    }
+
+    final next = [
+      for (final h in current)
+        if (h.date != dateStr && h.date != _editingDate) h,
+      PkHoliday(
+        date: dateStr,
+        name: name,
+        isIslamicHoliday: _isIslamic,
+        estimatedDate: _estimated,
+      ),
+    ]..sort((a, b) => a.date.compareTo(b.date));
+
+    await _persist(next);
+  }
+
+  Future<void> _deleteHoliday(PkHoliday h, List<PkHoliday> current) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.tr("admin_five_market_holidays_delete_title")),
+        content: Text(
+          context.trParams("admin_five_market_holidays_delete_body", {
+            "name": h.name,
+            "date": h.date,
+          }),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr("cancel")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(context.tr("admin_five_market_holidays_delete_title")),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final next = current.where((x) => x.date != h.date).toList();
+    await _persist(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final holidaysAsync = ref.watch(adminPkHolidaysProvider);
+    final dateFmt = DateFormat.yMMMd();
+
+    return holidaysAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text("$e")),
+      data: (holidays) => ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(
+            context.tr("admin_five_market_holidays_title"),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            context.tr("admin_five_market_holidays_subtitle"),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          if (holidays.isEmpty)
+            Text(context.tr("admin_five_market_holidays_empty"))
+          else
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withValues(
+                        alpha: 0.2,
+                      ),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text("Date")),
+                    DataColumn(label: Text("Name")),
+                    DataColumn(label: Text("Islamic")),
+                    DataColumn(label: Text("Est.")),
+                    DataColumn(label: Text("")),
+                  ],
+                  rows: [
+                    for (final h in holidays)
+                      DataRow(
+                        onSelectChanged: (_) => _loadIntoForm(h),
+                        cells: [
+                          DataCell(Text(h.date)),
+                          DataCell(Text(h.name)),
+                          DataCell(
+                            Icon(
+                              h.isIslamicHoliday
+                                  ? Icons.check
+                                  : Icons.close,
+                              size: 18,
+                            ),
+                          ),
+                          DataCell(
+                            Icon(
+                              h.estimatedDate ? Icons.check : Icons.close,
+                              size: 18,
+                            ),
+                          ),
+                          DataCell(
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: _saving
+                                  ? null
+                                  : () => _deleteHoliday(h, holidays),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
+          Text(
+            _editingDate == null
+                ? context.tr("admin_five_market_holidays_add")
+                : "${context.tr("admin_five_market_holidays_add")} ($_editingDate)",
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _saving
+                ? null
+                : () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _pickedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2035),
+                    );
+                    if (picked != null) {
+                      setState(() => _pickedDate = picked);
+                    }
+                  },
+            icon: const Icon(Icons.date_range_outlined),
+            label: Text(
+              "${context.tr("admin_five_market_holidays_date")}: ${dateFmt.format(_pickedDate)}",
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: context.tr("admin_five_market_holidays_name"),
+              errorText: _formError,
+            ),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.tr("admin_five_market_holidays_islamic")),
+            value: _isIslamic,
+            onChanged: _saving ? null : (v) => setState(() => _isIslamic = v),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.tr("admin_five_market_holidays_estimated")),
+            value: _estimated,
+            onChanged: _saving ? null : (v) => setState(() => _estimated = v),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (_editingDate != null)
+                TextButton(
+                  onPressed: _saving ? null : _clearForm,
+                  child: Text(context.tr("cancel")),
+                ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: _saving ? null : () => _addOrUpdate(holidays),
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_outlined),
+                label: Text(context.tr("admin_five_market_holidays_add")),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EodDiagnosticsTab extends ConsumerWidget {
+  const _EodDiagnosticsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final snapshotsAsync = ref.watch(adminEodSnapshotsProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(adminEodSnapshotsProvider);
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      },
+      child: snapshotsAsync.when(
+        loading: () => ListView(
+          children: const [
+            SizedBox(height: 120),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (e, _) => ListView(
+          children: [Center(child: Text("$e"))],
+        ),
+        data: (rows) {
+          if (rows.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                Text(
+                  context.tr("admin_five_market_eod_title"),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(context.tr("admin_five_market_eod_subtitle")),
+                const SizedBox(height: 24),
+                Text(context.tr("admin_five_market_eod_empty")),
+              ],
+            );
+          }
+
+          return ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            itemCount: rows.length + 2,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr("admin_five_market_eod_title"),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(context.tr("admin_five_market_eod_subtitle")),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              }
+              if (index == 1) return const SizedBox.shrink();
+
+              final row = rows[index - 2];
+              final date = (row["date"] as String?) ?? (row["id"] as String? ?? "");
+              final tradingDay = row["tradingDay"] == true;
+              final kmi = row["kmi30"];
+              final gold = row["gold"];
+              final kmiMap = kmi is Map ? kmi.cast<String, dynamic>() : null;
+              final goldMap = gold is Map ? gold.cast<String, dynamic>() : null;
+              final kmiClose = (kmiMap?["closingValue"] as num?)?.toDouble();
+              final kmiPct = (kmiMap?["changePercent"] as num?)?.toDouble();
+              final goldPct = (goldMap?["changePercent"] as num?)?.toDouble();
+              final credited = row["creditedCount"];
+
+              String kmiText = "—";
+              if (kmiMap != null && kmiMap["error"] == null) {
+                if (kmiClose != null && kmiPct != null) {
+                  kmiText =
+                      "${kmiClose.toStringAsFixed(2)} (${kmiPct >= 0 ? "+" : ""}${kmiPct.toStringAsFixed(2)}%)";
+                } else if (kmiClose != null) {
+                  kmiText = kmiClose.toStringAsFixed(2);
+                }
+              }
+
+              String goldText = "—";
+              if (goldMap != null && goldMap["error"] == null && goldPct != null) {
+                goldText =
+                    "${goldPct >= 0 ? "+" : ""}${goldPct.toStringAsFixed(2)}%";
+              }
+
+              final creditedText = credited is num
+                  ? context.trParams("admin_five_market_eod_credited", {
+                      "n": "${credited.toInt()}",
+                    })
+                  : "—";
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: scheme.outline.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: ListTile(
+                  title: Text(date),
+                  subtitle: Text("KMI30: $kmiText · Gold: $goldText · $creditedText"),
+                  trailing: Chip(
+                    label: Text(
+                      tradingDay
+                          ? context.tr("admin_five_market_eod_trading")
+                          : context.tr("admin_five_market_eod_non_trading"),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: tradingDay
+                            ? scheme.onPrimaryContainer
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    backgroundColor: tradingDay
+                        ? scheme.primaryContainer
+                        : scheme.surfaceContainerHighest,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

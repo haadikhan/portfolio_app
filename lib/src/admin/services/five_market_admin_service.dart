@@ -1,10 +1,24 @@
+import "package:cloud_firestore/cloud_firestore.dart";
 import "package:cloud_functions/cloud_functions.dart";
+
+import "../../features/investment/domain/five_market_models.dart";
+
+/// Maps [PkHoliday] to Firestore array elements (extension lives here per Phase 6).
+extension PkHolidayMapper on PkHoliday {
+  Map<String, dynamic> toMap() => {
+        "date": date,
+        "name": name,
+        "isIslamicHoliday": isIslamicHoliday,
+        "estimatedDate": estimatedDate,
+      };
+}
 
 /// Admin HTTPS callables for five-market daily config, overrides, and ledger.
 class FiveMarketAdminService {
-  FiveMarketAdminService(this._functions);
+  FiveMarketAdminService(this._functions, this._firestore);
 
   final FirebaseFunctions _functions;
+  final FirebaseFirestore _firestore;
 
   Future<void> saveConfig({
     Map<String, num>? allocations,
@@ -39,6 +53,16 @@ class FiveMarketAdminService {
       "userId": userId,
       "enabled": enabled,
     });
+  }
+
+  /// Replaces the `holidays` array on `settings/pakistan_holidays` (admin rules).
+  Future<void> saveHolidays({required List<PkHoliday> holidays}) async {
+    await _firestore.collection("settings").doc("pakistan_holidays").set(
+      {
+        "holidays": holidays.map((h) => h.toMap()).toList(),
+      },
+      SetOptions(merge: true),
+    );
   }
 }
 
