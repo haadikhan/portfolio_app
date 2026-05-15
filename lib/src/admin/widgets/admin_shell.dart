@@ -90,6 +90,7 @@ class AdminShell extends ConsumerWidget {
 
         final loc = GoRouterState.of(context).matchedLocation;
         final scheme = Theme.of(context).colorScheme;
+        final useRail = MediaQuery.sizeOf(context).width >= 720;
         final barTitle = isCrm
             ? context.tr("crm_app_bar_staff")
             : "ISC-WAI — Admin";
@@ -307,23 +308,24 @@ class AdminShell extends ConsumerWidget {
             ),
           ),
           appBar: AppBar(
-            title: Row(
-              children: [
-                Image.asset(
-                  BrandAssets.logoPng,
-                  height: 28,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    barTitle,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            automaticallyImplyLeading: false,
+            leading: useRail
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Image.asset(
+                      BrandAssets.logoPng,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                    ),
+                  )
+                : null,
+            leadingWidth: useRail ? 56 : null,
+            title: Text(
+              barTitle,
+              overflow: TextOverflow.ellipsis,
             ),
+            iconTheme: IconThemeData(color: scheme.onSurface),
+            actionsIconTheme: IconThemeData(color: scheme.onSurface),
             actions: [
               Consumer(
                 builder: (context, ref, _) {
@@ -386,6 +388,9 @@ class AdminShell extends ConsumerWidget {
                 showLogoutAction: false,
               ),
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onSurface,
+                ),
                 onPressed: () async {
                   await ref
                       .read(adminAuthControllerProvider.notifier)
@@ -394,12 +399,22 @@ class AdminShell extends ConsumerWidget {
                 },
                 child: Text(context.tr("sign_out")),
               ),
-              const SizedBox(width: 8),
+              if (!useRail)
+                Builder(
+                  builder: (scaffoldContext) => IconButton(
+                    tooltip: MaterialLocalizations.of(scaffoldContext)
+                        .openAppDrawerTooltip,
+                    icon: const Icon(Icons.menu_rounded),
+                    color: scheme.onSurface,
+                    onPressed: () =>
+                        Scaffold.of(scaffoldContext).openDrawer(),
+                  ),
+                ),
+              const SizedBox(width: 4),
             ],
           ),
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final useRail = constraints.maxWidth >= 720;
               if (!useRail) {
                 return child;
               }

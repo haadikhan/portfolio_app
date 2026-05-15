@@ -181,69 +181,90 @@ class _InvestorTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat.yMMMd();
+    final scheme = Theme.of(context).colorScheme;
+    final headerStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w600,
+        );
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(
+          color: scheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.grey.shade100),
-          columns: [
-            const DataColumn(label: Text("Investor")),
-            const DataColumn(label: Text("Email")),
-            const DataColumn(label: Text("Phone")),
-            const DataColumn(label: Text("KYC")),
-            const DataColumn(label: Text("Joined")),
-            DataColumn(
-              label: Text(context.tr("admin_investor_list_col_ledger")),
-            ),
-            const DataColumn(label: Text("")),
-          ],
-          rows: [
-            for (final i in items)
-              DataRow(
-                cells: [
-                  DataCell(Text(i.name.isNotEmpty ? i.name : i.userId)),
-                  DataCell(Text(i.email.isNotEmpty ? i.email : "—")),
-                  DataCell(Text(i.phone.isNotEmpty ? i.phone : "—")),
-                  DataCell(
-                    Chip(
-                      label: Text(i.kycStatus),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      i.createdAt != null
-                          ? fmt.format(i.createdAt!.toLocal())
-                          : "—",
-                    ),
-                  ),
-                  DataCell(
-                    ledgerSavingUid == i.userId
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Switch(
-                            value: adminDailyLedgerEnabled(ledgerMap, i.userId),
-                            onChanged: (v) => onLedgerChanged(i.userId, v),
-                          ),
-                  ),
-                  DataCell(
-                    FilledButton(
-                      onPressed: () => context.go("/investors/${i.userId}"),
-                      child: const Text("View"),
-                    ),
-                  ),
-                ],
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(
+                scheme.surfaceContainerHighest,
               ),
-          ],
+              headingTextStyle: headerStyle,
+              columns: [
+                DataColumn(label: Text("Investor", style: headerStyle)),
+                DataColumn(label: Text("Email", style: headerStyle)),
+                DataColumn(label: Text("Phone", style: headerStyle)),
+                DataColumn(label: Text("KYC", style: headerStyle)),
+                DataColumn(label: Text("Joined", style: headerStyle)),
+                DataColumn(
+                  label: Text(
+                    context.tr("admin_investor_list_col_ledger"),
+                    style: headerStyle,
+                  ),
+                ),
+                DataColumn(label: Text("", style: headerStyle)),
+              ],
+              rows: [
+                for (final i in items)
+                  DataRow(
+                    cells: [
+                      DataCell(Text(i.name.isNotEmpty ? i.name : i.userId)),
+                      DataCell(Text(i.email.isNotEmpty ? i.email : "—")),
+                      DataCell(Text(i.phone.isNotEmpty ? i.phone : "—")),
+                      DataCell(
+                        Chip(
+                          label: Text(i.kycStatus),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          i.createdAt != null
+                              ? fmt.format(i.createdAt!.toLocal())
+                              : "—",
+                        ),
+                      ),
+                      DataCell(
+                        ledgerSavingUid == i.userId
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Switch(
+                                value: adminDailyLedgerEnabled(
+                                  ledgerMap,
+                                  i.userId,
+                                ),
+                                onChanged: (v) => onLedgerChanged(i.userId, v),
+                              ),
+                      ),
+                      DataCell(
+                        FilledButton(
+                          onPressed: () => context.go("/investors/${i.userId}"),
+                          child: const Text("View"),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
