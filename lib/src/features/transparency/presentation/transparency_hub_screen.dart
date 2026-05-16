@@ -89,7 +89,7 @@ class _FounderTabState extends State<_FounderTab>
 
   Future<void> _openEmail() async {
     final uri = Uri.parse(
-      "mailto:$kFounderContactEmail?subject=${Uri.encodeComponent("Wakalat Invest — inquiry")}",
+      "mailto:$kFounderContactEmail?subject=${Uri.encodeComponent("ISC-WAI — inquiry")}",
     );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);

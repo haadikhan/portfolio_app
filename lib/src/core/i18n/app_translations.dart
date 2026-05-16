@@ -363,6 +363,15 @@ const _en = <String, String>{
   "profit_yearly_contribution_title": "Share of yearly profit by market",
   "profit_ledger_not_ready":
       "Per-market breakdown will appear after the daily ledger runs (00:05 PKT). Showing total credited profit from your wallet.",
+  "countdown_market_closes": "Market closes in",
+  "countdown_profit_credits": "Profit credits in",
+  "countdown_market_opens": "Market opens in",
+  "countdown_processing": "Processing profit credit...",
+  "countdown_no_credit_tonight": "No credit tonight — non-trading day",
+  "countdown_non_trading_day": "Non-trading day",
+  "countdown_live_chip": "LIVE",
+  "countdown_pending_chip": "PENDING",
+  "countdown_premarket_chip": "PRE-MARKET",
   "live_profit_note_five_market":
       "Profits update in real time during PSX market hours (09:00–16:00 PKT, Mon–Fri). Fixed-rate markets accrue per second. Stock and Gold update when prices change.",
   "staff_access_required": "Staff access required",
@@ -463,14 +472,13 @@ const _en = <String, String>{
   "transparency_tab_strategy": "Strategy",
   "transparency_tab_performance": "Performance",
   "transparency_tab_legal": "Legal",
-  "founder_name_full": "Raja Hammad Sabir",
-  "founder_title_role": "Founder & portfolio manager",
+  "founder_name_full": "ISC-WAI",
+  "founder_title_role": "Professional Investment Management Platform",
   "founder_bio_p1":
-      "Raja Hammad Sabir leads portfolio construction for investors on this platform and oversees the technology behind Wakalat Invest.",
-  "founder_bio_p2":
-      "His background combines investing discipline with software and operations—focused on clear reporting and prudent diversification rather than promises of fixed returns.",
+      "ISC-WAI is a professionally managed investment platform focused on transparent, well-documented portfolio construction. Our approach combines disciplined investing with clear reporting and prudent diversification — not promises of fixed returns.",
+  "founder_bio_p2": "",
   "founder_mission":
-      "Mission: offer a transparent, well-documented way for aligned investors to participate in a professionally managed portfolio narrative—with honest communication about risk.",
+      "Our mission: to offer a transparent, well-documented way for aligned investors to participate in a professionally managed portfolio.",
   "founder_vision":
       "Vision: build long-term trust through consistency, education, and tools that make performance and activity easy to follow.",
   "founder_contact_cta": "Reach out",
@@ -487,9 +495,9 @@ const _en = <String, String>{
   "strategy_alloc_debt": "Debt / income",
   "strategy_alloc_money": "Money market / cash",
   "strategy_alloc_asset": "Alternative / other assets",
-  "performance_title": "Founder track record (illustrative)",
+  "performance_title": "ISC-WAI reference track record (illustrative)",
   "performance_founder_note":
-      "The chart and metrics below reflect a consolidated illustrative history for Raja Hammad Sabir’s reference portfolio used to guide platform allocations—not your personal account. Your results may differ.",
+      "The chart and metrics below reflect a consolidated illustrative history for the ISC-WAI reference portfolio used to guide platform allocations—not your personal account. Your results may differ.",
   "performance_disclaimer":
       "Past performance is not indicative of future results. Figures are compiled for transparency; they are not a promise of profit.",
   "performance_total_return": "Illustrative total return",
@@ -1588,6 +1596,15 @@ const _ur = <String, String>{
   "profit_yearly_contribution_title": "سالانہ منافع میں مارکیٹ کا حصہ",
   "profit_ledger_not_ready":
       "فی مارکیٹ تفصیل کل صبح دستیاب ہوگی۔ ابھی والٹ کا کل منافع دکھایا جا رہا ہے۔",
+  "countdown_market_closes": "مارکیٹ بند ہونے میں",
+  "countdown_profit_credits": "منافع کریڈٹ ہونے میں",
+  "countdown_market_opens": "مارکیٹ کھلنے میں",
+  "countdown_processing": "منافع کریڈٹ ہو رہا ہے...",
+  "countdown_no_credit_tonight": "آج رات کریڈٹ نہیں — غیر ٹریڈنگ دن",
+  "countdown_non_trading_day": "غیر تجارتی دن",
+  "countdown_live_chip": "لائیو",
+  "countdown_pending_chip": "زیر التواء",
+  "countdown_premarket_chip": "پری مارکیٹ",
   "live_profit_note_five_market":
       "منافع PSX اوقات میں ریئل ٹائم اپڈیٹ ہوتا ہے۔",
   "staff_access_required": "اسٹاف کی رسائی درکار ہے",
@@ -1688,14 +1705,13 @@ const _ur = <String, String>{
   "transparency_tab_strategy": "حکمت عملی",
   "transparency_tab_performance": "کارکردگی",
   "transparency_tab_legal": "قانونی",
-  "founder_name_full": "راجہ حماد صابر",
-  "founder_title_role": "بانی اور پورٹ فولیو منیجر",
+  "founder_name_full": "ISC-WAI",
+  "founder_title_role": "پیشہ ورانہ سرمایہ کاری کا پلیٹ فارم",
   "founder_bio_p1":
-      "راجہ حماد صابر اس پلیٹ فارم پر سرمایہ کاروں کے لیے پورٹ فولیو کی تشکیل کی قیادت کرتے ہیں اور وکالت انویسٹ کے پیچھے ٹیکنالوجی کی نگرانی کرتے ہیں۔",
-  "founder_bio_p2":
-      "ان کا پس منظر سرمایہ کاری کی نظم، سافٹ ویئر اور آپریشنز کو جوڑتا ہے—ثابت شدہ واپسیوں کے وعدوں کے بجائے واضح رپورٹنگ اور محتاط تنوع پر مرکوز۔",
+      "ISC-WAI ایک پیشہ ورانہ طور پر منظم سرمایہ کاری کا پلیٹ فارم ہے جو شفاف، مستند پورٹ فولیو کی تشکیل پر مرکوز ہے۔ ہمارا نقطہ نظر منظم سرمایہ کاری، واضح رپورٹنگ اور محتاط تنوع کو یکجا کرتا ہے — ثابت شدہ واپسیوں کے وعدے نہیں۔",
+  "founder_bio_p2": "",
   "founder_mission":
-      "مشن: ہم آہنگ سرمایہ کاروں کے لیے ایک شفاف، مستند طریقے سے پیشہ ورانہ پورٹ فولیو میں شرکت—خطرے کے بارے میں صاف گوئی کے ساتھ۔",
+      "ہمارا مشن: ہم آہنگ سرمایہ کاروں کے لیے ایک شفاف، مستند طریقے سے پیشہ ورانہ منظم پورٹ فولیو میں شرکت کی پیشکش کرنا۔",
   "founder_vision":
       "ویژن: مستقل مزاجی، تعلیم اور ایسے ٹولز کے ذریعے طویل مدتی اعتماد بنانا جو کارکردگی کو آسانی سے سمجھنے میں مدد دیں۔",
   "founder_contact_cta": "رابطہ کریں",
@@ -1712,9 +1728,9 @@ const _ur = <String, String>{
   "strategy_alloc_debt": "قرض / آمدنی",
   "strategy_alloc_money": "منی مارکیٹ / کیش",
   "strategy_alloc_asset": "متبادل / دیگر اثاثے",
-  "performance_title": "بانی کا ٹریک ریکارڈ (مثالی)",
+  "performance_title": "ISC-WAI حوالہ ٹریک ریکارڈ (مثالی)",
   "performance_founder_note":
-      "ذیل کا چارٹ اور اعداد راجہ حماد صابر کے حوالہ پورٹ فولیو کے مثالی تاریخی ریکارڈ کو ظاہر کرتے ہیں جو پلیٹ فارم کی تقسیم کو رہنمائی دیتا ہے—آپ کے ذاتی اکاؤنٹ نہیں۔ آپ کے نتائج مختلف ہو سکتے ہیں۔",
+      "ذیل کا چارٹ اور اعداد ISC-WAI کے حوالہ پورٹ فولیو کے مثالی تاریخی ریکارڈ کو ظاہر کرتے ہیں جو پلیٹ فارم کی تقسیم کو رہنمائی دیتا ہے—آپ کے ذاتی اکاؤنٹ نہیں۔ آپ کے نتائج مختلف ہو سکتے ہیں۔",
   "performance_disclaimer":
       "ماضی کی کارکردگی مستقبل کے نتائج کی نشاندہی نہیں۔ اعداد شفافیت کے لیے ہیں؛ منافع کا وعدہ نہیں۔",
   "performance_total_return": "مثالی کل واپسی",

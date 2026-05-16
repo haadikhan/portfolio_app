@@ -68,6 +68,279 @@ double _displayDailyTotal(FiveMarketLiveProfitState live, int elapsedSec) {
   );
 }
 
+// ── Daily tab countdown (PKT, UTC+5) ─────────────────────────────────────────
+
+enum _CountdownPhase {
+  marketOpen,
+  awaitingCredit,
+  preMarketOpen,
+  nonTradingDay,
+  nonTradingDayNoCredit,
+  creditJustRan,
+}
+
+class _CountdownInfo {
+  const _CountdownInfo({
+    required this.phase,
+    required this.remaining,
+    required this.isTradingDay,
+  });
+
+  final _CountdownPhase phase;
+  final Duration remaining;
+  final bool isTradingDay;
+}
+
+/// PKT wall-clock (h,m) on calendar [y]-[m]-[d] → UTC instant.
+DateTime _pktWallToUtc(int y, int m, int d, int pktHour, int pktMin) {
+  return DateTime.utc(y, m, d, pktHour - 5, pktMin);
+}
+
+/// Next PKT clock time at [pktHour]:[pktMin] strictly after [nowUtc].
+DateTime _nextPktInstantUtc(
+  DateTime nowUtc,
+  DateTime nowPkt,
+  int pktHour,
+  int pktMin,
+) {
+  var target = _pktWallToUtc(nowPkt.year, nowPkt.month, nowPkt.day, pktHour, pktMin);
+  if (!target.isAfter(nowUtc)) {
+    final nextPkt = nowPkt.add(const Duration(days: 1));
+    target = _pktWallToUtc(
+      nextPkt.year,
+      nextPkt.month,
+      nextPkt.day,
+      pktHour,
+      pktMin,
+    );
+  }
+  return target;
+}
+
+_CountdownInfo _resolveCountdown(bool isTradingDay) {
+  final nowUtc = DateTime.now().toUtc();
+  final nowPkt = nowUtc.add(const Duration(hours: 5));
+  final h = nowPkt.hour;
+  final m = nowPkt.minute;
+
+  if (h == 0 && m < 5) {
+    return _CountdownInfo(
+      phase: _CountdownPhase.creditJustRan,
+      remaining: Duration.zero,
+      isTradingDay: isTradingDay,
+    );
+  }
+
+  if (h < 9) {
+    final target = _nextPktInstantUtc(nowUtc, nowPkt, 9, 0);
+    return _CountdownInfo(
+      phase: _CountdownPhase.preMarketOpen,
+      remaining: target.difference(nowUtc),
+      isTradingDay: isTradingDay,
+    );
+  }
+
+  if (h >= 9 && h < 16) {
+    if (!isTradingDay) {
+      return const _CountdownInfo(
+        phase: _CountdownPhase.nonTradingDay,
+        remaining: Duration.zero,
+        isTradingDay: false,
+      );
+    }
+    final target = _nextPktInstantUtc(nowUtc, nowPkt, 16, 0);
+    return _CountdownInfo(
+      phase: _CountdownPhase.marketOpen,
+      remaining: target.difference(nowUtc),
+      isTradingDay: true,
+    );
+  }
+
+  if (!isTradingDay) {
+    return const _CountdownInfo(
+      phase: _CountdownPhase.nonTradingDayNoCredit,
+      remaining: Duration.zero,
+      isTradingDay: false,
+    );
+  }
+
+  final nextPkt = nowPkt.add(const Duration(days: 1));
+  final creditTarget = _pktWallToUtc(
+    nextPkt.year,
+    nextPkt.month,
+    nextPkt.day,
+    0,
+    5,
+  );
+  return _CountdownInfo(
+    phase: _CountdownPhase.awaitingCredit,
+    remaining: creditTarget.difference(nowUtc),
+    isTradingDay: true,
+  );
+}
+
+class _CountdownCard extends StatelessWidget {
+  const _CountdownCard({required this.info});
+
+  final _CountdownInfo info;
+
+  String _formatDuration(Duration d) {
+    if (d.isNegative || d == Duration.zero) return "00:00:00";
+    final h = d.inHours.toString().padLeft(2, "0");
+    final m = (d.inMinutes % 60).toString().padLeft(2, "0");
+    final s = (d.inSeconds % 60).toString().padLeft(2, "0");
+    return "$h:$m:$s";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (info.phase == _CountdownPhase.nonTradingDay ||
+        info.phase == _CountdownPhase.nonTradingDayNoCredit) {
+      final messageKey = info.phase == _CountdownPhase.nonTradingDayNoCredit
+          ? "countdown_no_credit_tonight"
+          : "countdown_non_trading_day";
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_busy_rounded,
+                color: scheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr(messageKey),
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (info.phase == _CountdownPhase.creditJustRan) {
+      return Card(
+        color: scheme.primaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                context.tr("countdown_processing"),
+                style: TextStyle(
+                  color: scheme.onPrimaryContainer,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final accentColor = switch (info.phase) {
+      _CountdownPhase.marketOpen => scheme.primary,
+      _CountdownPhase.awaitingCredit => scheme.tertiary,
+      _CountdownPhase.preMarketOpen => scheme.onSurfaceVariant,
+      _ => scheme.onSurfaceVariant,
+    };
+
+    final icon = switch (info.phase) {
+      _CountdownPhase.marketOpen => Icons.trending_up_rounded,
+      _CountdownPhase.awaitingCredit => Icons.account_balance_wallet_outlined,
+      _CountdownPhase.preMarketOpen => Icons.schedule_rounded,
+      _ => Icons.schedule_rounded,
+    };
+
+    final labelKey = switch (info.phase) {
+      _CountdownPhase.marketOpen => "countdown_market_closes",
+      _CountdownPhase.awaitingCredit => "countdown_profit_credits",
+      _CountdownPhase.preMarketOpen => "countdown_market_opens",
+      _ => "countdown_market_opens",
+    };
+
+    final chipKey = switch (info.phase) {
+      _CountdownPhase.marketOpen => "countdown_live_chip",
+      _CountdownPhase.awaitingCredit => "countdown_pending_chip",
+      _CountdownPhase.preMarketOpen => "countdown_premarket_chip",
+      _ => "",
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: accentColor, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr(labelKey),
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDuration(info.remaining),
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (chipKey.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  context.tr(chipKey),
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class LiveProfitScreen extends ConsumerWidget {
   const LiveProfitScreen({super.key});
 
@@ -143,14 +416,23 @@ class _DailyTab extends ConsumerStatefulWidget {
 class _DailyTabState extends ConsumerState<_DailyTab> {
   late Timer _ticker;
   int _elapsedSec = 0;
+  late _CountdownInfo _countdownInfo;
 
   @override
   void initState() {
     super.initState();
     _elapsedSec = elapsedSessionSeconds();
+    _countdownInfo = _resolveCountdown(
+      ref.read(todayTradingDayProvider).isTradingDay,
+    );
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
-        setState(() => _elapsedSec = elapsedSessionSeconds());
+        setState(() {
+          _elapsedSec = elapsedSessionSeconds();
+          _countdownInfo = _resolveCountdown(
+            ref.read(todayTradingDayProvider).isTradingDay,
+          );
+        });
       }
     });
   }
@@ -205,7 +487,9 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
                 realizedProfit: realizedProfit,
                 walletBalance: baseAmount,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _CountdownCard(info: _countdownInfo),
+              const SizedBox(height: 12),
               _MarketStatusRow(live: live),
               if (!live.isTradingDay) ...[
                 const SizedBox(height: 12),
