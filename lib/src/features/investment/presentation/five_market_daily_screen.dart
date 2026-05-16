@@ -209,9 +209,10 @@ class FiveMarketDailyScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: _MarketSliceTile(
               label: context.tr(labelKey),
+              marketSleeve: sleeve,
               slice: slice,
               scheme: scheme,
-              displayPkr: entry?.displayPkr,
+              sleeveEntry: entry,
               todayCreditedToWallet: todayCredited,
               onTap: () => context.push(route),
             ),
@@ -591,18 +592,20 @@ class _Kmi30StatRow extends StatelessWidget {
 class _MarketSliceTile extends StatelessWidget {
   const _MarketSliceTile({
     required this.label,
+    required this.marketSleeve,
     required this.slice,
     required this.scheme,
-    this.displayPkr,
+    this.sleeveEntry,
     this.todayCreditedToWallet = false,
     this.onTap,
   });
 
   final String label;
+  final MarketSleeve marketSleeve;
   final MarketSliceResult slice;
   final ColorScheme scheme;
-  /// Dashboard sleeve total (incl. pending when not yet credited).
-  final double? displayPkr;
+  /// Full sleeve row from [marketSleeveBalancesProvider] when loaded.
+  final SleeveBalanceEntry? sleeveEntry;
   final bool todayCreditedToWallet;
   final VoidCallback? onTap;
 
@@ -629,6 +632,7 @@ class _MarketSliceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayPkr = sleeveEntry?.displayPkr;
     final profit = slice.profitPkr;
     final profitColor = profit > 0
         ? scheme.primary
@@ -674,21 +678,48 @@ class _MarketSliceTile extends StatelessWidget {
                           ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      context.trParams(
-                        "five_market_allocated_label",
-                        {"amount": _money.format(slice.allocatedPkr)},
+                    if (marketSleeve == MarketSleeve.money &&
+                        sleeveEntry != null) ...[
+                      Text(
+                        context.trParams(
+                          "five_market_money_withdrawable_line",
+                          {"amount": _money.format(sleeveEntry!.basePkr)},
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                    if (displayPkr != null && displayPkr!.isFinite) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        context.trParams(
+                          "five_market_money_return_notional_line",
+                          {"amount": _money.format(slice.allocatedPkr)},
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 11,
+                              height: 1.25,
+                              fontStyle: FontStyle.italic,
+                            ),
+                      ),
+                    ] else ...[
+                      Text(
+                        context.trParams(
+                          "five_market_allocated_label",
+                          {"amount": _money.format(slice.allocatedPkr)},
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                    if (displayPkr != null && displayPkr.isFinite) ...[
                       const SizedBox(height: 2),
                       Text(
                         context.trParams(
                           "five_market_sleeve_value_label",
-                          {"amount": _money.format(displayPkr!)},
+                          {"amount": _money.format(displayPkr)},
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: scheme.onSurface,
