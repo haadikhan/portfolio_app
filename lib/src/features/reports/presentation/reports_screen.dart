@@ -86,10 +86,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
+  static String _portfolioNumber(String uid) {
+    final t = uid.trim();
+    return t.length >= 8 ? t.substring(t.length - 8).toUpperCase() : t.toUpperCase();
+  }
+
   ReportPdfLabels _labels(BuildContext context) {
     return ReportPdfLabels(
       documentTitle: context.tr("reports_pdf_doc_title"),
-      account: context.tr("reports_account"),
+      headerAccountTitle: context.tr("report_header_account_title"),
+      headerPortfolioNo: context.tr("report_header_portfolio_no"),
+      headerReportType: context.tr("report_header_report_type"),
+      reportTypeFiveMarket: context.tr("report_type_five_market"),
+      reportTypeMonthly: context.tr("report_type_monthly"),
       period: context.tr("reports_period"),
       summary: context.tr("reports_summary"),
       colDate: context.tr("reports_col_date"),
@@ -127,10 +136,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final ps = DateTime(range.start.year, range.start.month, range.start.day);
     final pe = DateTime(range.end.year, range.end.month, range.end.day);
+    final uid = auth?.uid ?? "";
+    final portfolioNumber = uid.isNotEmpty ? _portfolioNumber(uid) : "";
+    final reportType = resolveReportType(filtered);
 
     try {
       return await buildInvestorReportPdf(
         accountLabel: accountLabel,
+        portfolioNumber: portfolioNumber,
+        reportType: reportType,
         periodStart: ps,
         periodEndInclusive: pe,
         transactions: filtered,

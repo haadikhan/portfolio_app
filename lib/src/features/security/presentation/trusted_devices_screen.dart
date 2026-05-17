@@ -20,10 +20,26 @@ class TrustedDevicesScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(context.tr("trusted_devices_title"))),
       body: devicesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("${context.tr("error_prefix")} $e")),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              "${context.tr("error_prefix")} $e",
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
         data: (devices) {
           if (devices.isEmpty) {
-            return Center(child: Text(context.tr("trusted_devices_empty")));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  context.tr("trusted_devices_empty"),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),

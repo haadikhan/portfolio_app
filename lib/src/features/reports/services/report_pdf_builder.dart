@@ -4,7 +4,7 @@ import "package:intl/intl.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 
-import "../../../providers/transaction_history_providers.dart";
+import "../../investor/data/models/txn_item.dart";
 
 /// Inclusive date range for filtering [TxnItem.createdAt].
 List<TxnItem> filterTxnsInRange(
@@ -28,11 +28,26 @@ List<TxnItem> filterTxnsInRange(
     ..sort((x, y) => x.createdAt.compareTo(y.createdAt));
 }
 
+enum ReportType { fiveMarketDaily, monthlyReturn }
+
+ReportType resolveReportType(List<TxnItem> transactions) {
+  final hasFiveMarket = transactions.any((t) {
+    final n = (t.note ?? "").toLowerCase();
+    return n.contains("five-market daily profit") ||
+        n.contains("five_market_daily");
+  });
+  return hasFiveMarket ? ReportType.fiveMarketDaily : ReportType.monthlyReturn;
+}
+
 /// Localized labels for PDF columns and sections (pass [context.tr] values from UI).
 class ReportPdfLabels {
   const ReportPdfLabels({
     required this.documentTitle,
-    required this.account,
+    required this.headerAccountTitle,
+    required this.headerPortfolioNo,
+    required this.headerReportType,
+    required this.reportTypeFiveMarket,
+    required this.reportTypeMonthly,
     required this.period,
     required this.summary,
     required this.colDate,
@@ -48,7 +63,11 @@ class ReportPdfLabels {
   });
 
   final String documentTitle;
-  final String account;
+  final String headerAccountTitle;
+  final String headerPortfolioNo;
+  final String headerReportType;
+  final String reportTypeFiveMarket;
+  final String reportTypeMonthly;
   final String period;
   final String summary;
   final String colDate;
@@ -63,9 +82,72 @@ class ReportPdfLabels {
   final String transactionsHeading;
 }
 
+pw.Widget _reportHeaderTable({
+  required ReportPdfLabels labels,
+  required String accountTitle,
+  required String portfolioNumber,
+  required ReportType reportType,
+}) {
+  final reportTypeLabel = reportType == ReportType.fiveMarketDaily
+      ? labels.reportTypeFiveMarket
+      : labels.reportTypeMonthly;
+  final labelStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
+  final valueStyle = pw.TextStyle(fontSize: 9);
+
+  pw.Widget headerCell(String text, {pw.Alignment align = pw.Alignment.centerLeft}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: pw.Align(
+        alignment: align,
+        child: pw.Text(text, style: labelStyle),
+      ),
+    );
+  }
+
+  pw.Widget valueCell(String text) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: pw.Align(
+        alignment: pw.Alignment.centerRight,
+        child: pw.Text(text, style: valueStyle),
+      ),
+    );
+  }
+
+  return pw.Table(
+    border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+    columnWidths: {
+      0: const pw.FlexColumnWidth(2),
+      1: const pw.FlexColumnWidth(3),
+    },
+    children: [
+      pw.TableRow(
+        children: [
+          headerCell(labels.headerAccountTitle),
+          valueCell(accountTitle),
+        ],
+      ),
+      pw.TableRow(
+        children: [
+          headerCell(labels.headerPortfolioNo),
+          valueCell(portfolioNumber),
+        ],
+      ),
+      pw.TableRow(
+        children: [
+          headerCell(labels.headerReportType),
+          valueCell(reportTypeLabel),
+        ],
+      ),
+    ],
+  );
+}
+
 /// Builds a multi-page A4 PDF; returns bytes for [Printing.layoutPdf].
 Future<Uint8List> buildInvestorReportPdf({
   required String accountLabel,
+  required String portfolioNumber,
+  required ReportType reportType,
   required DateTime periodStart,
   required DateTime periodEndInclusive,
   required List<TxnItem> transactions,
@@ -109,8 +191,13 @@ Future<Uint8List> buildInvestorReportPdf({
           ),
         ),
         pw.SizedBox(height: 12),
-        pw.Text("${labels.account}: $accountLabel"),
-        pw.SizedBox(height: 4),
+        _reportHeaderTable(
+          labels: labels,
+          accountTitle: accountLabel,
+          portfolioNumber: portfolioNumber,
+          reportType: reportType,
+        ),
+        pw.SizedBox(height: 8),
         pw.Text(
           "${labels.period}: ${dateFmt.format(periodStart)} – ${dateFmt.format(periodEndInclusive)}",
         ),
@@ -175,4 +262,3 @@ Future<Uint8List> buildInvestorReportPdf({
 
   return pdf.save();
 }
-
