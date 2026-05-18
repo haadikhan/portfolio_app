@@ -1,3 +1,4 @@
+import "package:cloud_functions/cloud_functions.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -36,7 +37,9 @@ class _MpinSetupScreenState extends ConsumerState<MpinSetupScreen> {
   String? _currentPin;
   String? _newPin;
   String? _error;
+  String? _currentStepError;
   bool _busy = false;
+  int _keypadEpoch = 0;
 
   String _stepLabel(BuildContext context) {
     if (widget.mode == MpinSetupMode.change) {
@@ -67,13 +70,57 @@ class _MpinSetupScreenState extends ConsumerState<MpinSetupScreen> {
 
   Future<void> _onCompleted(String value) async {
     if (_busy) return;
-    setState(() => _error = null);
+    setState(() {
+      _error = null;
+      if (_step != _SetupStep.current ||
+          widget.mode != MpinSetupMode.change) {
+        _currentStepError = null;
+      }
+    });
 
-    if (_step == _SetupStep.current) {
-      _currentPin = value;
-      setState(() => _step = _SetupStep.choose);
+    if (_step == _SetupStep.current && widget.mode == MpinSetupMode.change) {
+      setState(() {
+        _busy = true;
+        _currentStepError = null;
+      });
+      try {
+        await ref.read(mpinServiceProvider).verifyCurrentPin(value);
+        if (!mounted) return;
+        setState(() {
+          _currentPin = value;
+          _step = _SetupStep.choose;
+          _busy = false;
+          _currentStepError = null;
+        });
+      } on FirebaseFunctionsException catch (e) {
+        if (!mounted) return;
+        final raw = e.message?.trim() ?? "";
+        final String msg;
+        if (raw == "MPIN_LOCKED") {
+          msg = context.tr("mpin_locked_generic");
+        } else if (raw == "MPIN_DATA_CORRUPT") {
+          msg = context.tr("mpin_data_corrupt");
+        } else if (raw == "MPIN_INVALID_FORMAT") {
+          msg = context.tr("mpin_invalid_format");
+        } else {
+          msg = context.tr("mpin_current_incorrect");
+        }
+        setState(() {
+          _busy = false;
+          _currentStepError = msg;
+          _keypadEpoch++;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          _currentStepError = context.tr("mpin_current_incorrect");
+          _keypadEpoch++;
+        });
+      }
       return;
     }
+
     if (_step == _SetupStep.choose) {
       _newPin = value;
       setState(() => _step = _SetupStep.confirm);
@@ -173,9 +220,13 @@ class _MpinSetupScreenState extends ConsumerState<MpinSetupScreen> {
               ),
               const SizedBox(height: 24),
               MpinKeypad(
-                key: ValueKey(_step),
+                key: ValueKey("${_step}_$_keypadEpoch"),
                 headerText: _headerText(context),
-                errorText: _error,
+                errorText:
+                    _step == _SetupStep.current &&
+                            widget.mode == MpinSetupMode.change
+                        ? _currentStepError
+                        : _error,
                 busy: _busy,
                 onCompleted: _onCompleted,
               ),

@@ -952,6 +952,11 @@ const _en = <String, String>{
       "Enter your 4-digit MPIN to authorize this withdrawal.",
   "mpin_mismatch": "MPINs do not match. Try again.",
   "mpin_wrong": "Wrong MPIN. Please try again.",
+  "mpin_current_incorrect": "Incorrect MPIN. Please try again.",
+  "mpin_locked_generic":
+      "MPIN locked due to too many attempts. Try again later.",
+  "mpin_data_corrupt":
+      "MPIN data error. Please reset your MPIN from profile settings.",
   "mpin_locked":
       "Too many wrong attempts. MPIN is locked, try again at {time}.",
   "mpin_locked_short": "MPIN locked. Try again later.",
@@ -1121,6 +1126,16 @@ const _en = <String, String>{
   "trusted_device_revoke": "Revoke",
   "trusted_device_revoked": "Device revoked. It will require OTP next time.",
   "trusted_device_revoke_failed": "Could not revoke device. Please try again.",
+  "trusted_device_revoke_mpin_subtitle":
+      "Enter your MPIN to revoke this device",
+  "trusted_device_revoke_confirm_title": "Revoke device",
+  "trusted_device_revoke_confirm_body":
+      "Are you sure you want to revoke this device? It will be signed out immediately.",
+  "trusted_device_revoke_confirm_btn": "Revoke",
+  "trusted_device_revoked_success": "Device revoked successfully",
+  "trusted_device_revoke_error": "Failed to revoke device. Please try again.",
+  "trusted_device_revoke_current_warning":
+      "Revoking your current device will sign you out immediately.",
   "trusted_device_first_seen": "Trusted on",
   "trusted_device_last_seen": "Last seen",
   "otp_challenge_title": "Verify it's you",
@@ -2184,6 +2199,11 @@ const _ur = <String, String>{
       "اس نکالنے کی اجازت کے لیے 4 ہندسوں کا ایم پن درج کریں۔",
   "mpin_mismatch": "ایم پن میچ نہیں ہوا۔ دوبارہ کوشش کریں۔",
   "mpin_wrong": "غلط ایم پن۔ دوبارہ کوشش کریں۔",
+  "mpin_current_incorrect": "MPIN غلط ہے۔ دوبارہ کوشش کریں۔",
+  "mpin_locked_generic":
+      "بہت زیادہ غلط کوششوں کی وجہ سے MPIN بند ہو گیا۔ بعد میں کوشش کریں۔",
+  "mpin_data_corrupt":
+      "MPIN ڈیٹا میں خرابی۔ براہ کرم پروفائل سیٹنگز سے MPIN دوبارہ سیٹ کریں۔",
   "mpin_locked":
       "بہت زیادہ غلط کوششیں۔ ایم پن لاک ہے، {time} پر دوبارہ کوشش کریں۔",
   "mpin_locked_short": "ایم پن لاک ہے۔ تھوڑی دیر بعد کوشش کریں۔",
@@ -2355,6 +2375,17 @@ const _ur = <String, String>{
       "ڈیوائس منسوخ کر دی گئی۔ اگلی بار اس پر OTP درکار ہوگا۔",
   "trusted_device_revoke_failed":
       "ڈیوائس منسوخ نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔",
+  "trusted_device_revoke_mpin_subtitle":
+      "اس ڈیوائس کو ہٹانے کے لیے MPIN درج کریں",
+  "trusted_device_revoke_confirm_title": "ڈیوائس منسوخ کریں",
+  "trusted_device_revoke_confirm_body":
+      "کیا آپ واقعی اس ڈیوائس کو منسوخ کرنا چاہتے ہیں؟ اسے فوری طور پر سائن آؤٹ کر دیا جائے گا۔",
+  "trusted_device_revoke_confirm_btn": "منسوخ کریں",
+  "trusted_device_revoked_success": "ڈیوائس کامیابی سے منسوخ ہو گئی",
+  "trusted_device_revoke_error":
+      "ڈیوائس منسوخ کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+  "trusted_device_revoke_current_warning":
+      "موجودہ ڈیوائس منسوخ کرنے سے آپ فوری طور پر سائن آؤٹ ہو جائیں گے۔",
   "trusted_device_first_seen": "بھروسہ شدہ",
   "trusted_device_last_seen": "آخری بار دیکھا گیا",
   "otp_challenge_title": "تصدیق کریں کہ یہ آپ ہیں",

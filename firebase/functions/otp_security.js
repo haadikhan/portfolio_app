@@ -1,6 +1,6 @@
 const admin = require("firebase-admin");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { requireMpinVerifiedOrThrow } = require("./mpin");
+const { requireMpinVerifiedOrThrow, verifyMpinOrThrow } = require("./mpin");
 
 const db = () => admin.firestore();
 
@@ -70,6 +70,8 @@ async function upsertTrustedDevice(uid, data) {
     platform: cleanString(data?.platform, 20),
     appVersion: cleanString(data?.appVersion, 40),
     lastSeenAt: now,
+    revoked: false,
+    revokedAt: admin.firestore.FieldValue.delete(),
   };
   const ref = trustedDeviceRef(uid, deviceHash);
   const snap = await ref.get();
@@ -141,8 +143,37 @@ exports.removeTrustedDevice = onCall(
   { region: "us-central1" },
   async (request) => {
     const uid = requireAuth(request);
-    const deviceHash = requireDeviceHash(request.data || {});
-    await trustedDeviceRef(uid, deviceHash).delete();
+    const data = request.data || {};
+    const deviceHash = requireDeviceHash(data);
+    const mpin = data.mpin;
+
+    const userSnap = await db().collection("users").doc(uid).get();
+    const userData = userSnap.data() || {};
+    const hasMpin =
+      typeof userData.mpinHash === "string" &&
+      userData.mpinHash.length > 0 &&
+      typeof userData.mpinSalt === "string" &&
+      userData.mpinSalt.length > 0 &&
+      userData.mpinEnabled === true;
+
+    if (hasMpin) {
+      if (typeof mpin !== "string" || !/^\d{4}$/.test(mpin)) {
+        throw new HttpsError("invalid-argument", "MPIN_REQUIRED");
+      }
+      await verifyMpinOrThrow(uid, mpin);
+    }
+
+    const ref = trustedDeviceRef(uid, deviceHash);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Device not found.");
+    }
+
+    await ref.update({
+      revoked: true,
+      revokedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     return { ok: true };
   },
 );

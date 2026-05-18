@@ -110,6 +110,15 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
+
+    ref.listen<AsyncValue<bool>>(currentDeviceRevokedProvider, (_, next) async {
+      final revoked = next.valueOrNull ?? false;
+      if (!revoked || !mounted) return;
+      final router = GoRouter.of(context);
+      await ref.read(authControllerProvider.notifier).logout();
+      if (mounted) router.go("/login");
+    });
+
     return authState.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),

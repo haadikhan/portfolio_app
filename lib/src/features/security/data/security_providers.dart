@@ -46,6 +46,8 @@ class TrustedDevice {
     required this.appVersion,
     required this.firstSeenAt,
     required this.lastSeenAt,
+    required this.revoked,
+    required this.revokedAt,
   });
 
   final String deviceHash;
@@ -54,6 +56,8 @@ class TrustedDevice {
   final String appVersion;
   final DateTime? firstSeenAt;
   final DateTime? lastSeenAt;
+  final bool revoked;
+  final DateTime? revokedAt;
 
   factory TrustedDevice.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data() ?? const {};
@@ -65,6 +69,8 @@ class TrustedDevice {
       appVersion: ((d["appVersion"] as String?) ?? "").trim(),
       firstSeenAt: asDate(d["firstSeenAt"]),
       lastSeenAt: asDate(d["lastSeenAt"]),
+      revoked: (d["revoked"] as bool?) ?? false,
+      revokedAt: asDate(d["revokedAt"]),
     );
   }
 }
@@ -96,7 +102,38 @@ final trustedDevicesStreamProvider = StreamProvider<List<TrustedDevice>>((ref) {
       .collection("trustedDevices")
       .orderBy("lastSeenAt", descending: true)
       .snapshots()
-      .map((snap) => snap.docs.map(TrustedDevice.fromDoc).toList());
+      .map(
+        (snap) => snap.docs
+            .map(TrustedDevice.fromDoc)
+            .where((d) => !d.revoked)
+            .toList(),
+      );
+});
+
+/// True when this device's own `trustedDevices/{deviceHash}` doc has `revoked: true`.
+final currentDeviceRevokedProvider = StreamProvider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(false);
+
+  final fpAsync = ref.watch(currentDeviceFingerprintProvider);
+  return fpAsync.when(
+    data: (fp) {
+      if (fp == null) return Stream.value(false);
+      return ref
+          .read(firebaseFirestoreProvider)
+          .collection("users")
+          .doc(user.uid)
+          .collection("trustedDevices")
+          .doc(fp.deviceHash)
+          .snapshots()
+          .map((snap) {
+            if (!snap.exists) return false;
+            return (snap.data()?["revoked"] as bool?) ?? false;
+          });
+    },
+    loading: () => Stream.value(false),
+    error: (_, _) => Stream.value(false),
+  );
 });
 
 final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
@@ -130,7 +167,8 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
           "hash=${fp.deviceHash} exists=${snap.exists}",
         );
       }
-      return snap.exists;
+      if (!snap.exists) return false;
+      return !((snap.data()?["revoked"] as bool?) ?? false);
     } on FirebaseException catch (e) {
       if (kDebugMode) {
         debugPrint(

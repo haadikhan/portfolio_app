@@ -65,7 +65,15 @@ async function verifyMpinOrThrow(uid, pin) {
   const snap = await ref.get();
   const u = snap.data() || {};
 
-  if (!u.mpinHash || !u.mpinSalt) return;
+  // No MPIN configured at all — skip verification (backward compat)
+  if (!u.mpinHash && !u.mpinSalt && u.mpinEnabled !== true) return;
+
+  // MPIN is enabled but hash/salt missing — data integrity error
+  if (u.mpinEnabled === true && (!u.mpinHash || !u.mpinSalt)) {
+    throw new HttpsError("failed-precondition", "MPIN_DATA_CORRUPT");
+  }
+
+  // MPIN exists but disabled — skip verification
   if (u.mpinEnabled !== true) return;
 
   const lockedUntilMs = u.mpinLockedUntil?.toMillis?.() || 0;
@@ -185,6 +193,16 @@ exports.setMpin = onCall({ region: "us-central1" }, async (request) => {
     );
 
   logger.info("mpin_set", { uid, hadPrevious: hasExisting });
+  return { ok: true };
+});
+
+/** Verifies current MPIN only (same rules as verifyMpinOrThrow). */
+exports.verifyMpin = onCall({ region: "us-central1" }, async (request) => {
+  const auth = request.auth;
+  if (!auth?.uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  const uid = auth.uid;
+  const pin = request.data?.pin;
+  await verifyMpinOrThrow(uid, pin);
   return { ok: true };
 });
 

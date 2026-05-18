@@ -33,6 +33,10 @@ class MpinService {
 
   final FirebaseFunctions _f;
 
+  Future<void> verifyCurrentPin(String pin) async {
+    await _f.httpsCallable("verifyMpin").call(<String, dynamic>{"pin": pin});
+  }
+
   Future<void> setMpin({required String newPin, String? currentPin}) async {
     try {
       await _f.httpsCallable("setMpin").call(<String, dynamic>{

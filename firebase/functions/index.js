@@ -38,6 +38,7 @@ Object.assign(exports, notifications);
 Object.assign(exports, marketData);
 Object.assign(exports, appUpdates);
 Object.assign(exports, mpin);
+exports.verifyMpin = mpin.verifyMpin;
 Object.assign(exports, otpSecurity);
 // Only expose public callables / scheduled functions; module-private helpers
 // (getFeeConfig_internal, applyDepositFees, ...) are NOT re-exported.
