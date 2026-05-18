@@ -955,6 +955,11 @@ const _en = <String, String>{
       "Too many wrong attempts. MPIN is locked, try again at {time}.",
   "mpin_locked_short": "MPIN locked. Try again later.",
   "mpin_invalid_format": "MPIN must be exactly 4 digits.",
+  "mpin_required_for_phone_change":
+      "Set up and enable MPIN before changing your verified phone.",
+  "mpin_prompt_change_phone_title": "Confirm phone change",
+  "mpin_prompt_change_phone_subtitle":
+      "Enter your MPIN to change your verified phone number.",
   "mpin_set_success": "MPIN saved.",
   "mpin_changed_success": "MPIN changed.",
   "mpin_cleared_success": "MPIN removed.",
@@ -1102,6 +1107,11 @@ const _en = <String, String>{
   "otp_verified_phone": "Verified phone",
   "otp_no_verified_phone": "Not yet verified",
   "otp_change_phone": "Change verified phone",
+  "otp_change_phone_blocked_no_mpin": "Set up MPIN to change phone",
+  "otp_change_phone_success":
+      "Verified phone updated. All trusted devices were removed.",
+  "otp_use_change_phone_flow":
+      "Use the Change phone option in Security settings to update your verified number.",
   "otp_change_phone_warning":
       "Changing the phone removes all trusted devices. You'll be asked for an OTP on every device next time.",
   "trusted_devices_title": "Trusted devices",
@@ -2184,6 +2194,11 @@ const _ur = <String, String>{
       "بہت زیادہ غلط کوششیں۔ ایم پن لاک ہے، {time} پر دوبارہ کوشش کریں۔",
   "mpin_locked_short": "ایم پن لاک ہے۔ تھوڑی دیر بعد کوشش کریں۔",
   "mpin_invalid_format": "ایم پن لازمی 4 ہندسوں پر مشتمل ہو۔",
+  "mpin_required_for_phone_change":
+      "تصدیق شدہ فون تبدیل کرنے سے پہلے ایم پن سیٹ کریں اور فعال کریں۔",
+  "mpin_prompt_change_phone_title": "فون تبدیلی کی تصدیق",
+  "mpin_prompt_change_phone_subtitle":
+      "تصدیق شدہ فون نمبر تبدیل کرنے کے لیے اپنا ایم پن درج کریں۔",
   "mpin_set_success": "ایم پن محفوظ ہو گیا۔",
   "mpin_changed_success": "ایم پن تبدیل ہو گیا۔",
   "mpin_cleared_success": "ایم پن ہٹا دیا گیا۔",
@@ -2331,6 +2346,11 @@ const _ur = <String, String>{
   "otp_verified_phone": "تصدیق شدہ فون",
   "otp_no_verified_phone": "ابھی تصدیق نہیں ہوئی",
   "otp_change_phone": "تصدیق شدہ فون تبدیل کریں",
+  "otp_change_phone_blocked_no_mpin": "فون تبدیل کرنے کے لیے ایم پن سیٹ کریں",
+  "otp_change_phone_success":
+      "تصدیق شدہ فون اپ ڈیٹ ہو گیا۔ تمام قابلِ اعتماد ڈیوائسز ہٹا دی گئیں۔",
+  "otp_use_change_phone_flow":
+      "تصدیق شدہ نمبر اپ ڈیٹ کرنے کے لیے سیکیورٹی میں «فون تبدیل کریں» استعمال کریں۔",
   "otp_change_phone_warning":
       "فون تبدیل کرنے سے تمام قابلِ اعتماد ڈیوائسز ہٹا دی جائیں گی۔ اگلی بار ہر ڈیوائس پر OTP طلب کیا جائے گا۔",
   "trusted_devices_title": "قابلِ اعتماد ڈیوائسز",

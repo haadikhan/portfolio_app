@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { requireMpinVerifiedOrThrow } = require("./mpin");
 
 const db = () => admin.firestore();
 
@@ -81,7 +82,18 @@ exports.verifyPhoneAndTrustCurrentDevice = onCall(
   { region: "us-central1" },
   async (request) => {
     const uid = requireAuth(request);
+    const userSnap = await db().collection("users").doc(uid).get();
+    const existingPhone = cleanString(
+      userSnap.data()?.security?.verifiedPhone,
+      32,
+    );
     const linkedPhone = await extractLinkedPhone(uid);
+    if (
+      existingPhone &&
+      !phonesMatchForTrust(linkedPhone, existingPhone)
+    ) {
+      throw new HttpsError("failed-precondition", "USE_CHANGE_PHONE_FLOW");
+    }
     const deviceHash = await upsertTrustedDevice(uid, request.data || {});
 
     await db()
@@ -139,6 +151,18 @@ exports.changeVerifiedPhone = onCall(
   { region: "us-central1" },
   async (request) => {
     const uid = requireAuth(request);
+    const data = request.data || {};
+    await requireMpinVerifiedOrThrow(uid, data.mpin);
+
+    const userSnap = await db().collection("users").doc(uid).get();
+    const existingPhone = cleanString(
+      userSnap.data()?.security?.verifiedPhone,
+      32,
+    );
+    if (!existingPhone) {
+      throw new HttpsError("failed-precondition", "NO_VERIFIED_PHONE");
+    }
+
     const linkedPhone = await extractLinkedPhone(uid);
     const trustedRef = db().collection("users").doc(uid).collection("trustedDevices");
     const trustedSnap = await trustedRef.get();
@@ -155,7 +179,7 @@ exports.changeVerifiedPhone = onCall(
     }
     if (ops > 0) await batch.commit();
 
-    const deviceHash = await upsertTrustedDevice(uid, request.data || {});
+    const deviceHash = await upsertTrustedDevice(uid, data);
     await db()
       .collection("users")
       .doc(uid)

@@ -8,8 +8,13 @@ import "mpin_keypad.dart";
 /// callable. The dialog only collects the PIN — verification happens server
 /// side, and any wrong/locked errors are surfaced by the caller.
 class MpinPromptDialog extends StatefulWidget {
-  const MpinPromptDialog({super.key, this.subtitleOverride});
+  const MpinPromptDialog({
+    super.key,
+    this.titleOverride,
+    this.subtitleOverride,
+  });
 
+  final String? titleOverride;
   final String? subtitleOverride;
 
   @override
@@ -29,7 +34,7 @@ class _MpinPromptDialogState extends State<MpinPromptDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              context.tr("mpin_prompt_title"),
+              widget.titleOverride ?? context.tr("mpin_prompt_title"),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),

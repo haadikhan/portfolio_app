@@ -9,10 +9,12 @@ import "package:intl_phone_field/intl_phone_field.dart";
 import "package:intl_phone_field/phone_number.dart";
 
 import "../../../core/i18n/app_translations.dart";
+import "../../../providers/mpin_providers.dart";
 import "../../../services/device_fingerprint.dart";
 import "../../../services/otp_auth_errors.dart";
 import "../../../services/otp_callable_errors.dart";
 import "../../../services/otp_service.dart";
+import "../../mpin/presentation/mpin_prompt_dialog.dart";
 import "../data/security_providers.dart";
 
 String _securityNationalDigitsForIntlField(String stored) {
@@ -49,13 +51,96 @@ class SecuritySettingsSection extends ConsumerWidget {
     return "${p.substring(0, 3)}••••${p.substring(p.length - 2)}";
   }
 
-  Future<void> _showPhoneVerifyFlow(
+  Future<void> _onPhoneSecurityAction(
     BuildContext context,
     WidgetRef ref,
     UserSecurityState? security,
   ) async {
-    final normalizedInitial =
-        _securityNormalizePhoneToE164(security?.verifiedPhone ?? "");
+    final currentSecurity = ref.read(userSecurityProvider).valueOrNull ?? security;
+    if (currentSecurity?.hasVerifiedPhone == true) {
+      await _changePhoneWithMpin(context, ref, currentSecurity);
+    } else {
+      await _showPhoneVerifyFlow(
+        context,
+        ref,
+        security,
+        isPhoneChange: false,
+      );
+    }
+  }
+
+  Future<void> _changePhoneWithMpin(
+    BuildContext context,
+    WidgetRef ref,
+    UserSecurityState? security,
+  ) async {
+    final mpinStatus = await ref.read(mpinStatusStreamProvider.future);
+    if (!mpinStatus.hasMpin || !mpinStatus.enabled) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr("otp_change_phone")),
+          content: Text(ctx.tr("mpin_required_for_phone_change")),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(ctx.tr("cancel")),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ctx.push("/mpin/setup");
+              },
+              child: Text(ctx.tr("mpin_setup_cta")),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    if (mpinStatus.isLockedNow) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr("mpin_locked_short"))),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+    final mpin = await _promptChangePhoneMpin(context);
+    if (!context.mounted || mpin == null) return;
+    await _showPhoneVerifyFlow(
+      context,
+      ref,
+      security,
+      isPhoneChange: true,
+      mpinForChange: mpin,
+    );
+  }
+
+  Future<String?> _promptChangePhoneMpin(BuildContext context) {
+    final title = context.tr("mpin_prompt_change_phone_title");
+    final subtitle = context.tr("mpin_prompt_change_phone_subtitle");
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => MpinPromptDialog(
+        titleOverride: title,
+        subtitleOverride: subtitle,
+      ),
+    );
+  }
+
+  Future<void> _showPhoneVerifyFlow(
+    BuildContext context,
+    WidgetRef ref,
+    UserSecurityState? security, {
+    required bool isPhoneChange,
+    String? mpinForChange,
+  }) async {
+    final normalizedInitial = isPhoneChange
+        ? ""
+        : _securityNormalizePhoneToE164(security?.verifiedPhone ?? "");
     final phoneCtrl = TextEditingController(text: normalizedInitial);
     final otpCtrl = TextEditingController();
     final otp = OtpService(FirebaseAuth.instance);
@@ -100,17 +185,34 @@ class SecuritySettingsSection extends ConsumerWidget {
                 throw StateError("No active user");
               }
               final fp = await currentDeviceFingerprint(user.uid);
+              final payload = fp.toCallablePayload();
               await otp.withTransientPhoneLink(credential, () async {
-                await functions
-                    .httpsCallable("verifyPhoneAndTrustCurrentDevice")
-                    .call(fp.toCallablePayload());
+                if (isPhoneChange) {
+                  await functions.httpsCallable("changeVerifiedPhone").call(
+                    <String, dynamic>{
+                      ...payload,
+                      "mpin": mpinForChange,
+                    },
+                  );
+                } else {
+                  await functions
+                      .httpsCallable("verifyPhoneAndTrustCurrentDevice")
+                      .call(payload);
+                }
               });
+              ref.invalidate(userSecurityProvider);
               ref.invalidate(currentDeviceTrustedProvider);
               ref.invalidate(otpRequiredProvider);
               if (!ctx.mounted) return;
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(context.tr("otp_enroll_success"))),
+                SnackBar(
+                  content: Text(
+                    isPhoneChange
+                        ? context.tr("otp_change_phone_success")
+                        : context.tr("otp_enroll_success"),
+                  ),
+                ),
               );
             } on FirebaseAuthException catch (e) {
               if (kDebugMode) {
@@ -147,10 +249,21 @@ class SecuritySettingsSection extends ConsumerWidget {
           }
 
           return AlertDialog(
-            title: Text(context.tr("otp_enroll_title")),
+            title: Text(
+              isPhoneChange
+                  ? context.tr("otp_change_phone")
+                  : context.tr("otp_enroll_title"),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (isPhoneChange) ...[
+                  Text(
+                    context.tr("otp_change_phone_warning"),
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 IntlPhoneField(
                   initialCountryCode: "PK",
                   initialValue:
@@ -361,7 +474,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                 ],
               ),
               trailing: TextButton(
-                onPressed: () => _showPhoneVerifyFlow(context, ref, security),
+                onPressed: () => _onPhoneSecurityAction(context, ref, security),
                 child: Text(
                   security?.hasVerifiedPhone == true
                       ? context.tr("otp_change_phone")

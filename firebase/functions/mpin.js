@@ -108,6 +108,18 @@ async function verifyMpinOrThrow(uid, pin) {
   throw new HttpsError("permission-denied", "MPIN_WRONG");
 }
 
+/**
+ * Stricter than withdrawal: MPIN must exist, be enabled, and match `pin`.
+ * Used when MPIN cannot be skipped (e.g. change verified phone).
+ */
+async function requireMpinVerifiedOrThrow(uid, pin) {
+  const u = await readUserOrEmpty(uid);
+  if (!u.mpinHash || !u.mpinSalt || u.mpinEnabled !== true) {
+    throw new HttpsError("failed-precondition", "MPIN_NOT_SET");
+  }
+  await verifyMpinOrThrow(uid, pin);
+}
+
 async function readUserOrEmpty(uid) {
   const snap = await db().collection("users").doc(uid).get();
   return snap.data() || {};
@@ -272,5 +284,6 @@ exports.getMpinStatus = onCall({ region: "us-central1" }, async (request) => {
 });
 
 module.exports.verifyMpinOrThrow = verifyMpinOrThrow;
+module.exports.requireMpinVerifiedOrThrow = requireMpinVerifiedOrThrow;
 module.exports.hashMpin = hashMpin;
 module.exports.PIN_REGEX = PIN_REGEX;
