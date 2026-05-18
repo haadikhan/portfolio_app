@@ -155,6 +155,8 @@ class SecuritySettingsSection extends ConsumerWidget {
     /// Seconds before "Send code" can be tapped again (reduces SMS abuse bursts).
     int sendCooldownSec = 0;
     int sendCooldownGen = 0;
+    int otpExpirySec = 0;
+    int otpExpiryGen = 0;
 
     await showDialog<void>(
       context: context,
@@ -173,6 +175,30 @@ class SecuritySettingsSection extends ConsumerWidget {
               }
             }();
           }
+
+          void kickOtpExpiry() {
+            final gen = ++otpExpiryGen;
+            setState(() => otpExpirySec = 180);
+            () async {
+              while (ctx.mounted &&
+                  otpExpirySec > 0 &&
+                  otpExpiryGen == gen) {
+                await Future<void>.delayed(const Duration(seconds: 1));
+                if (!ctx.mounted || otpExpiryGen != gen) return;
+                setState(() => otpExpirySec -= 1);
+                if (otpExpirySec <= 0 && ctx.mounted) {
+                  setState(() {
+                    verificationId = null;
+                    err = ctx.tr("otp_expires_message");
+                  });
+                }
+              }
+            }();
+          }
+
+          final scheme = Theme.of(ctx).colorScheme;
+          final otpExpired =
+              pastSendPhase && verificationId == null && otpExpirySec <= 0;
 
           Future<void> completeEnrollment(PhoneAuthCredential credential) async {
             setState(() {
@@ -203,6 +229,7 @@ class SecuritySettingsSection extends ConsumerWidget {
               ref.invalidate(userSecurityProvider);
               ref.invalidate(currentDeviceTrustedProvider);
               ref.invalidate(otpRequiredProvider);
+              otpExpiryGen++;
               if (!ctx.mounted) return;
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -280,9 +307,70 @@ class SecuritySettingsSection extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 8),
-                if (verificationId != null) ...[
+                if (otpExpired) ...[
+                  Icon(Icons.timer_off_rounded, color: scheme.error),
+                  const SizedBox(height: 6),
+                  Text(
+                    ctx.tr("otp_expires_message"),
+                    style: TextStyle(color: scheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: sending
+                        ? null
+                        : () {
+                            setState(() {
+                              pastSendPhase = false;
+                              verificationId = null;
+                              otpExpirySec = 0;
+                              otpExpiryGen++;
+                              err = null;
+                              otpCtrl.clear();
+                            });
+                          },
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: Text(ctx.tr("otp_request_new")),
+                  ),
+                ] else if (verificationId != null) ...[
+                  if (otpExpirySec > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            size: 14,
+                            color: otpExpirySec <= 30
+                                ? scheme.error
+                                : scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${otpExpirySec ~/ 60}:${(otpExpirySec % 60).toString().padLeft(2, "0")}",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: otpExpirySec <= 30
+                                  ? scheme.error
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            ctx.tr("otp_expires_in_label"),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   TextField(
                     controller: otpCtrl,
+                    enabled: otpExpirySec > 0 && !verifying,
                     autofillHints: const [AutofillHints.oneTimeCode],
                     decoration: InputDecoration(
                       labelText: context.tr("otp_label"),
@@ -295,7 +383,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                     ],
                   ),
                 ],
-                if (err != null) ...[
+                if (err != null && !otpExpired) ...[
                   const SizedBox(height: 8),
                   Text(err!, style: const TextStyle(color: Colors.red)),
                 ],
@@ -331,10 +419,13 @@ class SecuritySettingsSection extends ConsumerWidget {
                           switch (res) {
                             case OtpCodeSent():
                               kickSendCooldown();
+                              kickOtpExpiry();
+                              otpCtrl.clear();
                               setState(() {
                                 verificationId = res.verificationId;
                                 resendToken = res.resendToken;
                                 pastSendPhase = true;
+                                err = null;
                               });
                             case OtpAutoFilled(:final credential):
                               setState(() {
@@ -375,7 +466,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                               : context.tr("otp_enroll_send_code"),
                         ),
                 )
-              else if (verificationId != null)
+              else if (verificationId != null && otpExpirySec > 0)
                 FilledButton(
                   onPressed: verifying
                       ? null
@@ -401,7 +492,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                         )
                       : Text(context.tr("verify_otp")),
                 )
-              else
+              else if (!otpExpired)
                 FilledButton(
                   onPressed: verifying
                       ? null
@@ -410,6 +501,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                             pastSendPhase = false;
                             err = null;
                             otpCtrl.clear();
+                            otpExpiryGen++;
                           });
                           kickSendCooldown();
                         },

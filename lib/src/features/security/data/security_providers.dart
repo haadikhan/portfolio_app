@@ -26,8 +26,7 @@ class UserSecurityState {
   final String? verifiedPhone;
   final DateTime? verifiedPhoneAt;
 
-  bool get hasVerifiedPhone =>
-      (verifiedPhone ?? "").trim().isNotEmpty;
+  bool get hasVerifiedPhone => (verifiedPhone ?? "").trim().isNotEmpty;
 
   factory UserSecurityState.fromUserDoc(Map<String, dynamic>? data) {
     final security = (data?["security"] as Map<String, dynamic>?) ?? const {};

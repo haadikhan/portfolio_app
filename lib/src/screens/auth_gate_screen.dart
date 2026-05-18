@@ -34,9 +34,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
         final otpRequired = await ref.read(otpRequiredProvider.future);
         if (!mounted) return;
         if (otpRequired) {
-          context.go(
-            "/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}",
-          );
+          context.go("/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}");
           return;
         }
       }

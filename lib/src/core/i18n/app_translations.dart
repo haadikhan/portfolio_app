@@ -101,7 +101,8 @@ const _en = <String, String>{
   "profit_label": "Profit",
   "dashboard_total_portfolio_label": "Total portfolio value",
   "dashboard_profit_credited_label": "Profit (credited to wallet)",
-  "dashboard_profit_pending_overnight_label": "Today (pending overnight credit)",
+  "dashboard_profit_pending_overnight_label":
+      "Today (pending overnight credit)",
   "dashboard_mm_withdrawable_hint":
       "Withdrawable liquidity bucket (5% of deposits, less withdrawals). Daily sleeve gains add to total portfolio; wallet credit runs overnight.",
   "portfolio_tab_money_withdrawable_label": "Withdrawable (money bucket)",
@@ -322,8 +323,7 @@ const _en = <String, String>{
   "install_update": "Installer opened. Complete update to continue.",
   "update_failed_retry": "Update failed. Please try again.",
   "update_version_info": "Installed: {installed} • Required: {required}",
-  "update_continue_after_install":
-      "I finished installing — continue",
+  "update_continue_after_install": "I finished installing — continue",
   "live_profit_title": "Live projected profit",
   "live_profit_projected_value": "Projected live value",
   "live_profit_projected_profit": "Projected profit",
@@ -948,7 +948,8 @@ const _en = <String, String>{
   "mpin_enter_new": "Choose a 4-digit MPIN",
   "mpin_confirm_new": "Re-enter your new MPIN",
   "mpin_prompt_title": "Confirm withdrawal",
-  "mpin_prompt_subtitle": "Enter your 4-digit MPIN to authorize this withdrawal.",
+  "mpin_prompt_subtitle":
+      "Enter your 4-digit MPIN to authorize this withdrawal.",
   "mpin_mismatch": "MPINs do not match. Try again.",
   "mpin_wrong": "Wrong MPIN. Please try again.",
   "mpin_locked":
@@ -966,11 +967,9 @@ const _en = <String, String>{
   "mpin_required_to_withdraw":
       "Withdrawal MPIN required. Set it up from your Profile.",
   "mpin_reauth_title": "Confirm your password",
-  "mpin_reauth_subtitle":
-      "Enter your account password to reset your MPIN.",
+  "mpin_reauth_subtitle": "Enter your account password to reset your MPIN.",
   "mpin_reauth_password_label": "Password",
-  "mpin_reauth_failed":
-      "Password could not be verified. Please try again.",
+  "mpin_reauth_failed": "Password could not be verified. Please try again.",
   "mpin_setup_step_choose": "Step 1 of 2",
   "mpin_setup_step_confirm": "Step 2 of 2",
   "mpin_change_step_current": "Step 1 of 3",
@@ -1038,8 +1037,7 @@ const _en = <String, String>{
   "fee_send_statements_body":
       "Generate fee statements and notify all investors with activity in {period}.",
   "fee_pick_period": "Pick statement month",
-  "fee_statements_done":
-      "{written} statement(s) generated for {period}.",
+  "fee_statements_done": "{written} statement(s) generated for {period}.",
   "fee_statements_failed": "Failed to send statements",
   "fee_label_front_load": "Front-end load",
   "fee_label_referral": "Referral commission",
@@ -1135,6 +1133,10 @@ const _en = <String, String>{
   "otp_challenge_wrong_number_logout": "Wrong number? Sign out",
   "otp_challenge_invalid_code": "Invalid code. Please try again.",
   "otp_challenge_expired": "Code expired. Tap Resend to get a new one.",
+  "otp_expires_in_label": "remaining",
+  "otp_expires_message":
+      "This code has expired. Request a new OTP to continue.",
+  "otp_request_new": "Request new OTP",
   "otp_challenge_too_many_requests":
       "Too many attempts. Please wait a few minutes and try again.",
   "otp_callable_failed_precondition":
@@ -1172,8 +1174,10 @@ const _en = <String, String>{
   "five_market_loading_breakdown": "Loading today’s breakdown…",
   "five_market_breakdown_title": "Today’s estimated profit by sleeve",
   "five_market_closed_banner_title": "Markets closed today",
-  "five_market_closed_sub_force_open": "Admin opened this day for profit accrual.",
-  "five_market_closed_sub_force_closed": "Admin closed this day — no live accrual.",
+  "five_market_closed_sub_force_open":
+      "Admin opened this day for profit accrual.",
+  "five_market_closed_sub_force_closed":
+      "Admin closed this day — no live accrual.",
   "five_market_closed_sub_weekend": "Weekend — Pakistan exchanges are closed.",
   "five_market_closed_sub_holiday": "Public holiday — no trading session.",
   "five_market_closed_sub_calendar": "Non-trading day.",
@@ -1570,8 +1574,7 @@ const _ur = <String, String>{
   "install_update": "انسٹالر کھل گیا ہے۔ جاری رکھنے کے لیے اپڈیٹ مکمل کریں۔",
   "update_failed_retry": "اپڈیٹ ناکام ہوئی۔ دوبارہ کوشش کریں۔",
   "update_version_info": "موجودہ: {installed} • مطلوبہ: {required}",
-  "update_continue_after_install":
-      "میں نے انسٹال مکمل کر دیا — آگے",
+  "update_continue_after_install": "میں نے انسٹال مکمل کر دیا — آگے",
   "live_profit_title": "لائیو متوقع منافع",
   "live_profit_projected_value": "متوقع لائیو ویلیو",
   "live_profit_projected_profit": "متوقع منافع",
@@ -1608,8 +1611,7 @@ const _ur = <String, String>{
   "profit_net_pl": "خالص منافع / نقصان",
   "profit_price_driven": "قیمت پر مبنی منافع",
   "profit_fixed_accrual": "مقررہ شرح",
-  "profit_includes_today":
-      "کل تک کا منافع شامل ہے۔ آج کا تخمینہ بھی شامل ہے۔",
+  "profit_includes_today": "کل تک کا منافع شامل ہے۔ آج کا تخمینہ بھی شامل ہے۔",
   "profit_all_time_label": "کل وقتی منافع",
   "profit_best_market": "بہترین",
   "profit_worst_market": "کمزور ترین",
@@ -2019,8 +2021,7 @@ const _ur = <String, String>{
   "portfolio_tab_money_title": "منی",
   "portfolio_tab_money_intro":
       "لیکویڈیٹی سلائیو — سرٹیفکیٹ یا مختصر مدت کیش جیسے آلات۔",
-  "portfolio_tab_money_detail_1":
-      "نکاسی اور اتار چڑھاؤ سے بفر کا کردار۔",
+  "portfolio_tab_money_detail_1": "نکاسی اور اتار چڑھاؤ سے بفر کا کردار۔",
   "portfolio_tab_money_detail_2":
       "منافع عام طور پر اسٹاک یا سکوک سے کم ہوتا ہے۔",
   "portfolio_tab_money_detail_3":
@@ -2028,21 +2029,16 @@ const _ur = <String, String>{
   "portfolio_tab_stock_title": "اسٹاک اثاثہ",
   "portfolio_tab_stock_intro":
       "لسٹیڈ ایکویٹیز؛ پاکستان اسٹاک مارکیٹ (PSX) سے متعلق بیانیہ۔",
-  "portfolio_tab_stock_detail_1":
-      "مثالی مکس میں بڑھوتری کا مرکزی حصہ۔",
-  "portfolio_tab_stock_detail_2":
-      "منی مارکیٹ یا سکوک سے زیادہ ٹھیس خطرہ۔",
+  "portfolio_tab_stock_detail_1": "مثالی مکس میں بڑھوتری کا مرکزی حصہ۔",
+  "portfolio_tab_stock_detail_2": "منی مارکیٹ یا سکوک سے زیادہ ٹھیس خطرہ۔",
   "portfolio_tab_stock_detail_3":
       "فراہم کنندگان کی سطح پر سرمایہ کاری کا انتظام اس خلاصے سے الگ ہوتا ہے۔",
   "portfolio_tab_tech_title": "ٹیک",
-  "portfolio_tab_tech_intro":
-      "ٹیکنالوجی اور جدت؛ ڈیجیٹل رجحانات کا سلائیو۔",
-  "portfolio_tab_tech_detail_1":
-      "مقامی سائکل سے آگے بڑھوتری کا تنوع۔",
+  "portfolio_tab_tech_intro": "ٹیکنالوجی اور جدت؛ ڈیجیٹل رجحانات کا سلائیو۔",
+  "portfolio_tab_tech_detail_1": "مقامی سائکل سے آگے بڑھوتری کا تنوع۔",
   "portfolio_tab_tech_detail_2":
       "جذبات بدلنے پر عام اسٹاک سے زیادہ اتار چڑھاؤ۔",
-  "portfolio_tab_tech_detail_3":
-      "کل مختصصد میں وزن اشاریاتی رہتے ہیں۔",
+  "portfolio_tab_tech_detail_3": "کل مختصصد میں وزن اشاریاتی رہتے ہیں۔",
   "portfolio_tab_debt_title": "قرض مارکیٹ",
   "portfolio_tab_debt_intro":
       "آمدنی پر مرکوز سلائیو؛ ایکویٹی سے زیادہ سرمایہ محفوظ رکھنے کا مقصد۔",
@@ -2050,8 +2046,7 @@ const _ur = <String, String>{
       "اجارہ سکوک شیئریا کمپلائیلیس کرایہ پر مبنی بہاؤ کو ظاہر کرتا ہے۔",
   "portfolio_tab_debt_detail_2":
       "کریڈٹ اور شرحوں کا دباؤ اب بھی موجود — خطرہ صفر نہیں۔",
-  "portfolio_tab_debt_detail_3":
-      "کوپن اور کریڈٹ انتظامی سرگرمی یہ خلاصہ نہیں۔",
+  "portfolio_tab_debt_detail_3": "کوپن اور کریڈٹ انتظامی سرگرمی یہ خلاصہ نہیں۔",
   "welcome_back": "خوش آمدید",
   "sign_in_subtitle": "محفوظ ڈیش بورڈ کے لیے سائن ان کریں۔",
   "enter_valid_email": "درست ای میل درج کریں",
@@ -2173,8 +2168,7 @@ const _ur = <String, String>{
   "admin_market_subtitle":
       "کمپنیاں اور روزانہ اوپن/کلوز اقدار شامل کریں۔ API سنک اختیاری ہے۔",
   "mpin_security_card_title": "نکالنے کا ایم پن",
-  "mpin_security_card_subtitle":
-      "4 ہندسوں کے پن سے ہر نکالنے کو محفوظ رکھیں۔",
+  "mpin_security_card_subtitle": "4 ہندسوں کے پن سے ہر نکالنے کو محفوظ رکھیں۔",
   "mpin_setup_cta": "نکالنے کے لیے ایم پن سیٹ کریں",
   "mpin_change_cta": "ایم پن تبدیل کریں",
   "mpin_forgot_cta": "ایم پن بھول گئے؟",
@@ -2208,8 +2202,7 @@ const _ur = <String, String>{
   "mpin_reauth_subtitle":
       "ایم پن دوبارہ ترتیب دینے کے لیے اپنا اکاؤنٹ پاس ورڈ درج کریں۔",
   "mpin_reauth_password_label": "پاس ورڈ",
-  "mpin_reauth_failed":
-      "پاس ورڈ کی تصدیق نہیں ہو سکی۔ دوبارہ کوشش کریں۔",
+  "mpin_reauth_failed": "پاس ورڈ کی تصدیق نہیں ہو سکی۔ دوبارہ کوشش کریں۔",
   "mpin_setup_step_choose": "مرحلہ 1 از 2",
   "mpin_setup_step_confirm": "مرحلہ 2 از 2",
   "mpin_change_step_current": "مرحلہ 1 از 3",
@@ -2277,8 +2270,7 @@ const _ur = <String, String>{
   "fee_send_statements_body":
       "{period} میں سرگرمی والے تمام سرمایہ کاروں کے لیے فیس گوشوارے تیار کریں اور انہیں مطلع کریں۔",
   "fee_pick_period": "گوشوارہ مہینہ منتخب کریں",
-  "fee_statements_done":
-      "{period} کے لیے {written} گوشوارے تیار ہو گئے۔",
+  "fee_statements_done": "{period} کے لیے {written} گوشوارے تیار ہو گئے۔",
   "fee_statements_failed": "گوشوارے بھیجنے میں ناکامی",
   "fee_label_front_load": "فرنٹ-اینڈ لوڈ",
   "fee_label_referral": "ریفرل کمیشن",
@@ -2313,8 +2305,7 @@ const _ur = <String, String>{
   "referrer_field_name": "ریفرر کا نام",
   "referrer_field_note": "نوٹ (مثلاً ملازم آئی ڈی، ادائیگی کا طریقہ)",
   "referrer_payout_paid": "کمیشن ادا کر دیا",
-  "referrer_payout_paid_subtitle":
-      "ایپ سے باہر کمیشن ادا کرنے کے بعد آن کریں۔",
+  "referrer_payout_paid_subtitle": "ایپ سے باہر کمیشن ادا کرنے کے بعد آن کریں۔",
   "referrer_save_action": "ریفرر معلومات محفوظ کریں",
   "referrer_save_ok": "ریفرر معلومات محفوظ ہو گئیں۔",
   "referrer_save_failed": "ریفرر معلومات محفوظ کرنے میں ناکامی",
@@ -2377,6 +2368,10 @@ const _ur = <String, String>{
   "otp_challenge_invalid_code": "غلط کوڈ۔ براہ کرم دوبارہ کوشش کریں۔",
   "otp_challenge_expired":
       "کوڈ کی مدت ختم ہو گئی۔ نیا کوڈ حاصل کرنے کے لیے دوبارہ بھیجیں پر ٹیپ کریں۔",
+  "otp_expires_in_label": "باقی",
+  "otp_expires_message":
+      "اس کوڈ کی مدت ختم ہو گئی۔ آگے بڑھنے کے لیے نیا OTP طلب کریں۔",
+  "otp_request_new": "نیا OTP طلب کریں",
   "otp_challenge_too_many_requests":
       "بہت زیادہ کوششیں۔ براہ کرم کچھ منٹ انتظار کریں اور دوبارہ کوشش کریں۔",
   "otp_callable_failed_precondition":
@@ -2386,16 +2381,14 @@ const _ur = <String, String>{
   "otp_callable_invalid_argument":
       "اس ڈیوائس پر سکیورٹی ڈیٹا میں مسئلہ ہے۔ دوبارہ کوشش کریں یا ایپ ری اسٹارٹ کریں۔",
   "otp_enroll_send_cooldown": "%s سیکنڈ",
-  "otp_challenge_generic_error":
-      "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
+  "otp_challenge_generic_error": "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
   "otp_enroll_title": "اپنا فون تصدیق کریں",
   "otp_enroll_subtitle":
       "ہم 6 ہندسی ون ٹائم کوڈ بھیج کر تصدیق کریں گے کہ یہ نمبر آپ کا ہے۔",
   "otp_enroll_phone_label": "فون نمبر",
   "otp_enroll_phone_hint": "+92 300 1234567",
   "otp_enroll_send_code": "کوڈ بھیجیں",
-  "otp_enroll_invalid_phone":
-      "ملک کا کوڈ سمیت درست نمبر درج کریں (مثلاً +92)۔",
+  "otp_enroll_invalid_phone": "ملک کا کوڈ سمیت درست نمبر درج کریں (مثلاً +92)۔",
   "otp_enroll_success": "نئی ڈیوائسز کے لیے OTP لاگ اِن فعال ہو گیا۔",
   "otp_disabled_success": "نئی ڈیوائسز کے لیے OTP اب بند ہے۔",
   "otp_phone_required_to_enable":
@@ -2416,8 +2409,10 @@ const _ur = <String, String>{
   "five_market_breakdown_title": "آج کا تخمینی منافع (سلائیوز)",
   "five_market_closed_banner_title": "آج مارکیٹیں بند ہیں",
   "five_market_closed_sub_force_open": "ایڈمن نے اس دن منافع کے لیے کھولا ہے۔",
-  "five_market_closed_sub_force_closed": "ایڈمن نے یہ دن بند کیا — کوئی لائیو منافع نہیں۔",
-  "five_market_closed_sub_weekend": "ہفتہ وار تعطیل — پاکستان کی مارکیٹیں بند ہیں۔",
+  "five_market_closed_sub_force_closed":
+      "ایڈمن نے یہ دن بند کیا — کوئی لائیو منافع نہیں۔",
+  "five_market_closed_sub_weekend":
+      "ہفتہ وار تعطیل — پاکستان کی مارکیٹیں بند ہیں۔",
   "five_market_closed_sub_holiday": "سرکاری تعطیل — کوئی ٹریڈنگ سیشن نہیں۔",
   "five_market_closed_sub_calendar": "غیر تجارتی دن۔",
   "five_market_eod_footnote": "آخری محفوظ مارکیٹ سنیپ شاٹ: {date}۔",

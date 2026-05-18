@@ -32,6 +32,13 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
   int _cooldown = 30;
   String? _error;
 
+  // OTP expiry — 3 minutes from codeSent
+  int _otpExpirySec = 0;
+  bool _otpSendActive = false;
+  int _expiryTickGen = 0;
+
+  bool get _otpExpired => _otpSendActive && _otpExpirySec <= 0;
+
   @override
   void initState() {
     super.initState();
@@ -53,11 +60,27 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
     }
   }
 
+  Future<void> _tickExpiry() async {
+    final gen = ++_expiryTickGen;
+    while (mounted && gen == _expiryTickGen && _otpExpirySec > 0) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      if (!mounted || gen != _expiryTickGen) return;
+      setState(() => _otpExpirySec -= 1);
+      if (_otpExpirySec <= 0 && mounted) {
+        setState(() {
+          _verificationId = null;
+          _error = context.tr("otp_expires_message");
+        });
+      }
+    }
+  }
+
   Future<void> _sendCode({bool isResend = false}) async {
     setState(() {
       _sending = true;
       _error = null;
     });
+    _otpCtrl.clear();
     final res = await _otpService.sendCode(
       phoneE164: widget.phoneE164,
       resendToken: isResend ? _resendToken : null,
@@ -70,8 +93,12 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
           _resendToken = res.resendToken;
           _sending = false;
           _cooldown = 30;
+          _otpExpirySec = 180;
+          _otpSendActive = true;
+          _error = null;
         });
         _tick();
+        _tickExpiry();
       case OtpAutoFilled(:final credential):
         await _completeOtp(credential);
       case OtpFailed():
@@ -97,6 +124,8 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
             .call(fp.toCallablePayload());
       });
       if (!mounted) return;
+      _expiryTickGen++;
+      _otpSendActive = false;
       ProviderScope.containerOf(context, listen: false)
         ..invalidate(currentDeviceTrustedProvider)
         ..invalidate(otpRequiredProvider);
@@ -131,11 +160,49 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
     await _completeOtp(cred);
   }
 
+  Widget _buildExpiryCountdown(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 14,
+            color: _otpExpirySec <= 30
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            "${_otpExpirySec ~/ 60}:${(_otpExpirySec % 60).toString().padLeft(2, "0")}",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _otpExpirySec <= 30
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            context.tr("otp_expires_in_label"),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final masked = widget.phoneE164.length > 5
         ? "${widget.phoneE164.substring(0, 3)}••••${widget.phoneE164.substring(widget.phoneE164.length - 2)}"
         : widget.phoneE164;
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr("otp_challenge_title"))),
       body: Center(
@@ -151,48 +218,89 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
                   context.tr("otp_challenge_subtitle").replaceAll("%s", masked),
                 ),
                 const SizedBox(height: 14),
-                TextField(
-                  controller: _otpCtrl,
-                  keyboardType: TextInputType.number,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(6),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: context.tr("otp_label"),
-                    hintText: context.tr("otp_hint"),
+                if (_otpExpired)
+                  Card(
+                    color: scheme.errorContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.timer_off_rounded,
+                            color: scheme.onErrorContainer,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr("otp_expires_message"),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: scheme.onErrorContainer,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: _sending
+                                ? null
+                                : () => _sendCode(isResend: true),
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: Text(context.tr("otp_request_new")),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else ...[
+                  if (_verificationId != null && _otpExpirySec > 0)
+                    _buildExpiryCountdown(context),
+                  TextField(
+                    controller: _otpCtrl,
+                    enabled: !_otpExpired && !_verifying && !_sending,
+                    keyboardType: TextInputType.number,
+                    autofillHints: const [AutofillHints.oneTimeCode],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: context.tr("otp_label"),
+                      hintText: context.tr("otp_hint"),
+                    ),
                   ),
-                ),
-                if (_error != null) ...[
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    onPressed: _verifying || _sending || _otpExpired
+                        ? null
+                        : _verifyManual,
+                    child: _verifying
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(context.tr("otp_challenge_verify")),
+                  ),
+                ],
+                if (_error != null && !_otpExpired) ...[
                   const SizedBox(height: 10),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 ],
-                const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: (_sending || _verifying) ? null : _verifyManual,
-                  child: _verifying
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(context.tr("otp_challenge_verify")),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: (_cooldown > 0 || _sending || _verifying)
-                      ? null
-                      : () => _sendCode(isResend: true),
-                  child: Text(
-                    _cooldown > 0
-                        ? context.tr("otp_challenge_resend_in").replaceAll(
-                            "%s",
-                            "$_cooldown",
-                          )
-                        : context.tr("otp_challenge_resend"),
+                if (!_otpExpired) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: (_cooldown > 0 || _sending || _verifying)
+                        ? null
+                        : () => _sendCode(isResend: true),
+                    child: Text(
+                      _cooldown > 0
+                          ? context.tr("otp_challenge_resend_in").replaceAll(
+                              "%s",
+                              "$_cooldown",
+                            )
+                          : context.tr("otp_challenge_resend"),
+                    ),
                   ),
-                ),
+                ],
                 TextButton(
                   onPressed: _verifying
                       ? null
