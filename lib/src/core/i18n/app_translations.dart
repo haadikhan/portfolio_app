@@ -760,7 +760,7 @@ const _en = <String, String>{
   "allocation_disclaimer":
       "Allocation is indicative and for representation purposes only",
   "alloc_stock_market": "Stock Market",
-  "alloc_tech": "Tech Products",
+  "alloc_tech": "Tech Market",
   "alloc_debt": "Debt Market",
   "alloc_money": "Money Market",
   "alloc_asset": "Asset Market",
@@ -2021,7 +2021,7 @@ const _ur = <String, String>{
   "metric_net_gain": "خالص فائدہ",
   "allocation_disclaimer": "تقسیم اشارے کے لیے ہے، نمائندگی کے طور پر۔",
   "alloc_stock_market": "اسٹاک مارکیٹ",
-  "alloc_tech": "ٹیک مصنوعات",
+  "alloc_tech": "ٹیک مارکیٹ",
   "alloc_debt": "قرض مارکیٹ",
   "alloc_money": "منی مارکیٹ",
   "alloc_asset": "اثاثہ مارکیٹ",
