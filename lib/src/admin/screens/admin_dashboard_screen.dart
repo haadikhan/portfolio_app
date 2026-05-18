@@ -113,7 +113,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       final fn = FirebaseFunctions.instanceFor(region: "us-central1");
       await fn.httpsCallable("setStorageCors").call();
       if (mounted) {
-        setState(() => _corsMessage = "CORS configured. Reload the page to load images.");
+        setState(
+          () =>
+              _corsMessage = "CORS configured. Reload the page to load images.",
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -145,7 +148,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           if (_corsMessage != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(_corsMessage!, style: TextStyle(fontSize: 12, color: Colors.blue.shade700)),
+              child: Text(
+                _corsMessage!,
+                style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+              ),
             ),
           if (_loadError != null)
             Material(
@@ -305,9 +311,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.calculate_outlined),
-                label: Text(_repairing
-                    ? "Recalculating…"
-                    : "Recalculate all balances"),
+                label: Text(
+                  _repairing ? "Recalculating…" : "Recalculate all balances",
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: () => _runSetCors(),
@@ -329,9 +335,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 class _AdminPreferencesCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
-    final locale = ref.watch(languageProvider).valueOrNull ?? const Locale("en");
-    final isDark = themeMode == ThemeMode.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
+    final locale =
+        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
 
     return SizedBox(
       width: 580,
@@ -347,22 +355,50 @@ class _AdminPreferencesCard extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(isDark ? Icons.dark_mode : Icons.light_mode),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context.tr("dark_mode"),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
+              Text(
+                context.tr("theme_mode_label"),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: const Icon(Icons.light_mode_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_light")),
                   ),
-                  Switch(
-                    value: isDark,
-                    onChanged: (_) => ref.read(themeProvider.notifier).toggleTheme(),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: const Icon(Icons.dark_mode_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_dark")),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: const Icon(Icons.brightness_auto_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_auto")),
                   ),
                 ],
+                selected: {themeMode},
+                onSelectionChanged: (selected) {
+                  ref
+                      .read(themeProvider.notifier)
+                      .setThemeMode(selected.first);
+                },
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
+              if (themeMode == ThemeMode.system) ...[
+                const SizedBox(height: 6),
+                Text(
+                  context.tr("theme_mode_auto_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const Divider(height: 20),
               Row(
                 children: [
@@ -428,24 +464,17 @@ class _StatCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon,
-                    size: 28,
-                    color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  icon,
+                  size: 28,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
                 if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
+                Text(value, style: Theme.of(context).textTheme.headlineMedium),
                 if (onOpen != null) ...[
                   const SizedBox(height: 8),
                   Text(

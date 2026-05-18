@@ -95,6 +95,10 @@ class BiometricController extends StateNotifier<AsyncValue<void>> {
     return _ref.read(biometricServiceProvider).authenticateForLogin();
   }
 
+  Future<BiometricLoginGateResult> authenticateForSessionGate() async {
+    return _ref.read(biometricServiceProvider).authenticateForLoginGate();
+  }
+
   Future<bool> enableForCurrentUser({String? fallbackEmail}) async {
     state = const AsyncLoading();
     final capability = await _ref

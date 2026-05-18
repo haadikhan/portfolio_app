@@ -11,6 +11,16 @@ enum BiometricAvailability {
   unavailable,
 }
 
+/// Outcome of the post-login biometric gate ([authenticateForLoginGate]).
+enum BiometricLoginGateResult {
+  success,
+  /// User explicitly dismissed the biometric prompt (back / negative button).
+  /// Callers may sign out to match strict gate policy.
+  userDismissed,
+  /// Hardware/OEM/timeout errors: stay signed in; prefer clearing biometric prefs.
+  softFailure,
+}
+
 class BiometricCapability {
   const BiometricCapability({required this.availability, required this.types});
 
@@ -96,36 +106,55 @@ class BiometricService {
     }
   }
 
-  Future<bool> authenticateForLogin() async {
+  /// Used by [AuthGateScreen] to distinguish user cancel vs OEM/GMS errors.
+  /// Only [BiometricLoginGateResult.userDismissed] should trigger a full sign-out.
+  Future<BiometricLoginGateResult> authenticateForLoginGate() async {
     try {
-      return await _client.authenticate(
+      final ok = await _client.authenticate(
         localizedReason:
             "Authenticate with biometrics to continue to your account.",
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );
+      if (ok) {
+        return BiometricLoginGateResult.success;
+      }
+      // Per local_auth docs, `false` is a non-throwing failure path on some platforms.
+      if (kDebugMode) {
+        debugPrint(
+          "[BIOMETRIC][Service] authenticate returned false (treating as softFailure)",
+        );
+      }
+      return BiometricLoginGateResult.softFailure;
     } on LocalAuthException catch (e) {
       if (kDebugMode) {
         debugPrint(
           "[BIOMETRIC][Service] LocalAuthException during authenticate: ${e.code.name}, ${e.description}",
         );
       }
-      // User cancel/fallback/timeout should never crash auth flows.
-      return false;
+      if (e.code == LocalAuthExceptionCode.userCanceled) {
+        return BiometricLoginGateResult.userDismissed;
+      }
+      // systemCanceled, timeout, unknownError, deviceError, lockouts, etc.
+      return BiometricLoginGateResult.softFailure;
     } on PlatformException catch (e) {
       if (kDebugMode) {
         debugPrint(
           "[BIOMETRIC][Service] PlatformException during authenticate: ${e.code}, ${e.message}",
         );
       }
-      // Backward compatibility with platform-channel exceptions.
-      return false;
+      return BiometricLoginGateResult.softFailure;
     } catch (e) {
       if (kDebugMode) {
         debugPrint("[BIOMETRIC][Service] Unknown exception: $e");
       }
-      return false;
+      return BiometricLoginGateResult.softFailure;
     }
+  }
+
+  Future<bool> authenticateForLogin() async {
+    final gate = await authenticateForLoginGate();
+    return gate == BiometricLoginGateResult.success;
   }
 
   BiometricAvailability _mapLocalAuthCodeToAvailability(

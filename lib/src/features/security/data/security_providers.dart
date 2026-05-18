@@ -111,6 +111,10 @@ final trustedDevicesStreamProvider = StreamProvider<List<TrustedDevice>>((ref) {
 });
 
 /// True when this device's own `trustedDevices/{deviceHash}` doc has `revoked: true`.
+///
+/// Uses [includeMetadataChanges] and skips cache-only snapshots so a stale
+/// offline-cache value of `revoked: true` never triggers an immediate sign-out
+/// on the next login before the server has had a chance to respond.
 final currentDeviceRevokedProvider = StreamProvider<bool>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(false);
@@ -125,7 +129,8 @@ final currentDeviceRevokedProvider = StreamProvider<bool>((ref) {
           .doc(user.uid)
           .collection("trustedDevices")
           .doc(fp.deviceHash)
-          .snapshots()
+          .snapshots(includeMetadataChanges: true)
+          .where((snap) => !snap.metadata.isFromCache)
           .map((snap) {
             if (!snap.exists) return false;
             return (snap.data()?["revoked"] as bool?) ?? false;
@@ -157,6 +162,14 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
       } on FirebaseException catch (e) {
         if (e.code == "unavailable" || e.code == "failed-precondition") {
           snap = await trustedDeviceDoc.get();
+        } else if (e.code == "permission-denied") {
+          if (kDebugMode) {
+            debugPrint(
+              "[security] trustedDevice probe permission-denied on get; "
+              "treating as not trusted",
+            );
+          }
+          return false;
         } else {
           rethrow;
         }
@@ -174,6 +187,9 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
         debugPrint(
           "[security] trustedDevice probe error code=${e.code} message=${e.message}",
         );
+      }
+      if (e.code == "permission-denied") {
+        return false;
       }
       if (!_firestoreUnavailableOrTransient(e)) rethrow;
       if (attempt < 2) {

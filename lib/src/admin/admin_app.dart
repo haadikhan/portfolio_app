@@ -6,6 +6,7 @@ import "package:go_router/go_router.dart";
 
 import "../core/i18n/language_provider.dart";
 import "../core/theme/app_theme.dart";
+import "../core/theme/auto_theme_watcher.dart";
 import "../core/theme/theme_provider.dart";
 import "admin_role_refresh.dart";
 import "crm/crm_dashboard_screen.dart";
@@ -103,9 +104,8 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ForgotPasswordScreen(),
       ),
       ShellRoute(
-        builder: (context, state, child) => _RoleReadyGate(
-          child: AdminShell(child: child),
-        ),
+        builder: (context, state, child) =>
+            _RoleReadyGate(child: AdminShell(child: child)),
         routes: [
           GoRoute(
             path: "/dashboard",
@@ -132,10 +132,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
             path: "/five-market",
             builder: (_, __) => const AdminFiveMarketScreen(),
           ),
-          GoRoute(
-            path: "/fees",
-            builder: (_, __) => const AdminFeesScreen(),
-          ),
+          GoRoute(path: "/fees", builder: (_, __) => const AdminFeesScreen()),
           GoRoute(
             path: "/earnings",
             builder: (_, __) => const AdminEarningsScreen(),
@@ -154,9 +151,8 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: "/notifications",
-            builder: (_, __) => const NotificationsScreen(
-              shell: NotificationShellKind.admin,
-            ),
+            builder: (_, __) =>
+                const NotificationsScreen(shell: NotificationShellKind.admin),
           ),
           GoRoute(
             path: "/broadcast",
@@ -174,10 +170,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
               userId: state.pathParameters["userId"] ?? "",
             ),
           ),
-          GoRoute(
-            path: "/crm",
-            builder: (_, __) => const CrmDashboardScreen(),
-          ),
+          GoRoute(path: "/crm", builder: (_, __) => const CrmDashboardScreen()),
           GoRoute(
             path: "/crm/investors",
             builder: (_, __) => const CrmInvestorListScreen(),
@@ -188,10 +181,7 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
               userId: state.pathParameters["userId"] ?? "",
             ),
           ),
-          GoRoute(
-            path: "/crm/team",
-            builder: (_, __) => const CrmTeamScreen(),
-          ),
+          GoRoute(path: "/crm/team", builder: (_, __) => const CrmTeamScreen()),
         ],
       ),
     ],
@@ -204,7 +194,7 @@ class WakalatAdminApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(adminRouterProvider);
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final useUrduFont = locale.languageCode == "ur";
@@ -223,9 +213,11 @@ class WakalatAdminApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         final code = Localizations.localeOf(context).languageCode;
-        return Directionality(
-          textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
-          child: child ?? const SizedBox.shrink(),
+        return AutoThemeWatcher(
+          child: Directionality(
+            textDirection: code == "ur" ? TextDirection.rtl : TextDirection.ltr,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       routerConfig: router,

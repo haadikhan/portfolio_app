@@ -82,4 +82,37 @@ void main() {
     final ok = await service.authenticateForLogin();
     expect(ok, isFalse);
   });
+
+  test("login gate: userCanceled is userDismissed", () async {
+    final service = BiometricService(
+      client: _FakeBiometricAuthClient(
+        deviceSupported: true,
+        canCheck: true,
+        types: const [BiometricType.fingerprint],
+        authenticateError: const LocalAuthException(
+          code: LocalAuthExceptionCode.userCanceled,
+        ),
+      ),
+    );
+
+    final gate = await service.authenticateForLoginGate();
+    expect(gate, BiometricLoginGateResult.userDismissed);
+  });
+
+  test("login gate: unknown OEM error is softFailure not userDismissed", () async {
+    final service = BiometricService(
+      client: _FakeBiometricAuthClient(
+        deviceSupported: true,
+        canCheck: true,
+        types: const [BiometricType.fingerprint],
+        authenticateError: const LocalAuthException(
+          code: LocalAuthExceptionCode.unknownError,
+          description: "GMS error",
+        ),
+      ),
+    );
+
+    final gate = await service.authenticateForLoginGate();
+    expect(gate, BiometricLoginGateResult.softFailure);
+  });
 }

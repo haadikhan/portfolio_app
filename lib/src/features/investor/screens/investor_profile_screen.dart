@@ -447,10 +447,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
-  Future<String?> _promptMpin({
-    required String title,
-    String? subtitle,
-  }) async {
+  Future<String?> _promptMpin({required String title, String? subtitle}) async {
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -489,10 +486,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
     if (pin == null || !mounted) return;
     try {
-      await ref.read(mpinServiceProvider).setMpinEnabled(
-        enabled: desired,
-        currentPin: pin,
-      );
+      await ref
+          .read(mpinServiceProvider)
+          .setMpinEnabled(enabled: desired, currentPin: pin);
     } on MpinException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -742,8 +738,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       ),
                       child: IntlPhoneField(
                         initialCountryCode: "PK",
-                        initialValue:
-                            _nationalDigitsForIntlPhoneField(_phoneCtrl.text),
+                        initialValue: _nationalDigitsForIntlPhoneField(
+                          _phoneCtrl.text,
+                        ),
                         decoration: InputDecoration(
                           labelText: context.tr("profile_phone_number"),
                           labelStyle: TextStyle(
@@ -993,10 +990,10 @@ class _AppPreferencesCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
+    final theme = Theme.of(context);
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
-    final isDark = themeMode == ThemeMode.dark;
     final isUrdu = locale.languageCode == "ur";
     final biometricEnabled =
         ref.watch(biometricEnabledProvider).valueOrNull ?? false;
@@ -1011,44 +1008,54 @@ class _AppPreferencesCard extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                size: 18,
-                color: scheme.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr("dark_mode"),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isDark
-                          ? context.tr("dark_mode")
-                          : context.tr("light_mode"),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+              Text(
+                context.tr("theme_mode_label"),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-              Switch(
-                value: isDark,
-                onChanged: (_) =>
-                    ref.read(themeProvider.notifier).toggleTheme(),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: const Icon(Icons.light_mode_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_light")),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: const Icon(Icons.dark_mode_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_dark")),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: const Icon(Icons.brightness_auto_rounded, size: 16),
+                    label: Text(context.tr("theme_mode_auto")),
+                  ),
+                ],
+                selected: {themeMode},
+                onSelectionChanged: (selected) {
+                  ref
+                      .read(themeProvider.notifier)
+                      .setThemeMode(selected.first);
+                },
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
+              if (themeMode == ThemeMode.system) ...[
+                const SizedBox(height: 6),
+                Text(
+                  context.tr("theme_mode_auto_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1057,11 +1064,7 @@ class _AppPreferencesCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(
-                Icons.language_rounded,
-                size: 18,
-                color: scheme.primary,
-              ),
+              Icon(Icons.language_rounded, size: 18, color: scheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1299,7 +1302,9 @@ class _ProfileCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: useAdaptiveColors ? scheme.onSurface : AppColors.heading,
+                    color: useAdaptiveColors
+                        ? scheme.onSurface
+                        : AppColors.heading,
                   ),
                 ),
                 if (trailingAction != null) ...[
@@ -1312,7 +1317,9 @@ class _ProfileCard extends StatelessWidget {
           const SizedBox(height: 10),
           Divider(
             height: 1,
-            color: useAdaptiveColors ? Theme.of(context).dividerColor : AppColors.border,
+            color: useAdaptiveColors
+                ? Theme.of(context).dividerColor
+                : AppColors.border,
           ),
           ...children,
         ],
@@ -1372,7 +1379,9 @@ class _ProfileFieldTile extends StatelessWidget {
                         ? (useAdaptiveColors
                               ? scheme.onSurfaceVariant
                               : AppColors.bodyMuted)
-                        : (useAdaptiveColors ? scheme.onSurface : AppColors.heading),
+                        : (useAdaptiveColors
+                              ? scheme.onSurface
+                              : AppColors.heading),
                     fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
@@ -1421,7 +1430,9 @@ class _EditableField extends StatelessWidget {
           labelText: label,
           labelStyle: TextStyle(
             fontSize: 12,
-            color: useAdaptiveColors ? scheme.onSurfaceVariant : AppColors.bodyMuted,
+            color: useAdaptiveColors
+                ? scheme.onSurfaceVariant
+                : AppColors.bodyMuted,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),

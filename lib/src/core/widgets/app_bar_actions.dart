@@ -26,21 +26,15 @@ class AppBarPreferenceActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
     final locale = ref.watch(languageProvider).valueOrNull ?? const Locale("en");
-    final isDark = themeMode == ThemeMode.dark;
     final scheme = Theme.of(context).colorScheme;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showNotificationAction) _notificationBell(context, ref, scheme),
-        IconButton(
-          tooltip: context.tr("dark_mode"),
-          icon: Icon(isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded),
-          onPressed: () =>
-              ref.read(themeProvider.notifier).toggleTheme(),
-        ),
+        _themeModeMenu(context, ref, themeMode),
         IconButton(
           tooltip: context.tr("language"),
           icon: const Icon(Icons.language_rounded),
@@ -63,6 +57,75 @@ class AppBarPreferenceActions extends ConsumerWidget {
             },
           ),
       ],
+    );
+  }
+
+  IconData _themeModeIcon(ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.dark => Icons.dark_mode_rounded,
+      ThemeMode.light => Icons.light_mode_rounded,
+      ThemeMode.system => Icons.brightness_auto_rounded,
+    };
+  }
+
+  Widget _themeModeMenu(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode themeMode,
+  ) {
+    return PopupMenuButton<ThemeMode>(
+      tooltip: context.tr("theme_mode_label"),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      icon: Icon(_themeModeIcon(themeMode)),
+      initialValue: themeMode,
+      onSelected: (mode) =>
+          ref.read(themeProvider.notifier).setThemeMode(mode),
+      itemBuilder: (context) => [
+        _themePopupItem(
+          context,
+          value: ThemeMode.light,
+          icon: Icons.light_mode_rounded,
+          labelKey: "theme_mode_light",
+          selected: themeMode == ThemeMode.light,
+        ),
+        _themePopupItem(
+          context,
+          value: ThemeMode.dark,
+          icon: Icons.dark_mode_rounded,
+          labelKey: "theme_mode_dark",
+          selected: themeMode == ThemeMode.dark,
+        ),
+        _themePopupItem(
+          context,
+          value: ThemeMode.system,
+          icon: Icons.brightness_auto_rounded,
+          labelKey: "theme_mode_auto",
+          selected: themeMode == ThemeMode.system,
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<ThemeMode> _themePopupItem(
+    BuildContext context, {
+    required ThemeMode value,
+    required IconData icon,
+    required String labelKey,
+    required bool selected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return PopupMenuItem<ThemeMode>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: scheme.onSurface),
+          const SizedBox(width: 12),
+          Expanded(child: Text(context.tr(labelKey))),
+          if (selected)
+            Icon(Icons.check_rounded, size: 20, color: scheme.primary),
+        ],
+      ),
     );
   }
 

@@ -7,6 +7,7 @@ import "../core/config/app_config.dart";
 import "../core/session/session_idle_watcher.dart";
 import "../core/i18n/language_provider.dart";
 import "../core/theme/app_theme.dart";
+import "../core/theme/auto_theme_watcher.dart";
 import "../core/theme/theme_provider.dart";
 import "../features/admin/presentation/admin_dashboard_screen.dart";
 import "../features/auth/presentation/auth_screen.dart";
@@ -59,7 +60,7 @@ class WakalatInvestApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.light;
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
     final locale =
         ref.watch(languageProvider).valueOrNull ?? const Locale("en");
     final useUrduFont = locale.languageCode == "ur";
@@ -321,15 +322,17 @@ class WakalatInvestApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         final code = Localizations.localeOf(context).languageCode;
-        return SessionIdleWatcher(
-          navigatorKey: _rootNavigatorKey,
-          child: UpdateNoticeHost(
+        return AutoThemeWatcher(
+          child: SessionIdleWatcher(
             navigatorKey: _rootNavigatorKey,
-            child: Directionality(
-              textDirection: code == "ur"
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
-              child: child ?? const SizedBox.shrink(),
+            child: UpdateNoticeHost(
+              navigatorKey: _rootNavigatorKey,
+              child: Directionality(
+                textDirection: code == "ur"
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           ),
         );
