@@ -377,6 +377,13 @@ service cloud.firestore {
       }
     }
 
+    // Collection-group read for admin Change Requests screen (collectionGroup("changeRequests")).
+    // The nested match /users/{uid}/changeRequests/{ticketId} only covers single-path reads;
+    // cross-collection-group queries need this wildcard-path rule.
+    match /{path=**}/changeRequests/{ticketId} {
+      allow read: if isAdmin();
+    }
+
     // Legacy top-level path — inbox lives under users/{uid}/notifications (server-written).
     match /notifications/{notificationId} {
       allow read, update, create, delete: if false;
