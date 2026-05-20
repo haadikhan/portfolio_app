@@ -75,7 +75,7 @@ class _TransactionHistoryScreenState
       Tab(text: context.tr("tab_all")),
       Tab(text: context.tr("tab_deposits")),
       Tab(text: context.tr("tab_withdrawals")),
-      Tab(text: context.tr("tab_profit")),
+      Tab(text: context.tr("tab_pl")),
       Tab(text: context.tr("tab_fees")),
     ];
 
@@ -240,7 +240,7 @@ class TransactionRowItem extends StatelessWidget {
             ? context.tr("txn_type_withdrawal")
             : isFee
                 ? _feeLabel(context, txn.type)
-                : context.tr("txn_type_profit");
+                : context.tr("txn_type_pl");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

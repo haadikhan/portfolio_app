@@ -31,6 +31,17 @@ Color _stripeForType(String typeRaw, double amount) {
   return AppColors.primary;
 }
 
+String _txnTypeDisplayLabel(BuildContext context, String typeRaw) {
+  final t = typeRaw.toLowerCase();
+  if (t.contains("deposit")) return context.tr("txn_type_deposit");
+  if (t.contains("withdraw")) return context.tr("txn_type_withdrawal");
+  if (t.contains("profit") || t.contains("return")) {
+    return context.tr("txn_type_pl");
+  }
+  if (t.contains("fee")) return context.tr("txn_type_fee");
+  return typeRaw.toUpperCase();
+}
+
 class WalletLedgerScreen extends ConsumerStatefulWidget {
   const WalletLedgerScreen({super.key, this.initialTabIndex = 0});
 
@@ -531,7 +542,7 @@ class _LedgerTransactionCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            type.toUpperCase(),
+                            _txnTypeDisplayLabel(context, type),
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
