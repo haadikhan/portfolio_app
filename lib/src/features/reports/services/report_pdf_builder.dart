@@ -65,7 +65,10 @@ String _formatLetterheadDate(DateTime date) {
       "${date.year}";
 }
 
-pw.Widget _buildLetterheadHeader(pw.MemoryImage? logo) {
+pw.Widget _buildLetterheadHeader(
+  pw.MemoryImage? logo, {
+  required String letterheadPortfolioTitle,
+}) {
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
@@ -89,7 +92,20 @@ pw.Widget _buildLetterheadHeader(pw.MemoryImage? logo) {
               ),
             ],
           ),
-          pw.Spacer(),
+          pw.Expanded(
+            flex: 2,
+            child: pw.Center(
+              child: pw.Text(
+                letterheadPortfolioTitle,
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                  color: _black,
+                ),
+              ),
+            ),
+          ),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             color: _brandGreen,
@@ -264,6 +280,7 @@ class ReportPdfLabels {
     required this.totalProfit,
     required this.footer,
     required this.transactionsHeading,
+    required this.letterheadPortfolioTitle,
   });
 
   final String documentTitle;
@@ -284,6 +301,7 @@ class ReportPdfLabels {
   final String totalProfit;
   final String footer;
   final String transactionsHeading;
+  final String letterheadPortfolioTitle;
 }
 
 pw.Widget _reportHeaderTable({
@@ -406,7 +424,10 @@ Future<Uint8List> buildInvestorReportPdf({
       ),
       header: (_) => pw.Column(
         children: [
-          _buildLetterheadHeader(logoImage),
+          _buildLetterheadHeader(
+            logoImage,
+            letterheadPortfolioTitle: labels.letterheadPortfolioTitle,
+          ),
           pw.SizedBox(height: 12),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.end,

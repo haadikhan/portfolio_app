@@ -94,6 +94,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   ReportPdfLabels _labels(BuildContext context) {
     return ReportPdfLabels(
       documentTitle: context.tr("reports_pdf_doc_title"),
+      letterheadPortfolioTitle: context.tr("report_letterhead_portfolio_title"),
       headerAccountTitle: context.tr("report_header_account_title"),
       headerPortfolioNo: context.tr("report_header_portfolio_no"),
       headerReportType: context.tr("report_header_report_type"),
