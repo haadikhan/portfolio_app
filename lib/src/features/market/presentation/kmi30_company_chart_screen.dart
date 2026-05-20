@@ -6,6 +6,7 @@ import "package:intl/intl.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../../features/investment/providers/kmi30_company_allocation_provider.dart";
 import "../data/models/kmi30_bar.dart";
 import "../data/models/kmi30_tick.dart";
 import "../data/websocket/psx_websocket_service.dart";
@@ -73,6 +74,11 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
             Text(
               context.tr("market_ws_live_disclaimer"),
               style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            _CompanyInvestmentBanner(
+              symbol: symbol,
+              allocations: ref.watch(kmi30CompanyAllocationsProvider),
             ),
             const SizedBox(height: 12),
             Builder(
@@ -168,6 +174,96 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CompanyInvestmentBanner extends StatelessWidget {
+  const _CompanyInvestmentBanner({
+    required this.symbol,
+    required this.allocations,
+  });
+
+  final String symbol;
+  final List<Kmi30CompanyAllocation> allocations;
+
+  @override
+  Widget build(BuildContext context) {
+    Kmi30CompanyAllocation? alloc;
+    for (final a in allocations) {
+      if (a.symbol == symbol) {
+        alloc = a;
+        break;
+      }
+    }
+    if (alloc == null || !alloc.hasInvestment) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    final pkr = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
+    final plColor = alloc.todayProfitPkr > 0
+        ? Colors.green.shade700
+        : alloc.todayProfitPkr < 0
+            ? Colors.red.shade700
+            : scheme.onSurfaceVariant;
+    final plSign = alloc.todayProfitPkr >= 0 ? "+" : "";
+    final pctSign = alloc.todayChangePct >= 0 ? "+" : "";
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("kmi30_chart_your_investment"),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  pkr.format(alloc.investedPkr),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                context.tr("kmi30_chart_today"),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                "$plSign${pkr.format(alloc.todayProfitPkr)} "
+                "($pctSign${alloc.todayChangePct.toStringAsFixed(2)}%)",
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: plColor,
+                    ),
+                textAlign: TextAlign.end,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

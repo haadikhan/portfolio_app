@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
@@ -7,6 +8,7 @@ import "package:portfolio_app/src/features/investment/domain/five_market_models.
 import "package:portfolio_app/src/features/investment/presentation/five_market_daily_providers.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_shell.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
+import "package:portfolio_app/src/features/investment/providers/kmi30_company_allocation_provider.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_bar.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_index_tick.dart";
 import "package:portfolio_app/src/features/market/presentation/widgets/kmi30_line_chart.dart";
@@ -59,6 +61,8 @@ class StockMarketDetailScreen extends ConsumerWidget {
                 slice: slice!,
                 stockAllocationPercent: config?.allocations.stock ?? 40,
               ),
+          const SizedBox(height: 14),
+          _Kmi30TopMoversCard(scheme: scheme),
           const SizedBox(height: 14),
           const _AboutStockSleeveCard(),
         ],
@@ -338,6 +342,158 @@ class _StockHoldingsCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Kmi30TopMoversCard extends ConsumerWidget {
+  const _Kmi30TopMoversCard({required this.scheme});
+
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final list = ref.watch(kmi30CompanyAllocationsProvider);
+    final withInv = list.where((e) => e.hasInvestment).toList();
+    if (withInv.isEmpty) return const SizedBox.shrink();
+
+    final gainers = [...withInv]
+      ..sort((a, b) => b.todayProfitPkr.compareTo(a.todayProfitPkr));
+    final losers = [...withInv]
+      ..sort((a, b) => a.todayProfitPkr.compareTo(b.todayProfitPkr));
+    final topG =
+        gainers.where((e) => e.todayProfitPkr > 0).take(3).toList();
+    final topL =
+        losers.where((e) => e.todayProfitPkr < 0).take(3).toList();
+
+    return _GlassCard(
+      accentColor: _psxGreen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.tr("kmi30_top_movers_title"),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.tr("kmi30_top_gainers"),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          if (topG.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                "—",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+          else
+            ...topG.map((e) => _MoverRow(alloc: e, isGain: true)),
+          const SizedBox(height: 8),
+          Text(
+            context.tr("kmi30_top_losers"),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          if (topL.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                "—",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+          else
+            ...topL.map((e) => _MoverRow(alloc: e, isGain: false)),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.push("/market/kmi30-companies"),
+              child: Text(context.tr("kmi30_view_all_stocks")),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoverRow extends StatelessWidget {
+  const _MoverRow({required this.alloc, required this.isGain});
+
+  final Kmi30CompanyAllocation alloc;
+  final bool isGain;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = alloc.todayChangePct;
+    final pctColor =
+        isGain ? Colors.green.shade700 : Colors.red.shade700;
+    final plSign = alloc.todayProfitPkr >= 0 ? "+" : "";
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  alloc.symbol,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  alloc.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              "$plSign${_money.format(alloc.todayProfitPkr)}",
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: pctColor,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 64,
+            child: Text(
+              "${pct >= 0 ? "+" : ""}${pct.toStringAsFixed(2)}%",
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: pctColor,
+              ),
             ),
           ),
         ],

@@ -38,6 +38,12 @@ final selectedCompanySymbolProvider = StateProvider<String?>(
 final selectedTimeframeProvider = StateProvider<String>((_) => "1d");
 final selectedChartTypeProvider = StateProvider<String>((_) => "line");
 
+enum Kmi30SortMode { original, gainFirst, lossFirst }
+
+final kmi30SortModeProvider = StateProvider<Kmi30SortMode>(
+  (_) => Kmi30SortMode.original,
+);
+
 final webSocketServiceProvider = Provider<PsxWebSocketService>((ref) {
   final svc = PsxWebSocketService(
     symbols: kmi30SeedCompanies.map((e) => e.symbol).toList(),
