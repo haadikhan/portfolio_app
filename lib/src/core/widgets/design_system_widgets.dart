@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 
-import "../branding/brand_assets.dart";
+import "../branding/brand_logo.dart";
 import "../theme/app_colors.dart";
 
 class FinanceAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -20,12 +20,7 @@ class FinanceAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Row(
         children: [
-          Image.asset(
-            BrandAssets.logoPng,
-            height: 32,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          ),
+          const BrandLogo(height: 32),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

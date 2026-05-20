@@ -3,7 +3,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
-import "../../core/branding/brand_assets.dart";
+import "../../core/branding/brand_logo.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_error_dialog.dart";
@@ -132,13 +132,8 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Center(
-                          child: Image.asset(
-                            BrandAssets.logoPng,
-                            height: 96,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.high,
-                          ),
+                        const Center(
+                          child: BrandLogo(height: 96),
                         ),
                         const SizedBox(height: 20),
                         Text(

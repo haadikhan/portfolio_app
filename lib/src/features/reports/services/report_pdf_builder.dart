@@ -1,21 +1,15 @@
-// `image` is resolved transitively (pdf / image_picker); PDF-only tint helper.
-// ignore_for_file: depend_on_referenced_packages
-
 import "dart:typed_data";
 
 import "package:flutter/foundation.dart" show debugPrint;
 import "package:flutter/services.dart" show rootBundle;
-import "package:image/image.dart" as img;
 import "package:intl/intl.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 
+import "../../../core/branding/brand_assets.dart";
 import "../../investor/data/models/txn_item.dart";
 
 final _brandGreen = PdfColor.fromHex("#0F7A2C");
-const _brandGreenR = 15;
-const _brandGreenG = 122;
-const _brandGreenB = 44;
 const _white = PdfColors.white;
 const _black = PdfColors.black;
 final _footerLabelGrey = PdfColor.fromInt(0xFF555555);
@@ -70,32 +64,6 @@ String _formatLetterheadDate(DateTime date) {
   return "${date.day.toString().padLeft(2, "0")}/"
       "${date.month.toString().padLeft(2, "0")}/"
       "${date.year}";
-}
-
-/// Recolors light/white opaque pixels to brand green for PDF letterhead only.
-/// Does not modify [assets/branding/app_brand.png] on disk.
-Uint8List _brandLogoBytesForPdf(Uint8List pngBytes) {
-  final decoded = img.decodeImage(pngBytes);
-  if (decoded == null) return pngBytes;
-
-  final tinted = img.Image.from(decoded);
-  for (var y = 0; y < tinted.height; y++) {
-    for (var x = 0; x < tinted.width; x++) {
-      final p = tinted.getPixel(x, y);
-      final a = p.a.toInt();
-      if (a < 20) continue;
-
-      final r = p.r.toInt();
-      final g = p.g.toInt();
-      final b = p.b.toInt();
-      final luminance = (0.299 * r + 0.587 * g + 0.114 * b).round();
-
-      if (luminance > 120 || (r > 200 && g > 200 && b > 200)) {
-        tinted.setPixelRgba(x, y, _brandGreenR, _brandGreenG, _brandGreenB, a);
-      }
-    }
-  }
-  return Uint8List.fromList(img.encodePng(tinted));
 }
 
 pw.Widget _buildLetterheadHeader(
@@ -410,12 +378,11 @@ Future<Uint8List> buildInvestorReportPdf({
 }) async {
   pw.MemoryImage? logoImage;
   try {
-    final rawLogoBytes =
-        (await rootBundle.load("assets/branding/app_brand.png"))
+    final logoBytes =
+        (await rootBundle.load(BrandAssets.logoGreenPng))
             .buffer
             .asUint8List();
-    final greenLogoBytes = _brandLogoBytesForPdf(rawLogoBytes);
-    logoImage = pw.MemoryImage(greenLogoBytes);
+    logoImage = pw.MemoryImage(logoBytes);
   } catch (e) {
     debugPrint("[reports] Logo load failed: $e");
   }

@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
-import "../../core/branding/brand_assets.dart";
+import "../../core/branding/brand_logo.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../core/widgets/app_bar_actions.dart";
 import "../../features/notifications/providers/notification_providers.dart";
@@ -106,12 +106,7 @@ class AdminShell extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: Row(
                       children: [
-                        Image.asset(
-                          BrandAssets.logoPng,
-                          height: 36,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                        ),
+                        const BrandLogo(height: 36),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -312,10 +307,9 @@ class AdminShell extends ConsumerWidget {
             leading: useRail
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Image.asset(
-                      BrandAssets.logoPng,
+                    child: const BrandLogo(
+                      height: 32,
                       fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
                     ),
                   )
                 : null,

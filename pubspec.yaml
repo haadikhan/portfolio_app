@@ -91,6 +91,7 @@ flutter:
 
   assets:
     - assets/branding/app_brand.png
+    - assets/branding/app_brand_green.png
     - assets/splash/splash_hero_background.png
 
 flutter_launcher_icons:

@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 
-import "../branding/brand_assets.dart";
+import "../branding/brand_logo.dart";
 import "app_bar_actions.dart";
 
 class AppScaffold extends StatelessWidget {
@@ -52,12 +52,7 @@ class AppScaffold extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Image.asset(
-              BrandAssets.logoPng,
-              height: 26,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-            ),
+            const BrandLogo(height: 26),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
