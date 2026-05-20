@@ -1,10 +1,22 @@
 import "dart:typed_data";
 
+import "package:flutter/foundation.dart" show debugPrint;
+import "package:flutter/services.dart" show rootBundle;
 import "package:intl/intl.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 
 import "../../investor/data/models/txn_item.dart";
+
+final _brandGreen = PdfColor.fromHex("#0F7A2C");
+const _white = PdfColors.white;
+const _black = PdfColors.black;
+final _footerLabelGrey = PdfColor.fromInt(0xFF555555);
+
+/// Accent bar is drawn in [buildBackground], which is anchored at [margin.left].
+/// Use a negative left offset to place the bar on the physical page edge.
+const _accentLineWidth = 4.0;
+const _pageMarginLeft = 40.0;
 
 /// Inclusive date range for filtering [TxnItem.createdAt].
 List<TxnItem> filterTxnsInRange(
@@ -37,6 +49,198 @@ ReportType resolveReportType(List<TxnItem> transactions) {
         n.contains("five_market_daily");
   });
   return hasFiveMarket ? ReportType.fiveMarketDaily : ReportType.monthlyReturn;
+}
+
+String _generateRefNumber(String portfolioNumber) {
+  if (portfolioNumber.isEmpty) return "ISC-000000";
+  final suffix = portfolioNumber.length >= 6
+      ? portfolioNumber.substring(portfolioNumber.length - 6).toUpperCase()
+      : portfolioNumber.toUpperCase();
+  return "ISC-$suffix";
+}
+
+String _formatLetterheadDate(DateTime date) {
+  return "${date.day.toString().padLeft(2, "0")}/"
+      "${date.month.toString().padLeft(2, "0")}/"
+      "${date.year}";
+}
+
+pw.Widget _buildLetterheadHeader(pw.MemoryImage? logo) {
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisSize: pw.MainAxisSize.min,
+            children: [
+              if (logo != null)
+                pw.Image(logo, height: 50, fit: pw.BoxFit.contain),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                "ISC - WAI",
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                  color: _black,
+                ),
+              ),
+            ],
+          ),
+          pw.Spacer(),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            color: _brandGreen,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                pw.Text(
+                  "ISC-WAI",
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _white,
+                  ),
+                ),
+                pw.Text(
+                  "Aitemaad - Shariah Compliant",
+                  style: const pw.TextStyle(fontSize: 9, color: _white),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      pw.SizedBox(height: 6),
+      pw.Container(height: 2, color: _brandGreen),
+    ],
+  );
+}
+
+pw.Widget _footerRow(String label, String value) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 2),
+    child: pw.Row(
+      children: [
+        pw.SizedBox(
+          width: 100,
+          child: pw.Text(
+            label,
+            style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
+          ),
+        ),
+        pw.Text(
+          value,
+          style: pw.TextStyle(fontSize: 7.5, color: _black),
+        ),
+      ],
+    ),
+  );
+}
+
+pw.Widget _buildLetterheadFooter() {
+  return pw.Column(
+    children: [
+      pw.Container(height: 1, color: _brandGreen),
+      pw.SizedBox(height: 6),
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _footerRow("Contact Number", "021-34010616"),
+                _footerRow("Contact on", "Contact@wakalatalistithmar.com"),
+                _footerRow("For Information", "info@islamicsaving.com"),
+                _footerRow("Visit our website", "www.wakalatalistithmar.com"),
+              ],
+            ),
+          ),
+          pw.Container(
+            width: 1,
+            height: 60,
+            color: _brandGreen,
+            margin: const pw.EdgeInsets.symmetric(horizontal: 12),
+          ),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  "Follow us on social media",
+                  style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
+                ),
+                pw.Text(
+                  "@Wakalat_Al_Istithmar",
+                  style: pw.TextStyle(
+                    fontSize: 7.5,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _black,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  "Facebook  Instagram  Twitter  TikTok  LinkedIn  YouTube",
+                  style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  "Bisma Garden opposite to Darul-Sehat Hospital,",
+                  style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
+                ),
+                pw.Text(
+                  "Gulistan-e-Jauhar, Karachi",
+                  style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      pw.SizedBox(height: 6),
+      pw.Container(
+        width: double.infinity,
+        color: _brandGreen,
+        padding: const pw.EdgeInsets.symmetric(vertical: 6),
+        child: pw.Center(
+          child: pw.Text(
+            "ISC-WAI",
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+              color: _white,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+pw.Widget _buildPageBackground(pw.MemoryImage? logo) {
+  return pw.Stack(
+    children: [
+      if (logo != null)
+        pw.Positioned.fill(
+          child: pw.Center(
+            child: pw.Opacity(
+              opacity: 0.05,
+              child: pw.Image(logo, width: 250, fit: pw.BoxFit.contain),
+            ),
+          ),
+        ),
+      pw.Positioned(
+        left: -_pageMarginLeft,
+        top: 0,
+        bottom: 0,
+        child: pw.Container(width: _accentLineWidth, color: _brandGreen),
+      ),
+    ],
+  );
 }
 
 /// Localized labels for PDF columns and sections (pass [context.tr] values from UI).
@@ -153,8 +357,21 @@ Future<Uint8List> buildInvestorReportPdf({
   required List<TxnItem> transactions,
   required ReportPdfLabels labels,
 }) async {
+  pw.MemoryImage? logoImage;
+  try {
+    final logoBytes =
+        (await rootBundle.load("assets/branding/app_brand.png"))
+            .buffer
+            .asUint8List();
+    logoImage = pw.MemoryImage(logoBytes);
+  } catch (e) {
+    debugPrint("[reports] Logo load failed: $e");
+  }
+
   final dateFmt = DateFormat.yMMMd();
   final dateTimeFmt = DateFormat.yMMMd().add_Hm();
+  final refNumber = _generateRefNumber(portfolioNumber);
+  final letterheadDate = _formatLetterheadDate(DateTime.now());
 
   double totalDep = 0;
   double totalWdr = 0;
@@ -177,84 +394,134 @@ Future<Uint8List> buildInvestorReportPdf({
 
   pdf.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(40),
-      build: (ctx) => [
-        pw.Header(
-          level: 0,
-          child: pw.Text(
-            labels.documentTitle,
-            style: pw.TextStyle(
-              fontSize: 18,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
+      pageTheme: pw.PageTheme(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.only(
+          left: _pageMarginLeft,
+          right: 30,
+          top: 16,
+          bottom: 16,
         ),
-        pw.SizedBox(height: 12),
-        _reportHeaderTable(
-          labels: labels,
-          accountTitle: accountLabel,
-          portfolioNumber: portfolioNumber,
-          reportType: reportType,
-        ),
-        pw.SizedBox(height: 8),
-        pw.Text(
-          "${labels.period}: ${dateFmt.format(periodStart)} – ${dateFmt.format(periodEndInclusive)}",
-        ),
-        pw.SizedBox(height: 16),
-        pw.Text(
-          labels.summary,
-          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-        ),
-        pw.Bullet(text: "${labels.totalDeposits}: ${totalDep.toStringAsFixed(2)}"),
-        pw.Bullet(text: "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}"),
-        pw.Bullet(text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}"),
-        pw.SizedBox(height: 16),
-        pw.Text(
-          labels.transactionsHeading,
-          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-        ),
-        pw.SizedBox(height: 8),
-        if (transactions.isEmpty)
-          pw.Text("—")
-        else
-          pw.TableHelper.fromTextArray(
-            headers: [
-              labels.colDate,
-              labels.colType,
-              labels.colStatus,
-              labels.colAmount,
-              labels.colNote,
+        buildBackground: (_) => _buildPageBackground(logoImage),
+      ),
+      header: (_) => pw.Column(
+        children: [
+          _buildLetterheadHeader(logoImage),
+          pw.SizedBox(height: 12),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    "Ref #: $refNumber",
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                  pw.Text(
+                    "Date: $letterheadDate",
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                ],
+              ),
             ],
-            data: transactions.map((t) {
-              final note = (t.note ?? "").replaceAll("\n", " ");
-              final shortNote =
-                  note.length > 40 ? "${note.substring(0, 37)}..." : note;
-              return [
-                dateTimeFmt.format(t.createdAt),
-                t.type,
-                t.status,
-                t.amount.toStringAsFixed(2),
-                shortNote,
-              ];
-            }).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            headerDecoration: const pw.BoxDecoration(
-              color: PdfColors.grey300,
-            ),
-            cellHeight: 24,
-            cellAlignments: {
-              0: pw.Alignment.centerLeft,
-              1: pw.Alignment.centerLeft,
-              2: pw.Alignment.centerLeft,
-              3: pw.Alignment.centerRight,
-              4: pw.Alignment.centerLeft,
-            },
           ),
-        pw.SizedBox(height: 24),
-        pw.Text(
-          labels.footer,
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+          pw.SizedBox(height: 8),
+        ],
+      ),
+      footer: (_) => _buildLetterheadFooter(),
+      build: (ctx) => [
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Header(
+              level: 0,
+              child: pw.Text(
+                labels.documentTitle,
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 12),
+            _reportHeaderTable(
+              labels: labels,
+              accountTitle: accountLabel,
+              portfolioNumber: portfolioNumber,
+              reportType: reportType,
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              "${labels.period}: ${dateFmt.format(periodStart)} - ${dateFmt.format(periodEndInclusive)}",
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              labels.summary,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Bullet(
+              text: "${labels.totalDeposits}: ${totalDep.toStringAsFixed(2)}",
+            ),
+            pw.Bullet(
+              text:
+                  "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}",
+            ),
+            pw.Bullet(
+              text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}",
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              labels.transactionsHeading,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 8),
+            if (transactions.isEmpty)
+              pw.Text("—")
+            else
+              pw.TableHelper.fromTextArray(
+                headers: [
+                  labels.colDate,
+                  labels.colType,
+                  labels.colStatus,
+                  labels.colAmount,
+                  labels.colNote,
+                ],
+                data: transactions.map((t) {
+                  final note = (t.note ?? "").replaceAll("\n", " ");
+                  final shortNote = note.length > 40
+                      ? "${note.substring(0, 37)}..."
+                      : note;
+                  return [
+                    dateTimeFmt.format(t.createdAt),
+                    t.type,
+                    t.status,
+                    t.amount.toStringAsFixed(2),
+                    shortNote,
+                  ];
+                }).toList(),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.grey300,
+                ),
+                cellHeight: 24,
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft,
+                  1: pw.Alignment.centerLeft,
+                  2: pw.Alignment.centerLeft,
+                  3: pw.Alignment.centerRight,
+                  4: pw.Alignment.centerLeft,
+                },
+              ),
+            pw.SizedBox(height: 24),
+            pw.Text(
+              labels.footer,
+              style: const pw.TextStyle(
+                fontSize: 9,
+                color: PdfColors.grey700,
+              ),
+            ),
+          ],
         ),
       ],
     ),

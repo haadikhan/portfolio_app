@@ -314,12 +314,13 @@ final fiveMarketLiveProfitProvider =
 
 bool _useWalletFallback({
   required List<FiveMarketDailyLedgerDoc> periodDocs,
-  required FiveMarketLiveProfitState? liveToday,
 }) {
-  if (periodDocs.isNotEmpty) return false;
-  return liveToday == null ||
-      !liveToday.isTradingDay ||
-      liveToday.totalProfitPkr == 0;
+  // If no credited ledger docs exist for the period, always use wallet
+  // fallback. Today's live data alone is NOT a valid monthly or yearly
+  // total — it only represents today's intraday estimate. Monthly/Yearly
+  // should only show ledger sums once the nightly credit job has run at
+  // least once.
+  return periodDocs.isEmpty;
 }
 
 /// Sums credited [five_market_daily] rows for the current PKT month + today's live.
@@ -344,7 +345,7 @@ final fiveMarketMonthlyProfitProvider =
         doc.raw["creditedToWallet"] == true;
   }).toList();
 
-  if (_useWalletFallback(periodDocs: monthDocs, liveToday: liveToday)) {
+  if (_useWalletFallback(periodDocs: monthDocs)) {
     final walletTotal = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0.0;
     return FiveMarketPeriodSummary(
       label: "This Month",
@@ -376,7 +377,11 @@ final fiveMarketMonthlyProfitProvider =
     tradingDays++;
   }
 
-  if (liveToday != null && liveToday.isTradingDay) {
+  // Add today's live estimate ONLY when we already have at least one
+  // credited ledger day for this period.
+  if (monthDocs.isNotEmpty &&
+      liveToday != null &&
+      liveToday.isTradingDay) {
     stockTotal += liveToday.stockProfitPkr;
     techTotal += liveToday.techProfitPkr;
     debtTotal += liveToday.debtProfitPkr;
@@ -415,7 +420,7 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
     return dt.year == currentYear && doc.raw["creditedToWallet"] == true;
   }).toList();
 
-  if (_useWalletFallback(periodDocs: yearDocs, liveToday: liveToday)) {
+  if (_useWalletFallback(periodDocs: yearDocs)) {
     final walletTotal = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0.0;
     return FiveMarketPeriodSummary(
       label: "This Year",
@@ -447,7 +452,11 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
     tradingDays++;
   }
 
-  if (liveToday != null && liveToday.isTradingDay) {
+  // Add today's live estimate ONLY when we already have at least one
+  // credited ledger day for this period.
+  if (yearDocs.isNotEmpty &&
+      liveToday != null &&
+      liveToday.isTradingDay) {
     stockTotal += liveToday.stockProfitPkr;
     techTotal += liveToday.techProfitPkr;
     debtTotal += liveToday.debtProfitPkr;
