@@ -19,12 +19,14 @@ String _formatTxTs(BuildContext context, dynamic v) {
   return context.tr("em_dash");
 }
 
-Color _stripeForType(String typeRaw) {
+Color _stripeForType(String typeRaw, double amount) {
   final t = typeRaw.toLowerCase();
   if (t.contains("deposit")) return AppColors.dashboardDepositFg;
   if (t.contains("withdraw")) return AppColors.dashboardWithdrawFg;
   if (t.contains("profit") || t.contains("return")) {
-    return AppColors.dashboardReportsFg;
+    return amount >= 0
+        ? AppColors.dashboardDepositFg
+        : AppColors.dashboardWithdrawFg;
   }
   return AppColors.primary;
 }
@@ -482,9 +484,20 @@ class _LedgerTransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = doc.data();
     final type = (m["type"] ?? "").toString();
+    final typeLower = type.toLowerCase();
     final status = (m["status"] ?? "").toString();
     final amt = (m["amount"] as num?)?.toDouble() ?? 0;
-    final stripe = _stripeForType(type);
+    final stripe = _stripeForType(type, amt);
+    final isDeposit = typeLower.contains("deposit");
+    final isProfit =
+        typeLower.contains("profit") || typeLower.contains("return");
+    final isGain = isProfit && amt >= 0;
+    final isLoss = isProfit && amt < 0;
+    final amountText = (isDeposit || isGain)
+        ? "+${_money.format(amt.abs())}"
+        : (typeLower.contains("withdraw") || isLoss)
+            ? "-${_money.format(amt.abs())}"
+            : _money.format(amt);
 
     return Material(
       color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
@@ -527,7 +540,7 @@ class _LedgerTransactionCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          _money.format(amt),
+                          amountText,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 14,

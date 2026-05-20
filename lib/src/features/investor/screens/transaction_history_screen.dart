@@ -189,6 +189,8 @@ class TransactionRowItem extends StatelessWidget {
     final isDeposit = txn.type == "deposit";
     final isProfit =
         txn.type == "profit_entry" || txn.type == "profit";
+    final isGain = isProfit && txn.amount >= 0;
+    final isLoss = isProfit && txn.amount < 0;
     final isWithdrawal = txn.type == "withdrawal";
     final isFee = _kFeeTypes.contains(txn.type);
 
@@ -210,14 +212,27 @@ class TransactionRowItem extends StatelessWidget {
                     AppColors.error,
                     _feeIcon(txn.type),
                   )
-                : (
-                    scheme.primaryContainer.withValues(alpha: 0.4),
-                    Colors.blue.shade700,
-                    Icons.trending_up_rounded,
-                  );
+                : isGain
+                    ? (
+                        scheme.primaryContainer.withValues(alpha: 0.5),
+                        AppColors.success,
+                        Icons.trending_up_rounded,
+                      )
+                    : isLoss
+                        ? (
+                            scheme.errorContainer.withValues(alpha: 0.45),
+                            AppColors.error,
+                            Icons.trending_down_rounded,
+                          )
+                        : (
+                            scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            scheme.onSurfaceVariant,
+                            Icons.receipt_long_outlined,
+                          );
 
-    final amountColor = isDeposit || isProfit ? AppColors.success : AppColors.error;
-    final amountSign = isDeposit || isProfit ? "+" : "-";
+    final amountColor =
+        (isDeposit || isGain) ? AppColors.success : AppColors.error;
+    final amountSign = (isDeposit || isGain) ? "+" : "-";
 
     final typeLabel = isDeposit
         ? context.tr("txn_type_deposit")
@@ -284,7 +299,7 @@ class TransactionRowItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "$amountSign${_money.format(txn.amount)}",
+                "$amountSign${_money.format(txn.amount.abs())}",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
