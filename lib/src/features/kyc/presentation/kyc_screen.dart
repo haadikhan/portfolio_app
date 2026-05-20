@@ -428,6 +428,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 // ── Bank details ────────────────────────────────────────
                 const SizedBox(height: 22),
                 _SectionHeader(label: context.tr("bank_details_section")),
+                if (status == KycLifecycleStatus.approved) ...[
+                  const SizedBox(height: 10),
+                  _KycServiceRequestApprovedBanner(text: context.tr("kyc_service_request_banner")),
+                ],
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedBankName != null &&
@@ -494,6 +498,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 // ── Successor person (nominee) ──────────────────────────
                 const SizedBox(height: 22),
                 _SectionHeader(label: context.tr("kyc_successor_title")),
+                if (status == KycLifecycleStatus.approved) ...[
+                  const SizedBox(height: 10),
+                  _KycServiceRequestApprovedBanner(text: context.tr("kyc_service_request_banner")),
+                ],
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _nomineeName,
@@ -908,6 +916,47 @@ class _ReadOnlyField extends StatelessWidget {
             Icons.lock_outline_rounded,
             size: 16,
             color: scheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Approved KYC: service-request hint (bank / nominee) ───────────────────────
+
+class _KycServiceRequestApprovedBanner extends StatelessWidget {
+  const _KycServiceRequestApprovedBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: 0.38),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: scheme.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: scheme.onSurface,
+              ),
+            ),
           ),
         ],
       ),

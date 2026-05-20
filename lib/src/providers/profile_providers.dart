@@ -92,22 +92,8 @@ class ProfileUpdateNotifier extends AsyncNotifier<void> {
   String get _uid =>
       ref.read(currentUserProvider)?.uid ?? (throw Exception("Not signed in"));
 
-  /// Save freely editable fields (name, phone) directly to users/{uid}.
-  Future<void> saveDirectFields({
-    String? name,
-    String? phone,
-  }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final updates = <String, dynamic>{};
-      if (name != null && name.isNotEmpty) updates["name"] = name;
-      if (phone != null && phone.isNotEmpty) updates["phone"] = phone;
-      if (updates.isEmpty) return;
-      await _db.collection("users").doc(_uid).update(updates);
-    });
-  }
-
-  /// Submit bank/nominee change request for admin approval.
+  /// Deprecated: submit via [submitChangeRequestProvider] to `changeRequests`.
+  @Deprecated("Use submitChangeRequestProvider for changeRequests collection")
   Future<void> submitPendingChange(Map<String, dynamic> requestedFields) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {

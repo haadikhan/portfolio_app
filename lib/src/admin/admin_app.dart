@@ -31,6 +31,7 @@ import "screens/admin_withdrawals_queue_screen.dart";
 import "screens/admin_market_screen.dart";
 import "screens/admin_five_market_screen.dart";
 import "screens/admin_app_updates_screen.dart";
+import "screens/admin_change_requests_screen.dart";
 import "widgets/admin_shell.dart";
 
 bool _crmMustRedirect(String loc) {
@@ -119,6 +120,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/withdrawals",
             builder: (_, __) => const AdminWithdrawalsQueueScreen(),
+          ),
+          GoRoute(
+            path: "/change-requests",
+            builder: (_, __) => const AdminChangeRequestsScreen(),
           ),
           GoRoute(
             path: "/investors",

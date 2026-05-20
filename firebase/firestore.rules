@@ -141,7 +141,26 @@ service cloud.firestore {
 
       match /notifications/{notificationId} {
         allow read: if isOwner(userId) || isAdmin();
-        allow create, delete: if false;
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasOnly([
+            "title",
+            "body",
+            "type",
+            "read",
+            "createdAt",
+            "action",
+            "refId",
+          ])
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 500
+          && request.resource.data.body is string
+          && request.resource.data.body.size() <= 8000
+          && request.resource.data.type == "service_request"
+          && request.resource.data.read == false
+          && request.resource.data.action == "none"
+          && request.resource.data.refId is string
+          && request.resource.data.refId.size() <= 200;
+        allow delete: if false;
         allow update: if isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read", "readAt"]);
       }
@@ -161,6 +180,93 @@ service cloud.firestore {
           && request.resource.data.status == "pending"
           && request.resource.data.requestedFields is map;
         allow update, delete: if isAdmin();
+      }
+
+      // Service-request tickets (investor submits; admin resolves from admin web app).
+      // Composite index needed for admin collection-group queries — see codebase comment on AdminChangeRequestService.
+      match /changeRequests/{ticketId} {
+        allow read: if isOwner(userId) || isAdmin() || crmManagesInvestor(userId);
+
+        function changeRequestInvestorCreateKeysOk() {
+          return request.resource.data.keys().hasOnly([
+            "requestType",
+            "requestedFields",
+            "currentFields",
+            "status",
+            "requestedAt",
+            "reviewedAt",
+            "reviewNote",
+            "reviewedBy",
+          ]);
+        }
+
+        // Investor/new doc — must stay pending until staff reviews (serverTimestamp used for requestedAt).
+        allow create: if isOwner(userId)
+          && changeRequestInvestorCreateKeysOk()
+          && request.resource.data.status == "pending"
+          && request.resource.data.requestType is string
+          && request.resource.data.requestType.size() <= 32
+          && request.resource.data.requestedFields is map
+          && request.resource.data.requestedFields.size() <= 50
+          && request.resource.data.currentFields is map
+          && request.resource.data.currentFields.size() <= 50
+          && request.resource.data.reviewedAt == null
+          && request.resource.data.reviewNote == null
+          && request.resource.data.reviewedBy == null;
+
+        function changeRequestApprovedNoteOk() {
+          return (
+            !("reviewNote" in request.resource.data)
+              || request.resource.data.reviewNote == null
+              || (
+                request.resource.data.reviewNote is string
+                && request.resource.data.reviewNote.size() <= 4000
+              )
+          );
+        }
+
+        function changeRequestStaffPatchOk() {
+          return resource.data.keys().hasAll([
+            "requestType",
+            "requestedFields",
+            "currentFields",
+            "status",
+            "requestedAt",
+          ])
+            && resource.data.status == "pending"
+            && (
+              request.resource.data.status == "approved"
+                || request.resource.data.status == "rejected"
+            )
+            && request.resource.data.requestType == resource.data.requestType
+            && request.resource.data.requestedFields == resource.data.requestedFields
+            && request.resource.data.currentFields == resource.data.currentFields
+            && request.resource.data.requestedAt == resource.data.requestedAt
+            && request.resource.data.reviewedBy is string
+            && request.resource.data.reviewedBy.size() > 0
+            && request.resource.data.reviewedBy.size() <= 128
+            && (
+              (
+                request.resource.data.status == "approved"
+                && changeRequestApprovedNoteOk()
+              )
+              || (
+                request.resource.data.status == "rejected"
+                && request.resource.data.reviewNote is string
+                && request.resource.data.reviewNote.size() > 0
+                && request.resource.data.reviewNote.size() <= 4000
+              )
+            );
+        }
+
+        allow update: if isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status",
+          "reviewedAt",
+          "reviewNote",
+          "reviewedBy",
+        ]) && changeRequestStaffPatchOk();
+        allow delete: if false;
       }
 
       // Fee statements: server-only writes (Cloud Functions / Admin SDK).

@@ -24,6 +24,7 @@ import "../features/investment/presentation/market_detail/debt_market_detail_scr
 import "../features/investment/presentation/market_detail/money_market_detail_screen.dart";
 import "../features/investment/presentation/live_profit_screen.dart";
 import "../features/investor/screens/investor_profile_screen.dart";
+import "../features/service_requests/presentation/service_requests_screen.dart";
 import "../features/kyc/presentation/kyc_screen.dart";
 import "../features/legal/presentation/legal_consent_screen.dart";
 import "../features/admin/presentation/admin_finance_console_screen.dart";
@@ -157,6 +158,10 @@ class WakalatInvestApp extends ConsumerWidget {
                 GoRoute(
                   path: "/profile/trusted-devices",
                   builder: (_, __) => const TrustedDevicesScreen(),
+                ),
+                GoRoute(
+                  path: "/profile/service-requests",
+                  builder: (_, __) => const ServiceRequestsScreen(),
                 ),
               ],
             ),

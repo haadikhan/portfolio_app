@@ -12,7 +12,9 @@ import "../models/admin_investor_models.dart";
 import "../models/kyc_admin_models.dart";
 import "../providers/admin_providers.dart";
 import "../providers/five_market_admin_providers.dart";
+import "../providers/admin_change_request_providers.dart";
 import "../services/five_market_admin_service.dart";
+import "admin_change_requests_screen.dart";
 
 class AdminInvestorDetailScreen extends ConsumerStatefulWidget {
   const AdminInvestorDetailScreen({super.key, required this.userId});
@@ -188,6 +190,12 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
     final dt = DateFormat.yMMMd().add_Hm();
     final role = ref.watch(adminRoleProvider).valueOrNull ?? "";
     final isAdmin = role.toLowerCase() == "admin";
+    final changeReqAsync =
+        ref.watch(investorChangeRequestsProvider(user.userId));
+    final pendingChangeCount =
+        changeReqAsync.valueOrNull?.where((r) => r.isPending).length ?? 0;
+    final crActing =
+        ref.watch(adminChangeRequestActionProvider).isLoading;
 
     return SingleChildScrollView(
       child: Column(
@@ -199,9 +207,39 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
             label: const Text("Investors"),
           ),
           const SizedBox(height: 8),
-          Text(
-            user.name.isNotEmpty ? user.name : user.userId,
-            style: Theme.of(context).textTheme.headlineSmall,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  user.name.isNotEmpty ? user.name : user.userId,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              if (pendingChangeCount > 0)
+                Tooltip(
+                  message: context.tr("sr_pending_badge"),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 2, left: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      "($pendingChangeCount ${context.tr("sr_tab_pending")})",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orange.shade900,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -420,6 +458,42 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                 ),
               ),
             ),
+          const SizedBox(height: 28),
+          Text(
+            context.tr("admin_cr_section_title"),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 10),
+          changeReqAsync.when(
+            loading: () => const LinearProgressIndicator(minHeight: 4),
+            error: (e, _) => Text("Change requests error: $e"),
+            data: (list) {
+              if (list.isEmpty) {
+                return Text(
+                  "—",
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final r in list)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: AdminChangeRequestTicketTile(
+                        request: r,
+                        dt: dt,
+                        interactionsDisabled: crActing,
+                        actionsEnabled: isAdmin,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           if (isAdmin) ...[
             const SizedBox(height: 28),
             _FiveMarketLedgerSection(userId: user.userId),

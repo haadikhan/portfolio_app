@@ -1,8 +1,7 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:intl_phone_field/intl_phone_field.dart";
-import "package:intl_phone_field/phone_number.dart";
+import "package:go_router/go_router.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/i18n/language_provider.dart";
@@ -19,6 +18,8 @@ import "../../mpin/data/mpin_status.dart";
 import "../../mpin/presentation/mpin_keypad.dart";
 import "../../mpin/presentation/mpin_setup_screen.dart";
 import "../../security/presentation/security_settings_section.dart";
+import "../../service_requests/presentation/submit_change_request_screen.dart";
+import "../../service_requests/providers/change_request_providers.dart";
 
 /// Prefer `users/{uid}` field when set; otherwise show value from KYC doc.
 String? _preferProfileThenKyc(String? profileField, String? kycField) {
@@ -27,21 +28,6 @@ String? _preferProfileThenKyc(String? profileField, String? kycField) {
   final k = kycField?.trim();
   if (k != null && k.isNotEmpty) return k;
   return null;
-}
-
-/// National number digits for [IntlPhoneField.initialValue] from stored E.164 or legacy local digits.
-String _nationalDigitsForIntlPhoneField(String stored) {
-  final t = stored.trim().replaceAll(" ", "");
-  if (t.isEmpty) return "";
-  if (t.startsWith("+")) {
-    try {
-      return PhoneNumber.fromCompleteNumber(completeNumber: t).number;
-    } catch (_) {
-      if (t.startsWith("+92")) return t.substring(3);
-      return t.replaceFirst(RegExp(r"^\+\d{1,4}"), "");
-    }
-  }
-  return t.replaceAll(RegExp(r"\D"), "");
 }
 
 String _kycLifecycleBadgeLabel(BuildContext context, KycLifecycleStatus s) {
@@ -92,352 +78,155 @@ class _ProfileBody extends ConsumerStatefulWidget {
 }
 
 class _ProfileBodyState extends ConsumerState<_ProfileBody> {
-  bool _editing = false;
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _nameCtrl.text = widget.profile.name;
-    _phoneCtrl.text = widget.profile.phone ?? "";
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveDirectFields() async {
-    final notifier = ref.read(profileUpdateProvider.notifier);
-    await notifier.saveDirectFields(
-      name: _nameCtrl.text.trim(),
-      phone: _phoneCtrl.text.trim(),
-    );
-    if (!mounted) return;
-    setState(() => _editing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr("profile_updated")),
-        backgroundColor: AppColors.success,
+  Widget _pendingBadgeChip(BuildContext context) {
+    return Tooltip(
+      message: context.tr("sr_field_locked_hint"),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: AppColors.warning.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule_rounded, size: 14, color: AppColors.warning),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                context.tr("sr_pending_badge"),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFB45309),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _openBankEditDialog() async {
-    final kyc = ref.read(userKycProvider).valueOrNull;
-    final bankCtrl = TextEditingController(
-      text: _preferProfileThenKyc(widget.profile.bankName, kyc?.bankName) ?? "",
-    );
-    final acctCtrl = TextEditingController(
-      text:
-          _preferProfileThenKyc(
-            widget.profile.accountNumber,
-            kyc?.ibanOrAccountNumber,
-          ) ??
-          "",
-    );
-    final titleCtrl = TextEditingController(
-      text:
-          _preferProfileThenKyc(
-            widget.profile.accountTitle,
-            kyc?.accountTitle,
-          ) ??
-          "",
-    );
-    try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 24,
-            ),
-            titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-            title: Text(
-              context.tr("update_bank_title"),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            scrollable: true,
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 380),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            context.tr("bank_approval_note"),
-                            style: const TextStyle(fontSize: 11, height: 1.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _DialogField(
-                    label: context.tr("bank_name"),
-                    controller: bankCtrl,
-                  ),
-                  const SizedBox(height: 10),
-                  _DialogField(
-                    label: context.tr("account_number"),
-                    controller: acctCtrl,
-                  ),
-                  const SizedBox(height: 10),
-                  _DialogField(
-                    label: context.tr("account_title"),
-                    controller: titleCtrl,
-                  ),
-                ],
-              ),
-            ),
-            actionsPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  context.tr("cancel"),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  context.tr("submit_for_review_btn"),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-
-      final bankName = bankCtrl.text.trim();
-      final accountNumber = acctCtrl.text.trim();
-      final accountTitle = titleCtrl.text.trim();
-      if (confirmed != true || !mounted) return;
-
-      await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-        "bankName": bankName,
-        "accountNumber": accountNumber,
-        "accountTitle": accountTitle,
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr("bank_request_submitted")),
-          backgroundColor: AppColors.success,
+  Widget _requestChangeTrailing({
+    required BuildContext context,
+    required bool hasPending,
+    required VoidCallback? onPressed,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasPending) ...[
+          Flexible(child: _pendingBadgeChip(context)),
+          const SizedBox(width: 8),
+        ],
+        OutlinedButton(
+          onPressed: hasPending ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          ),
+          child: Text(
+            context.tr("sr_request_change"),
+            style: const TextStyle(fontSize: 12),
+          ),
         ),
-      );
-    } finally {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        bankCtrl.dispose();
-        acctCtrl.dispose();
-        titleCtrl.dispose();
-      });
-    }
+      ],
+    );
   }
 
-  Future<void> _openNomineeEditDialog() async {
-    final kyc = ref.read(userKycProvider).valueOrNull;
-    final nameCtrl = TextEditingController(
-      text:
-          _preferProfileThenKyc(widget.profile.nomineeName, kyc?.nomineeName) ??
-          "",
-    );
-    final cnicCtrl = TextEditingController(
-      text:
-          _preferProfileThenKyc(widget.profile.nomineeCnic, kyc?.nomineeCnic) ??
-          "",
-    );
-    final relCtrl = TextEditingController(
-      text:
-          _preferProfileThenKyc(
-            widget.profile.nomineeRelation,
-            kyc?.nomineeRelation,
-          ) ??
-          "",
-    );
-    try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 24,
-            ),
-            titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-            title: Text(
-              context.tr("update_nominee_title"),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            scrollable: true,
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 380),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            context.tr("nominee_approval_note"),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _DialogField(
-                    label: context.tr("nominee_name"),
-                    controller: nameCtrl,
-                  ),
-                  const SizedBox(height: 10),
-                  _DialogField(
-                    label: context.tr("nominee_cnic"),
-                    controller: cnicCtrl,
-                  ),
-                  const SizedBox(height: 10),
-                  _DialogField(
-                    label: context.tr("relationship"),
-                    controller: relCtrl,
-                  ),
-                ],
-              ),
-            ),
-            actionsPadding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  context.tr("cancel"),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  context.tr("submit_for_review_btn"),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-
-      final nomineeName = nameCtrl.text.trim();
-      final nomineeCnic = cnicCtrl.text.trim();
-      final nomineeRelation = relCtrl.text.trim();
-      if (confirmed != true || !mounted) return;
-
-      await ref.read(profileUpdateProvider.notifier).submitPendingChange({
-        "nomineeName": nomineeName,
-        "nomineeCnic": nomineeCnic,
-        "nomineeRelation": nomineeRelation,
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr("bank_request_submitted")),
-          backgroundColor: AppColors.success,
+  Future<void> _openSubmitProfile() async {
+    final pending = ref.read(pendingChangeRequestsProvider);
+    if (hasPendingForType(pending, "profile")) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => SubmitChangeRequestScreen(
+          requestType: "profile",
+          currentValues: {
+            ctx.tr("full_name"): widget.profile.name,
+          },
+          editableLabels: [
+            (key: "name", label: ctx.tr("full_name")),
+          ],
         ),
-      );
-    } finally {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        nameCtrl.dispose();
-        cnicCtrl.dispose();
-        relCtrl.dispose();
-      });
-    }
+      ),
+    );
+  }
+
+  Future<void> _openSubmitPhone(String displayPhone) async {
+    final pending = ref.read(pendingChangeRequestsProvider);
+    if (hasPendingForType(pending, "phone")) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => SubmitChangeRequestScreen(
+          requestType: "phone",
+          currentValues: {
+            ctx.tr("profile_phone_number"): displayPhone,
+          },
+          editableLabels: [
+            (key: "phone", label: ctx.tr("profile_phone_number")),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSubmitBank({
+    required String bankName,
+    required String accountNumber,
+    required String accountTitle,
+  }) async {
+    final pending = ref.read(pendingChangeRequestsProvider);
+    if (hasPendingForType(pending, "bank")) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => SubmitChangeRequestScreen(
+          requestType: "bank",
+          currentValues: {
+            ctx.tr("bank_name"): bankName,
+            ctx.tr("account_number"): accountNumber,
+            ctx.tr("account_title"): accountTitle,
+          },
+          editableLabels: [
+            (key: "bankName", label: ctx.tr("bank_name")),
+            (key: "accountNumber", label: ctx.tr("account_number")),
+            (key: "accountTitle", label: ctx.tr("account_title")),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSubmitNominee({
+    required String nomineeName,
+    required String nomineeCnic,
+    required String nomineeRelation,
+  }) async {
+    final pending = ref.read(pendingChangeRequestsProvider);
+    if (hasPendingForType(pending, "nominee")) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => SubmitChangeRequestScreen(
+          requestType: "nominee",
+          currentValues: {
+            ctx.tr("nominee_name"): nomineeName,
+            ctx.tr("nominee_cnic"): nomineeCnic,
+            ctx.tr("relationship"): nomineeRelation,
+          },
+          editableLabels: [
+            (key: "nomineeName", label: ctx.tr("nominee_name")),
+            (key: "nomineeCnic", label: ctx.tr("nominee_cnic")),
+            (key: "nomineeRelation", label: ctx.tr("relationship")),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openChangePasswordDialog() {
@@ -602,7 +391,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final updateState = ref.watch(profileUpdateProvider);
+    final pending = ref.watch(pendingChangeRequestsProvider);
+    final pendingTicketCount = pending.length;
+    final hasPendingProfile = hasPendingForType(pending, "profile");
+    final hasPendingPhone = hasPendingForType(pending, "phone");
+    final hasPendingBank = hasPendingForType(pending, "bank");
+    final hasPendingNominee = hasPendingForType(pending, "nominee");
     final kycAsync = ref.watch(userKycProvider);
     final kycRecord = kycAsync.valueOrNull;
     final displayPhone = _preferProfileThenKyc(
@@ -652,55 +446,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           _ProfileHeader(profile: widget.profile),
           const SizedBox(height: 20),
 
-          // ── Edit toggle ────────────────────────────────────────────
-          Row(
-            children: [
-              const Spacer(),
-              if (_editing) ...[
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    _editing = false;
-                    _nameCtrl.text = widget.profile.name;
-                    _phoneCtrl.text = displayPhone ?? "";
-                  }),
-                  child: Text(context.tr("cancel")),
-                ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: updateState.isLoading ? null : _saveDirectFields,
-                  icon: updateState.isLoading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save_rounded, size: 16),
-                  label: Text(context.tr("save_btn")),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                  ),
-                ),
-              ] else
-                OutlinedButton.icon(
-                  onPressed: () => setState(() {
-                    _nameCtrl.text = widget.profile.name;
-                    _phoneCtrl.text = displayPhone ?? "";
-                    _editing = true;
-                  }),
-                  icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: Text(context.tr("edit_profile_btn")),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
           // ── Personal info card ──────────────────────────────────────
           _ProfileCard(
             title: context.tr("personal_information"),
@@ -716,68 +461,42 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 useAdaptiveColors: true,
               ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
-              _editing
-                  ? _EditableField(
-                      label: context.tr("full_name"),
-                      controller: _nameCtrl,
-                      useAdaptiveColors: true,
-                    )
-                  : _ProfileFieldTile(
-                      label: context.tr("full_name"),
-                      value: widget.profile.name.isNotEmpty
-                          ? widget.profile.name
-                          : null,
-                      useAdaptiveColors: true,
-                    ),
+              _ProfileFieldTile(
+                label: context.tr("full_name"),
+                value: widget.profile.name.isNotEmpty
+                    ? widget.profile.name
+                    : null,
+                useAdaptiveColors: true,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _requestChangeTrailing(
+                    context: context,
+                    hasPending: hasPendingProfile,
+                    onPressed: _openSubmitProfile,
+                  ),
+                ),
+              ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
-              _editing
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      child: IntlPhoneField(
-                        initialCountryCode: "PK",
-                        initialValue: _nationalDigitsForIntlPhoneField(
-                          _phoneCtrl.text,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: context.tr("profile_phone_number"),
-                          labelStyle: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: scheme.outline.withValues(alpha: 0.15),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: scheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          isDense: true,
-                        ),
-                        keyboardType: TextInputType.phone,
-                        invalidNumberMessage: context.tr("mobile_invalid"),
-                        onChanged: (phone) {
-                          _phoneCtrl.text = phone.completeNumber;
-                        },
-                      ),
-                    )
-                  : _ProfileFieldTile(
-                      label: context.tr("profile_phone_number"),
-                      value: displayPhone,
-                      useAdaptiveColors: true,
-                    ),
+              _ProfileFieldTile(
+                label: context.tr("profile_phone_number"),
+                value: displayPhone,
+                useAdaptiveColors: true,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _requestChangeTrailing(
+                    context: context,
+                    hasPending: hasPendingPhone,
+                    onPressed: () =>
+                        _openSubmitPhone(displayPhone ?? ""),
+                  ),
+                ),
+              ),
               Divider(height: 1, color: Theme.of(context).dividerColor),
               _ProfileFieldTile(
                 label: context.tr("cnic_label"),
@@ -799,6 +518,53 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ),
           const SizedBox(height: 14),
 
+          // ── Service requests entry ───────────────────────────────────
+          Material(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: Icon(
+                Icons.assignment_outlined,
+                color: scheme.primary,
+              ),
+              title: Text(context.tr("service_requests_nav_tile")),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (pendingTicketCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          "$pendingTicketCount",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              onTap: () => context.push("/profile/service-requests"),
+            ),
+          ),
+          const SizedBox(height: 14),
+
           const SecuritySettingsSection(),
           const SizedBox(height: 14),
 
@@ -806,18 +572,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           _ProfileCard(
             title: context.tr("bank_details_section"),
             icon: Icons.account_balance_outlined,
-            trailingAction: TextButton.icon(
-              onPressed: _openBankEditDialog,
-              icon: const Icon(Icons.edit_rounded, size: 14),
-              label: Text(
-                context.tr("edit_short"),
-                style: const TextStyle(fontSize: 12),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            trailingAction: _requestChangeTrailing(
+              context: context,
+              hasPending: hasPendingBank,
+              onPressed: () => _openSubmitBank(
+                bankName: displayBankName ?? "",
+                accountNumber: displayAccountNumber ?? "",
+                accountTitle: displayAccountTitle ?? "",
               ),
             ),
             children: [
@@ -843,18 +604,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           _ProfileCard(
             title: context.tr("nominee_short"),
             icon: Icons.people_outline_rounded,
-            trailingAction: TextButton.icon(
-              onPressed: _openNomineeEditDialog,
-              icon: const Icon(Icons.edit_rounded, size: 14),
-              label: Text(
-                context.tr("edit_short"),
-                style: const TextStyle(fontSize: 12),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            trailingAction: _requestChangeTrailing(
+              context: context,
+              hasPending: hasPendingNominee,
+              onPressed: () => _openSubmitNominee(
+                nomineeName: displayNomineeName ?? "",
+                nomineeCnic: displayNomineeCnic ?? "",
+                nomineeRelation: displayNomineeRelation ?? "",
               ),
             ),
             children: [
@@ -1402,110 +1158,8 @@ class _ProfileFieldTile extends StatelessWidget {
   }
 }
 
-// ── Editable field (inline edit mode) ────────────────────────────────────────
 
-class _EditableField extends StatelessWidget {
-  const _EditableField({
-    required this.label,
-    required this.controller,
-    this.useAdaptiveColors = true,
-  });
 
-  final String label;
-  final TextEditingController controller;
-  final bool useAdaptiveColors;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: TextField(
-        controller: controller,
-        style: TextStyle(
-          fontSize: 14,
-          color: useAdaptiveColors ? scheme.onSurface : AppColors.heading,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            fontSize: 12,
-            color: useAdaptiveColors
-                ? scheme.onSurfaceVariant
-                : AppColors.bodyMuted,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-              color: useAdaptiveColors
-                  ? scheme.outline.withValues(alpha: 0.15)
-                  : AppColors.border,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-              color: useAdaptiveColors ? scheme.primary : AppColors.primary,
-              width: 2,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-          isDense: true,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Dialog text field ─────────────────────────────────────────────────────────
-
-class _DialogField extends StatelessWidget {
-  const _DialogField({required this.label, required this.controller});
-
-  final String label;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textAlignVertical: TextAlignVertical.center,
-      style: const TextStyle(
-        fontSize: 14,
-        color: AppColors.heading,
-        fontWeight: FontWeight.w500,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        filled: true,
-        fillColor: AppColors.surfaceMuted,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        isDense: false,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Change password dialog ─────────────────────────────────────────────────────
 
 class _ChangePasswordDialog extends ConsumerStatefulWidget {
   const _ChangePasswordDialog();
