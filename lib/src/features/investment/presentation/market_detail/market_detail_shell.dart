@@ -47,10 +47,7 @@ class MarketDetailShell extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    accentColor.withValues(alpha: 0.55),
-                    scheme.surface,
-                  ],
+                  colors: [accentColor.withValues(alpha: 0.55), scheme.surface],
                 ),
               ),
             ),

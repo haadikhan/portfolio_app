@@ -3,8 +3,11 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
+import "package:portfolio_app/src/core/theme/app_colors.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
+import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_shell.dart";
+import "package:portfolio_app/src/features/investment/presentation/market_detail/sleeve_report_download.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "package:portfolio_app/src/providers/wallet_providers.dart";
 
@@ -22,7 +25,8 @@ class MoneyMarketDetailScreen extends ConsumerWidget {
     final dailyResult = ref.watch(fiveMarketDailyResultProvider);
     ref.watch(userWalletStreamProvider);
     final config = ref.watch(fiveMarketConfigProvider).valueOrNull;
-    final rate = config?.rates.moneyAnnualPercent ??
+    final rate =
+        config?.rates.moneyAnnualPercent ??
         FiveMarketConfig.defaults.rates.moneyAnnualPercent;
     final moneyAllocationPercent = config?.allocations.money ?? 5;
 
@@ -40,20 +44,27 @@ class MoneyMarketDetailScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           _UnderlyingInstrumentsCard(scheme: scheme, rate: rate),
           const SizedBox(height: 14),
-            if (dailyResult == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              _MoneyHoldingsCard(
-                scheme: scheme,
-                slice: dailyResult.money,
-                rate: rate,
-                moneyAllocationPercent: moneyAllocationPercent,
-              ),
+          if (dailyResult == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _MoneyHoldingsCard(
+              scheme: scheme,
+              slice: dailyResult.money,
+              rate: rate,
+              moneyAllocationPercent: moneyAllocationPercent,
+            ),
           const SizedBox(height: 14),
           const _AboutMoneySleeveCard(),
+          const SizedBox(height: 14),
+          const _SleeveHistoryCard(
+            accentColor: _blue,
+            sleeve: MarketSleeve.money,
+            reportTitle: "Money Market",
+            pdfTitleKey: "sleeve_report_pdf_title_money",
+          ),
         ],
       ),
     );
@@ -61,10 +72,7 @@ class MoneyMarketDetailScreen extends ConsumerWidget {
 }
 
 class _MoneyRateHeroCard extends StatelessWidget {
-  const _MoneyRateHeroCard({
-    required this.scheme,
-    required this.rate,
-  });
+  const _MoneyRateHeroCard({required this.scheme, required this.rate});
 
   final ColorScheme scheme;
   final double rate;
@@ -200,10 +208,7 @@ class _FrequencyColumn extends StatelessWidget {
 }
 
 class _UnderlyingInstrumentsCard extends StatelessWidget {
-  const _UnderlyingInstrumentsCard({
-    required this.scheme,
-    required this.rate,
-  });
+  const _UnderlyingInstrumentsCard({required this.scheme, required this.rate});
 
   final ColorScheme scheme;
   final double rate;
@@ -231,28 +236,28 @@ class _UnderlyingInstrumentsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _InstrumentRow(
-              icon: Icons.timer_outlined,
-              name: "Treasury Bills (T-Bills)",
-              description: "Short-term Govt paper, 3–12 months",
-              badge: "~${rate.toStringAsFixed(0)}% p.a.",
-              scheme: scheme,
-            ),
-            const SizedBox(height: 12),
-            _InstrumentRow(
-              icon: Icons.savings_outlined,
-              name: "Special Treasury Bonds",
-              description: "Medium-term Govt securities",
-              badge: "Govt backed",
-              scheme: scheme,
-            ),
-            const SizedBox(height: 12),
-            _InstrumentRow(
-              icon: Icons.currency_exchange_rounded,
-              name: "Money Mkt Funds",
-              description: "Pooled short-duration instruments",
-              badge: "Liquid",
-              scheme: scheme,
-            ),
+            icon: Icons.timer_outlined,
+            name: "Treasury Bills (T-Bills)",
+            description: "Short-term Govt paper, 3–12 months",
+            badge: "~${rate.toStringAsFixed(0)}% p.a.",
+            scheme: scheme,
+          ),
+          const SizedBox(height: 12),
+          _InstrumentRow(
+            icon: Icons.savings_outlined,
+            name: "Special Treasury Bonds",
+            description: "Medium-term Govt securities",
+            badge: "Govt backed",
+            scheme: scheme,
+          ),
+          const SizedBox(height: 12),
+          _InstrumentRow(
+            icon: Icons.currency_exchange_rounded,
+            name: "Money Mkt Funds",
+            description: "Pooled short-duration instruments",
+            badge: "Liquid",
+            scheme: scheme,
+          ),
         ],
       ),
     );
@@ -343,8 +348,8 @@ class _MoneyHoldingsCard extends StatelessWidget {
     final profitColor = profit > 0
         ? scheme.primary
         : profit < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final monthlyReturn = slice.allocatedPkr * rate / 100 / 12;
     final statusKey = _statusTranslationKey(slice.status);
 
@@ -355,8 +360,10 @@ class _MoneyHoldingsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.pie_chart_outline_rounded,
-                  color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.pie_chart_outline_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Text(
                 context.tr("mkt_money_holdings_title"),
@@ -392,8 +399,7 @@ class _MoneyHoldingsCard extends StatelessWidget {
           ),
           _StatRow(
             label: context.tr("mkt_allocation_pct"),
-            value:
-                "${moneyAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            value: "${moneyAllocationPercent.toStringAsFixed(0)}% of portfolio",
             scheme: scheme,
           ),
           Padding(
@@ -469,41 +475,41 @@ class _AboutMoneySleeveCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  avatar: Icon(
-                    Icons.speed_rounded,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("High Liquidity"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: Icon(
+                  Icons.speed_rounded,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-                Chip(
-                  avatar: Icon(
-                    Icons.shield_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("Govt Backed"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+                label: const Text("High Liquidity"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+              Chip(
+                avatar: Icon(
+                  Icons.shield_outlined,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-                Chip(
-                  avatar: Icon(
-                    Icons.trending_flat_rounded,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("Low Volatility"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+                label: const Text("Govt Backed"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+              Chip(
+                avatar: Icon(
+                  Icons.trending_flat_rounded,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-              ],
-            ),
+                label: const Text("Low Volatility"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Text(
             "The money market sleeve holds ultra-short-duration Pakistan "
@@ -514,6 +520,87 @@ class _AboutMoneySleeveCard extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SleeveHistoryCard extends ConsumerWidget {
+  const _SleeveHistoryCard({
+    required this.accentColor,
+    required this.sleeve,
+    required this.reportTitle,
+    required this.pdfTitleKey,
+  });
+
+  final Color accentColor;
+  final MarketSleeve sleeve;
+  final String reportTitle;
+  final String pdfTitleKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return _GlassCard(
+      accentColor: accentColor,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: accentColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("sleeve_report_history_card_title"),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.tr("sleeve_report_history_card_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => openSleeveReportDownload(
+              context: context,
+              ref: ref,
+              sleeve: sleeve,
+              reportTitle: reportTitle,
+              pdfTitle: context.tr(pdfTitleKey),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(context.tr("sleeve_report_history_btn")),
           ),
         ],
       ),
@@ -545,10 +632,7 @@ class _GlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -586,9 +670,9 @@ class _StatRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           Expanded(
@@ -597,9 +681,9 @@ class _StatRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? scheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? scheme.onSurface,
+              ),
             ),
           ),
         ],

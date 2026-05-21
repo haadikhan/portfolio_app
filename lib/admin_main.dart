@@ -8,6 +8,7 @@ import "src/admin/admin_app.dart";
 import "src/core/firebase/app_check_bootstrap.dart";
 import "src/core/firebase/firebase_auth_phone_bootstrap.dart";
 import "src/core/fcm/fcm_bootstrap.dart";
+import "src/core/network/connectivity_gate.dart";
 
 /// Entrypoint for the ISC-WAI admin web app (KYC review).
 ///
@@ -28,24 +29,26 @@ Future<void> main() async {
     initError = e;
   }
   runApp(
-    ProviderScope(
-      child: initError == null
-          ? const FcmBootstrap(child: WakalatAdminApp())
-          : MaterialApp(
-              home: Scaffold(
-                body: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      "Firebase initialization failed.\n"
-                      "Please verify your Firebase project settings.\n\n"
-                      "Error: $initError",
-                      textAlign: TextAlign.center,
+    ConnectivityGate(
+      child: ProviderScope(
+        child: initError == null
+            ? const FcmBootstrap(child: WakalatAdminApp())
+            : MaterialApp(
+                home: Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        "Firebase initialization failed.\n"
+                        "Please verify your Firebase project settings.\n\n"
+                        "Error: $initError",
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     ),
   );
 }

@@ -3,10 +3,13 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
+import "package:portfolio_app/src/core/theme/app_colors.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
+import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_providers.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_shell.dart";
+import "package:portfolio_app/src/features/investment/presentation/market_detail/sleeve_report_download.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "package:portfolio_app/src/features/market/data/models/gold_price_quote.dart";
 import "package:portfolio_app/src/features/market/presentation/providers/kmi30_companies_providers.dart";
@@ -27,7 +30,8 @@ class GoldMarketDetailScreen extends ConsumerStatefulWidget {
       _GoldMarketDetailScreenState();
 }
 
-class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen> {
+class _GoldMarketDetailScreenState
+    extends ConsumerState<GoldMarketDetailScreen> {
   @override
   void initState() {
     super.initState();
@@ -67,40 +71,48 @@ class _GoldMarketDetailScreenState extends ConsumerState<GoldMarketDetailScreen>
         children: [
           const SizedBox(height: 8),
           _PriceHeroCard(
+            scheme: scheme,
+            quote: quote,
+            pricePerTola: pricePerTola,
+            isLoading: isPriceLoading,
+            isError: isPriceError,
+            onRetry: () =>
+                ref.read(goldPriceRefreshCounterProvider.notifier).refresh(),
+          ),
+          const SizedBox(height: 14),
+          _HoldingsCard(
+            scheme: scheme,
+            allocatedPkr:
+                slice?.allocatedPkr ??
+                (config != null
+                    ? allocationAmountFromTotal(
+                        allocationBase,
+                        config.allocations.gold,
+                      )
+                    : null),
+            pricePerTola: pricePerTola,
+          ),
+          const SizedBox(height: 14),
+          if (dailyResult == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _PerformanceCard(
               scheme: scheme,
-              quote: quote,
-              pricePerTola: pricePerTola,
-              isLoading: isPriceLoading,
-              isError: isPriceError,
-              onRetry: () =>
-                  ref.read(goldPriceRefreshCounterProvider.notifier).refresh(),
+              slice: slice!,
+              goldAllocationPercent: config?.allocations.gold ?? 5,
             ),
-            const SizedBox(height: 14),
-            _HoldingsCard(
-              scheme: scheme,
-              allocatedPkr: slice?.allocatedPkr ??
-                  (config != null
-                      ? allocationAmountFromTotal(
-                          allocationBase,
-                          config.allocations.gold,
-                        )
-                      : null),
-              pricePerTola: pricePerTola,
-            ),
-            const SizedBox(height: 14),
-            if (dailyResult == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              _PerformanceCard(
-                scheme: scheme,
-                slice: slice!,
-                goldAllocationPercent: config?.allocations.gold ?? 5,
-              ),
-            const SizedBox(height: 14),
-            const _AboutGoldSleeveCard(),
+          const SizedBox(height: 14),
+          const _AboutGoldSleeveCard(),
+          const SizedBox(height: 14),
+          const _SleeveHistoryCard(
+            accentColor: _amberGold,
+            sleeve: MarketSleeve.gold,
+            reportTitle: "Gold Market",
+            pdfTitleKey: "sleeve_report_pdf_title_gold",
+          ),
         ],
       ),
     );
@@ -199,18 +211,17 @@ class _PriceHeroCard extends StatelessWidget {
                   valueColor: quote!.changePercent > 0
                       ? scheme.primary
                       : quote!.changePercent < 0
-                          ? scheme.error
-                          : null,
+                      ? scheme.error
+                      : null,
                 ),
               ],
             ],
             const SizedBox(height: 8),
             Text(
               quote != null
-                  ? context.trParams(
-                      "mkt_gold_source_from",
-                      {"source": quote!.source},
-                    )
+                  ? context.trParams("mkt_gold_source_from", {
+                      "source": quote!.source,
+                    })
                   : context.tr("mkt_gold_source_note"),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: scheme.onSurfaceVariant,
@@ -296,14 +307,14 @@ class _PerformanceCard extends StatelessWidget {
     final profitColor = profit > 0
         ? scheme.primary
         : profit < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final change = slice.changePercent;
     final changeColor = change > 0
         ? scheme.primary
         : change < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final changeText = change >= 0
         ? "+${change.toStringAsFixed(2)}%"
         : "${change.toStringAsFixed(2)}%";
@@ -340,49 +351,48 @@ class _PerformanceCard extends StatelessWidget {
             valueColor: changeColor,
           ),
           Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      context.tr("mkt_status"),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    context.tr("mkt_status"),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr(statusKey),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                  Expanded(
-                    flex: 3,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr(statusKey),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           _GoldStatRow(
             label: context.tr("mkt_allocation_pct"),
-            value:
-                "${goldAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            value: "${goldAllocationPercent.toStringAsFixed(0)}% of portfolio",
             scheme: scheme,
           ),
         ],
@@ -432,6 +442,87 @@ class _AboutGoldSleeveCard extends StatelessWidget {
   }
 }
 
+class _SleeveHistoryCard extends ConsumerWidget {
+  const _SleeveHistoryCard({
+    required this.accentColor,
+    required this.sleeve,
+    required this.reportTitle,
+    required this.pdfTitleKey,
+  });
+
+  final Color accentColor;
+  final MarketSleeve sleeve;
+  final String reportTitle;
+  final String pdfTitleKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return _GlassCard(
+      accentColor: accentColor,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: accentColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("sleeve_report_history_card_title"),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.tr("sleeve_report_history_card_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => openSleeveReportDownload(
+              context: context,
+              ref: ref,
+              sleeve: sleeve,
+              reportTitle: reportTitle,
+              pdfTitle: context.tr(pdfTitleKey),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(context.tr("sleeve_report_history_btn")),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GlassCard extends StatelessWidget {
   const _GlassCard({required this.child, this.accentColor});
   final Widget child;
@@ -456,10 +547,7 @@ class _GlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -497,9 +585,9 @@ class _GoldStatRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           Expanded(
@@ -508,9 +596,9 @@ class _GoldStatRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? scheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? scheme.onSurface,
+              ),
             ),
           ),
         ],

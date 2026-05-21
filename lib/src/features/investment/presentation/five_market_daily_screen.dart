@@ -5,6 +5,7 @@ import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
 import "package:portfolio_app/src/core/widgets/app_scaffold.dart";
+import "package:portfolio_app/src/features/investment/presentation/market_detail/sleeve_report_download.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
 import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
@@ -39,6 +40,16 @@ class FiveMarketDailyScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: context.tr("five_market_daily_title"),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.download_outlined),
+          tooltip: context.tr("five_market_download_report"),
+          onPressed: () => openCombinedSleeveReportDownload(
+            context: context,
+            ref: ref,
+          ),
+        ),
+      ],
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(kmi30IndexDailyKlinesProvider);

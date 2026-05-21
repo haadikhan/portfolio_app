@@ -8,6 +8,7 @@ import 'src/core/config/app_config.dart';
 import 'src/core/firebase/app_check_bootstrap.dart';
 import 'src/core/firebase/firebase_auth_phone_bootstrap.dart';
 import 'src/core/fcm/fcm_bootstrap.dart';
+import 'src/core/network/connectivity_gate.dart';
 import 'src/core/splash/splash_host.dart';
 
 Future<void> main() async {
@@ -24,29 +25,31 @@ Future<void> main() async {
   }
   final config = AppConfig.fromEnvironment();
   runApp(
-    ProviderScope(
-      child: initError == null
-          ? SplashHost(
-              appName: config.appName,
-              builder: () => FcmBootstrap(
-                child: WakalatInvestApp(config: config),
-              ),
-            )
-          : MaterialApp(
-              home: Scaffold(
-                body: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      "Firebase initialization failed.\n"
-                      "Please verify your Firebase project settings.\n\n"
-                      "Error: $initError",
-                      textAlign: TextAlign.center,
+    ConnectivityGate(
+      child: ProviderScope(
+        child: initError == null
+            ? SplashHost(
+                appName: config.appName,
+                builder: () => FcmBootstrap(
+                  child: WakalatInvestApp(config: config),
+                ),
+              )
+            : MaterialApp(
+                home: Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        "Firebase initialization failed.\n"
+                        "Please verify your Firebase project settings.\n\n"
+                        "Error: $initError",
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     ),
   );
 }

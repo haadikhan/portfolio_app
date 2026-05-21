@@ -3,8 +3,11 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
+import "package:portfolio_app/src/core/theme/app_colors.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
+import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_shell.dart";
+import "package:portfolio_app/src/features/investment/presentation/market_detail/sleeve_report_download.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "package:portfolio_app/src/providers/wallet_providers.dart";
 
@@ -39,24 +42,31 @@ class TechMarketDetailScreen extends ConsumerWidget {
         children: [
           const SizedBox(height: 8),
           _TechRateHeroCard(
-              scheme: scheme,
-              benchmarkRate: benchmarkRate,
-              targetRate: targetRate,
-            ),
+            scheme: scheme,
+            benchmarkRate: benchmarkRate,
+            targetRate: targetRate,
+          ),
           const SizedBox(height: 14),
           if (dailyResult == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              _TechHoldingsCard(
-                scheme: scheme,
-                slice: dailyResult.tech,
-                techAllocationPercent: techAllocationPercent,
-              ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _TechHoldingsCard(
+              scheme: scheme,
+              slice: dailyResult.tech,
+              techAllocationPercent: techAllocationPercent,
+            ),
           const SizedBox(height: 14),
           const _AboutTechSleeveCard(),
+          const SizedBox(height: 14),
+          const _SleeveHistoryCard(
+            accentColor: _indigo,
+            sleeve: MarketSleeve.tech,
+            reportTitle: "Tech & Innovation Market",
+            pdfTitleKey: "sleeve_report_pdf_title_tech",
+          ),
         ],
       ),
     );
@@ -117,10 +127,7 @@ class _TechRateHeroCard extends StatelessWidget {
                       scheme: scheme,
                     ),
                   ),
-                  const SizedBox(
-                    height: 60,
-                    child: VerticalDivider(width: 24),
-                  ),
+                  const SizedBox(height: 60, child: VerticalDivider(width: 24)),
                   Expanded(
                     child: _RateBox(
                       title: context.tr("mkt_tech_target"),
@@ -217,8 +224,8 @@ class _TechHoldingsCard extends StatelessWidget {
     final profitColor = profit > 0
         ? scheme.primary
         : profit < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final annual = slice.annualPercent;
     final change = slice.changePercent;
     final String changeText;
@@ -233,8 +240,8 @@ class _TechHoldingsCard extends StatelessWidget {
       changeColor = change > 0
           ? scheme.primary
           : change < 0
-              ? scheme.error
-              : scheme.onSurfaceVariant;
+          ? scheme.error
+          : scheme.onSurfaceVariant;
     }
     final statusKey = _statusTranslationKey(slice.status);
 
@@ -351,52 +358,133 @@ class _AboutTechSleeveCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  avatar: Icon(
-                    Icons.smart_toy_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("AI & Robotics"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: Icon(
+                  Icons.smart_toy_outlined,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-                Chip(
-                  avatar: Icon(
-                    Icons.biotech_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("Deep Tech"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+                label: const Text("AI & Robotics"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+              Chip(
+                avatar: Icon(
+                  Icons.biotech_outlined,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-                Chip(
-                  avatar: Icon(
-                    Icons.language_rounded,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  label: const Text("Global Tech"),
-                  labelStyle: theme.textTheme.labelSmall,
-                  visualDensity: VisualDensity.compact,
+                label: const Text("Deep Tech"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+              Chip(
+                avatar: Icon(
+                  Icons.language_rounded,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "The tech sleeve captures global technology and innovation "
-              "themes — including artificial intelligence, robotics, "
-              "semiconductors, and emerging deep-tech sectors. Returns are "
-              "benchmarked against world-class tech indices with an "
-              "aggressive performance target, making this the highest-growth "
-              "sleeve in your portfolio.",
+                label: const Text("Global Tech"),
+                labelStyle: theme.textTheme.labelSmall,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "The tech sleeve captures global technology and innovation "
+            "themes — including artificial intelligence, robotics, "
+            "semiconductors, and emerging deep-tech sectors. Returns are "
+            "benchmarked against world-class tech indices with an "
+            "aggressive performance target, making this the highest-growth "
+            "sleeve in your portfolio.",
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SleeveHistoryCard extends ConsumerWidget {
+  const _SleeveHistoryCard({
+    required this.accentColor,
+    required this.sleeve,
+    required this.reportTitle,
+    required this.pdfTitleKey,
+  });
+
+  final Color accentColor;
+  final MarketSleeve sleeve;
+  final String reportTitle;
+  final String pdfTitleKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return _GlassCard(
+      accentColor: accentColor,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: accentColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("sleeve_report_history_card_title"),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.tr("sleeve_report_history_card_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => openSleeveReportDownload(
+              context: context,
+              ref: ref,
+              sleeve: sleeve,
+              reportTitle: reportTitle,
+              pdfTitle: context.tr(pdfTitleKey),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(context.tr("sleeve_report_history_btn")),
           ),
         ],
       ),
@@ -428,10 +516,7 @@ class _GlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -469,9 +554,9 @@ class _StatRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           Expanded(
@@ -480,9 +565,9 @@ class _StatRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? scheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? scheme.onSurface,
+              ),
             ),
           ),
         ],

@@ -4,9 +4,12 @@ import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
 import "package:portfolio_app/src/core/i18n/app_translations.dart";
+import "package:portfolio_app/src/core/theme/app_colors.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
+import "package:portfolio_app/src/features/investment/domain/market_sleeve_balance.dart";
 import "package:portfolio_app/src/features/investment/presentation/five_market_daily_providers.dart";
 import "package:portfolio_app/src/features/investment/presentation/market_detail/market_detail_shell.dart";
+import "package:portfolio_app/src/features/investment/presentation/market_detail/sleeve_report_download.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "package:portfolio_app/src/features/investment/providers/kmi30_company_allocation_provider.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_bar.dart";
@@ -45,26 +48,33 @@ class StockMarketDetailScreen extends ConsumerWidget {
         children: [
           const SizedBox(height: 8),
           _Kmi30LiveIndexCard(
-              scheme: scheme,
-              indexTick: indexTick,
-              klinesAsync: klinesAsync,
-            ),
+            scheme: scheme,
+            indexTick: indexTick,
+            klinesAsync: klinesAsync,
+          ),
           const SizedBox(height: 14),
           if (dailyResult == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              _StockHoldingsCard(
-                scheme: scheme,
-                slice: slice!,
-                stockAllocationPercent: config?.allocations.stock ?? 40,
-              ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _StockHoldingsCard(
+              scheme: scheme,
+              slice: slice!,
+              stockAllocationPercent: config?.allocations.stock ?? 40,
+            ),
           const SizedBox(height: 14),
           _Kmi30TopMoversCard(scheme: scheme),
           const SizedBox(height: 14),
           const _AboutStockSleeveCard(),
+          const SizedBox(height: 14),
+          const _SleeveHistoryCard(
+            accentColor: _psxGreen,
+            sleeve: MarketSleeve.stock,
+            reportTitle: "Stock Market (KMI-30)",
+            pdfTitleKey: "sleeve_report_pdf_title_stock",
+          ),
         ],
       ),
     );
@@ -118,8 +128,8 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
                 final changeColor = pct > 0
                     ? scheme.primary
                     : pct < 0
-                        ? scheme.error
-                        : scheme.onSurfaceVariant;
+                    ? scheme.error
+                    : scheme.onSurfaceVariant;
                 final ptsStr =
                     "${tick.changeAbsolute >= 0 ? "+" : ""}${_indexFmt.format(tick.changeAbsolute)}";
                 final pctStr =
@@ -178,14 +188,16 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
                     ),
                     _StatRow(
                       label: "High",
-                      value:
-                          tick.high != null ? _indexFmt.format(tick.high) : "—",
+                      value: tick.high != null
+                          ? _indexFmt.format(tick.high)
+                          : "—",
                       scheme: scheme,
                     ),
                     _StatRow(
                       label: "Low",
-                      value:
-                          tick.low != null ? _indexFmt.format(tick.low) : "—",
+                      value: tick.low != null
+                          ? _indexFmt.format(tick.low)
+                          : "—",
                       scheme: scheme,
                     ),
                   ],
@@ -196,8 +208,7 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
             SizedBox(
               height: 180,
               child: klinesAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => Center(
                   child: Text(
                     context.tr("mkt_chart_unavailable"),
@@ -250,14 +261,14 @@ class _StockHoldingsCard extends StatelessWidget {
     final profitColor = profit > 0
         ? scheme.primary
         : profit < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final change = slice.changePercent;
     final changeColor = change > 0
         ? scheme.primary
         : change < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final changeText = change >= 0
         ? "+${change.toStringAsFixed(2)}%"
         : "${change.toStringAsFixed(2)}%";
@@ -300,8 +311,7 @@ class _StockHoldingsCard extends StatelessWidget {
           ),
           _StatRow(
             label: context.tr("mkt_allocation_pct"),
-            value:
-                "${stockAllocationPercent.toStringAsFixed(0)}% of portfolio",
+            value: "${stockAllocationPercent.toStringAsFixed(0)}% of portfolio",
             scheme: scheme,
           ),
           Padding(
@@ -365,10 +375,8 @@ class _Kmi30TopMoversCard extends ConsumerWidget {
       ..sort((a, b) => b.todayProfitPkr.compareTo(a.todayProfitPkr));
     final losers = [...withInv]
       ..sort((a, b) => a.todayProfitPkr.compareTo(b.todayProfitPkr));
-    final topG =
-        gainers.where((e) => e.todayProfitPkr > 0).take(3).toList();
-    final topL =
-        losers.where((e) => e.todayProfitPkr < 0).take(3).toList();
+    final topG = gainers.where((e) => e.todayProfitPkr > 0).take(3).toList();
+    final topL = losers.where((e) => e.todayProfitPkr < 0).take(3).toList();
 
     return _GlassCard(
       accentColor: _psxGreen,
@@ -382,9 +390,9 @@ class _Kmi30TopMoversCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   context.tr("kmi30_top_movers_title"),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -393,17 +401,14 @@ class _Kmi30TopMoversCard extends ConsumerWidget {
           Text(
             context.tr("kmi30_top_gainers"),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           if (topG.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 8),
-              child: Text(
-                "—",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              child: Text("—", style: Theme.of(context).textTheme.bodySmall),
             )
           else
             ...topG.map((e) => _MoverRow(alloc: e, isGain: true)),
@@ -411,17 +416,14 @@ class _Kmi30TopMoversCard extends ConsumerWidget {
           Text(
             context.tr("kmi30_top_losers"),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           if (topL.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                "—",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              child: Text("—", style: Theme.of(context).textTheme.bodySmall),
             )
           else
             ...topL.map((e) => _MoverRow(alloc: e, isGain: false)),
@@ -448,8 +450,7 @@ class _MoverRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = alloc.todayChangePct;
-    final pctColor =
-        isGain ? Colors.green.shade700 : Colors.red.shade700;
+    final pctColor = isGain ? Colors.green.shade700 : Colors.red.shade700;
     final plSign = alloc.todayProfitPkr >= 0 ? "+" : "";
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -478,10 +479,7 @@ class _MoverRow extends StatelessWidget {
             child: Text(
               "$plSign${_money.format(alloc.todayProfitPkr)}",
               textAlign: TextAlign.end,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: pctColor,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w700, color: pctColor),
             ),
           ),
           SizedBox(
@@ -529,13 +527,94 @@ class _AboutStockSleeveCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-              "Your stock allocation tracks the KMI-30 index — Pakistan's top "
-              "30 Shariah-compliant companies listed on the Pakistan Stock "
-              "Exchange (PSX). Returns reflect daily index movements during "
-              "              market hours (Mon–Fri, 09:00–16:00 PKT).",
+            "Your stock allocation tracks the KMI-30 index — Pakistan's top "
+            "30 Shariah-compliant companies listed on the Pakistan Stock "
+            "Exchange (PSX). Returns reflect daily index movements during "
+            "              market hours (Mon–Fri, 09:00–16:00 PKT).",
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SleeveHistoryCard extends ConsumerWidget {
+  const _SleeveHistoryCard({
+    required this.accentColor,
+    required this.sleeve,
+    required this.reportTitle,
+    required this.pdfTitleKey,
+  });
+
+  final Color accentColor;
+  final MarketSleeve sleeve;
+  final String reportTitle;
+  final String pdfTitleKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return _GlassCard(
+      accentColor: accentColor,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: accentColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("sleeve_report_history_card_title"),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.tr("sleeve_report_history_card_subtitle"),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => openSleeveReportDownload(
+              context: context,
+              ref: ref,
+              sleeve: sleeve,
+              reportTitle: reportTitle,
+              pdfTitle: context.tr(pdfTitleKey),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(context.tr("sleeve_report_history_btn")),
           ),
         ],
       ),
@@ -567,10 +646,7 @@ class _GlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -608,9 +684,9 @@ class _StatRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           Expanded(
@@ -619,9 +695,9 @@ class _StatRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? scheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? scheme.onSurface,
+              ),
             ),
           ),
         ],

@@ -17,29 +17,39 @@ Future<void> configureFirebaseAndroidPhoneVerification() async {
   if (kIsWeb) return;
   if (defaultTargetPlatform != TargetPlatform.android) return;
 
-  final bool forceRecaptcha = kDebugMode || !kAppCheckProductionAttestation;
   try {
-    if (!kDebugMode && forceRecaptcha) {
-      await FirebaseAuth.instance.setSettings(forceRecaptchaFlow: true);
+    final bool forceRecaptcha = kDebugMode || !kAppCheckProductionAttestation;
+    try {
+      if (!kDebugMode && forceRecaptcha) {
+        await FirebaseAuth.instance.setSettings(forceRecaptchaFlow: true);
+        if (kDebugMode) {
+          debugPrint(
+            '[FirebaseAuth][Android] Phone Auth: forceRecaptchaFlow=true '
+            '(matches sideload/non–Play Integrity attestation path)',
+          );
+        }
+      }
+
+      await FirebaseAuth.instance.initializeRecaptchaConfig();
+
       if (kDebugMode) {
         debugPrint(
-          '[FirebaseAuth][Android] Phone Auth: forceRecaptchaFlow=true '
-          '(matches sideload/non–Play Integrity attestation path)',
+          '[FirebaseAuth][Android] initializeRecaptchaConfig finished',
         );
       }
+    } catch (e, st) {
+      // Console may still lack reCAPTCHA Enterprise linkage; OTP will fail later with a
+      // clear message—but the app must keep starting.
+      if (kDebugMode) {
+        debugPrint(
+          '[FirebaseAuth][Android] phone verification bootstrap failed: $e',
+        );
+        debugPrintStack(stackTrace: st, label: '[FirebaseAuth][Android]');
+      }
     }
-
-    await FirebaseAuth.instance.initializeRecaptchaConfig();
-
-    if (kDebugMode) {
-      debugPrint('[FirebaseAuth][Android] initializeRecaptchaConfig finished');
-    }
-  } catch (e, st) {
-    // Console may still lack reCAPTCHA Enterprise linkage; OTP will fail later with a
-    // clear message—but the app must keep starting.
-    if (kDebugMode) {
-      debugPrint('[FirebaseAuth][Android] phone verification bootstrap failed: $e');
-      debugPrintStack(stackTrace: st, label: '[FirebaseAuth][Android]');
-    }
+  } catch (e) {
+    // Network not available — ConnectivityGate will handle showing the no-internet screen.
+    // Bootstrap will re-run on next app start when internet is available.
+    debugPrint("[firebase_bootstrap] Skipped — no network: $e");
   }
 }
