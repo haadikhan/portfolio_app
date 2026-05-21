@@ -118,26 +118,39 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     required bool hasPending,
     required VoidCallback? onPressed,
   }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (hasPending) ...[
-          Flexible(child: _pendingBadgeChip(context)),
-          const SizedBox(width: 8),
+    final button = OutlinedButton(
+      onPressed: hasPending ? null : onPressed,
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      ),
+      child: Text(
+        context.tr("sr_request_change"),
+        style: const TextStyle(fontSize: 12),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+
+    if (!hasPending) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 180),
+        child: button,
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pendingBadgeChip(context),
+          const SizedBox(height: 6),
+          button,
         ],
-        OutlinedButton(
-          onPressed: hasPending ? null : onPressed,
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          ),
-          child: Text(
-            context.tr("sr_request_change"),
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -471,7 +484,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: Align(
-                  alignment: Alignment.centerRight,
+                  alignment: AlignmentDirectional.centerEnd,
                   child: _requestChangeTrailing(
                     context: context,
                     hasPending: hasPendingProfile,
@@ -488,7 +501,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: Align(
-                  alignment: Alignment.centerRight,
+                  alignment: AlignmentDirectional.centerEnd,
                   child: _requestChangeTrailing(
                     context: context,
                     hasPending: hasPendingPhone,
@@ -1053,19 +1066,26 @@ class _ProfileCard extends StatelessWidget {
                   color: useAdaptiveColors ? scheme.primary : AppColors.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: useAdaptiveColors
-                        ? scheme.onSurface
-                        : AppColors.heading,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: useAdaptiveColors
+                          ? scheme.onSurface
+                          : AppColors.heading,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (trailingAction != null) ...[
-                  const Spacer(),
-                  trailingAction!,
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: trailingAction!,
+                  ),
                 ],
               ],
             ),
