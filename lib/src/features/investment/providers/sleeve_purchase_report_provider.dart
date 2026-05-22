@@ -34,8 +34,13 @@ class SleevePurchaseReportNotifier
     final cfg =
         ref.read(fiveMarketConfigProvider).valueOrNull ?? FiveMarketConfig();
 
-    // 1. Get transactions — watch so provider rebuilds when txns change.
-    final txns = ref.watch(userTransactionItemsProvider).valueOrNull ?? [];
+    // 1. Get transactions — one-shot read so stream re-emits don't restart
+    //    this build in a loop.  Falls back to awaiting the future when the
+    //    stream hasn't emitted yet (e.g. first access after cold launch).
+    final txnsAsync = ref.read(userTransactionItemsProvider);
+    final txns = txnsAsync.hasValue
+        ? txnsAsync.value!
+        : await ref.read(userTransactionItemsProvider.future);
     final deposits = txns
         .where((t) => t.type == "deposit" && t.status == "approved")
         .toList()
@@ -59,6 +64,9 @@ class SleevePurchaseReportNotifier
 
       late SleevePurchaseEntry entry;
 
+      // Convert UTC Firestore timestamp to local for display and filtering.
+      final depositDateLocal = dep.createdAt.toLocal();
+
       if (sleeve == MarketSleeve.gold || sleeve == MarketSleeve.stock) {
         final purchasePx = klineMap[dateKey];
         final tolas = (purchasePx != null && purchasePx > 0)
@@ -66,7 +74,7 @@ class SleevePurchaseReportNotifier
             : null;
         entry = SleevePurchaseEntry(
           sno: i + 1,
-          depositDate: dep.createdAt,
+          depositDate: depositDateLocal,
           depositTotal: dep.amount,
           investedPkr: investedPkr,
           purchasePricePerTola: purchasePx,
@@ -84,7 +92,7 @@ class SleevePurchaseReportNotifier
         final pnl = investedPkr * (rate / 100) * (days / 365);
         entry = SleevePurchaseEntry(
           sno: i + 1,
-          depositDate: dep.createdAt,
+          depositDate: depositDateLocal,
           depositTotal: dep.amount,
           investedPkr: investedPkr,
           purchasePricePerTola: rate,

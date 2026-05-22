@@ -333,6 +333,8 @@ pw.Widget _buildSleeveTable(
   List<SleevePurchaseEntry> rows,
   Map<String, String> colLabels, {
   bool isRate = false,
+  required String dcaLabel,
+  required String dcaNaLabel,
 }) {
   final headerStyle = pw.TextStyle(
     fontSize: 8,
@@ -470,10 +472,66 @@ pw.Widget _buildSleeveTable(
     ),
   );
 
-  return pw.Table(
-    border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.3),
-    columnWidths: columnWidths,
-    children: [headerRow, ...dataRows],
+  // ── DCA calculation ──────────────────────────────────────────────────────
+  // Only rows that have a resolved purchase price contribute to DCA.
+  final rowsWithUnits = rows.where((e) => e.tolasBought != null).toList();
+  final totalInvestedForDca =
+      rowsWithUnits.fold<double>(0, (s, e) => s + e.investedPkr);
+  final totalUnitsForDca =
+      rowsWithUnits.fold<double>(0, (s, e) => s + (e.tolasBought ?? 0));
+  final dca =
+      totalUnitsForDca > 0 ? totalInvestedForDca / totalUnitsForDca : null;
+
+  // Unit label — strip embedded newlines used in column headers.
+  final unitLabelClean = (colLabels["units"] ?? "Units").replaceAll("\n", " ");
+
+  final dcaValueText = isRate
+      ? null
+      : dca != null
+          ? "${_money.format(dca)} / $unitLabelClean"
+          : "—";
+
+  final dcaRow = pw.Container(
+    decoration: const pw.BoxDecoration(
+      border: pw.Border(
+        top: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+      ),
+    ),
+    padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
+    child: pw.Row(
+      children: [
+        pw.Expanded(
+          child: pw.Text(
+            isRate ? dcaNaLabel : dcaLabel,
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: isRate ? PdfColors.grey600 : _brandGreen,
+              fontStyle:
+                  isRate ? pw.FontStyle.italic : pw.FontStyle.normal,
+            ),
+          ),
+        ),
+        if (!isRate)
+          pw.Text(
+            dcaValueText ?? "—",
+            style: pw.TextStyle(fontSize: 9, color: _black),
+            textAlign: pw.TextAlign.right,
+          ),
+      ],
+    ),
+  );
+
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+    children: [
+      pw.Table(
+        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.3),
+        columnWidths: columnWidths,
+        children: [headerRow, ...dataRows],
+      ),
+      dcaRow,
+    ],
   );
 }
 
@@ -535,6 +593,8 @@ Future<Uint8List> buildSleeveReportPdf({
   required String pdfTitle,
   double? currentGoldPricePerTola,
   required Map<String, String> colLabels,
+  required String dcaLabel,
+  required String dcaNaLabel,
 }) async {
   pw.MemoryImage? logoImage;
   try {
@@ -621,7 +681,13 @@ Future<Uint8List> buildSleeveReportPdf({
                 ),
               )
             else ...[
-              _buildSleeveTable(filtered, colLabels, isRate: isRate),
+              _buildSleeveTable(
+                filtered,
+                colLabels,
+                isRate: isRate,
+                dcaLabel: dcaLabel,
+                dcaNaLabel: dcaNaLabel,
+              ),
               _buildFootnotes(
                 filtered,
                 colLabels,
@@ -650,6 +716,8 @@ Future<Uint8List> buildCombinedSleeveReportPdf({
   required String pdfTitle,
   double? currentGoldPricePerTola,
   required Map<String, String> colLabels,
+  required String dcaLabel,
+  required String dcaNaLabel,
 }) async {
   pw.MemoryImage? logoImage;
   try {
@@ -777,7 +845,13 @@ Future<Uint8List> buildCombinedSleeveReportPdf({
                     ),
                   )
                 else ...[
-                  _buildSleeveTable(entries, colLabels, isRate: isRate),
+                  _buildSleeveTable(
+                    entries,
+                    colLabels,
+                    isRate: isRate,
+                    dcaLabel: dcaLabel,
+                    dcaNaLabel: dcaNaLabel,
+                  ),
                   _buildFootnotes(
                     entries,
                     colLabels,

@@ -1397,6 +1397,8 @@ const _en = <String, String>{
   "sleeve_report_col_tolas_label": "Tolas",
   "sleeve_report_rate_pl_note":
       "* Accrued P/L is estimated from annual rate × days held ÷ 365. Actual credited profit may differ.",
+  "sleeve_report_dca_label": "Avg Cost (DCA)",
+  "sleeve_report_dca_na": "N/A — fixed rate sleeve",
 };
 
 const _ur = <String, String>{
@@ -2776,6 +2778,8 @@ const _ur = <String, String>{
   "sleeve_report_col_tolas_label": "تولے",
   "sleeve_report_rate_pl_note":
       "* جمع شدہ نفع/نقصان سالانہ شرح × ایام / 365 سے تخمینہ ہے۔ اصل جمع کردہ منافع مختلف ہو سکتا ہے۔",
+  "sleeve_report_dca_label": "اوسط لاگت (DCA)",
+  "sleeve_report_dca_na": "N/A — مقررہ شرح سلیو",
 };
 
 extension AppTranslations on BuildContext {

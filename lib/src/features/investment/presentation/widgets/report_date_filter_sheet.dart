@@ -74,7 +74,11 @@ class _ReportDateFilterSheetState extends State<ReportDateFilterSheet> {
     });
     try {
       await widget.onDownload(_start, _end);
+      // Only close the sheet on success.
       if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      // Error was already handled (snackbar shown) by the onDownload callback.
+      // Swallow here so the sheet stays open and the user can retry.
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

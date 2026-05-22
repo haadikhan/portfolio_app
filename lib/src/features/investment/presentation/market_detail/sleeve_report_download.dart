@@ -62,6 +62,8 @@ Map<String, String> sleeveReportColLabels(
     "section_tech": ctx.tr("sleeve_report_section_tech"),
     "section_debt": ctx.tr("sleeve_report_section_debt"),
     "section_money": ctx.tr("sleeve_report_section_money"),
+    "dca_label": ctx.tr("sleeve_report_dca_label"),
+    "dca_na": ctx.tr("sleeve_report_dca_na"),
   };
 }
 
@@ -118,6 +120,8 @@ Future<void> openSleeveReportDownload({
             pdfTitle: pdfTitle,
             currentGoldPricePerTola: currentGoldPrice,
             colLabels: colLabels,
+            dcaLabel: colLabels["dca_label"] ?? "Avg Cost (DCA)",
+            dcaNaLabel: colLabels["dca_na"] ?? "N/A — fixed rate sleeve",
           );
 
           await Printing.layoutPdf(onLayout: (_) async => bytes);
@@ -196,6 +200,9 @@ Future<void> openCombinedSleeveReportDownload({
             pdfTitle: pdfTitle,
             currentGoldPricePerTola: currentGoldPrice,
             colLabels: combinedColLabels,
+            dcaLabel: combinedColLabels["dca_label"] ?? "Avg Cost (DCA)",
+            dcaNaLabel:
+                combinedColLabels["dca_na"] ?? "N/A — fixed rate sleeve",
           );
 
           await Printing.layoutPdf(onLayout: (_) async => bytes);
