@@ -125,8 +125,20 @@ class AdminChangeRequestTicketTile extends ConsumerWidget {
   final bool interactionsDisabled;
   final bool actionsEnabled;
 
-  String _uidShort(String uid) =>
-      uid.length <= 8 ? uid : uid.substring(0, 8);
+  String _displayInvestorName(ChangeRequest request) {
+    if (request.investorName != null &&
+        request.investorName!.trim().isNotEmpty) {
+      return request.investorName!.trim();
+    }
+    if (request.investorEmail != null &&
+        request.investorEmail!.trim().isNotEmpty) {
+      final email = request.investorEmail!.trim();
+      final atIndex = email.indexOf("@");
+      return atIndex > 0 ? email.substring(0, atIndex) : email;
+    }
+    final uid = request.uid;
+    return uid.length <= 8 ? uid : uid.substring(0, 8);
+  }
 
   String _ticketShort(String id) =>
       id.length <= 8 ? id : id.substring(0, 8);
@@ -324,9 +336,28 @@ class AdminChangeRequestTicketTile extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "${context.tr("admin_cr_investor_label")}: ${_uidShort(request.uid)}",
-              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              "${context.tr("admin_cr_investor_label")}: "
+              "${_displayInvestorName(request)}",
+              style: TextStyle(
+                fontSize: 11,
+                color: scheme.onSurfaceVariant,
+                fontWeight: request.investorName != null &&
+                        request.investorName!.trim().isNotEmpty
+                    ? FontWeight.w500
+                    : FontWeight.normal,
+              ),
             ),
+            if (request.investorEmail != null &&
+                request.investorName != null &&
+                request.investorEmail!.trim().isNotEmpty &&
+                request.investorName!.trim().isNotEmpty)
+              Text(
+                request.investorEmail!.trim(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ),
             Text(
               "${context.tr("sr_ticket_id_label")}: ${_ticketShort(request.ticketId)}",
               style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),

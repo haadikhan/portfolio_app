@@ -197,6 +197,8 @@ service cloud.firestore {
             "reviewedAt",
             "reviewNote",
             "reviewedBy",
+            "investorName",
+            "investorEmail",
           ]);
         }
 

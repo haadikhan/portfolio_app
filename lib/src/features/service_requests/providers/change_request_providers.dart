@@ -1,4 +1,5 @@
 import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 export "../models/change_request.dart" show ChangeRequest, hasPendingForType;
@@ -55,6 +56,18 @@ class SubmitChangeRequestNotifier extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final profile = ref.read(userProfileProvider).valueOrNull;
+      final nameFromProfile = profile?.name.trim() ?? "";
+      final emailFromProfile = profile?.email.trim() ?? "";
+      final investorName = nameFromProfile.isNotEmpty
+          ? nameFromProfile
+          : (emailFromProfile.isNotEmpty ? emailFromProfile : null);
+      final authEmail =
+          FirebaseAuth.instance.currentUser?.email?.trim() ?? "";
+      final investorEmail = emailFromProfile.isNotEmpty
+          ? emailFromProfile
+          : (authEmail.isNotEmpty ? authEmail : null);
+
       await _db
           .collection("users")
           .doc(_uid)
@@ -64,6 +77,8 @@ class SubmitChangeRequestNotifier extends AsyncNotifier<void> {
               requestType: requestType,
               requestedFields: requestedFields,
               currentFields: currentFields,
+              investorName: investorName,
+              investorEmail: investorEmail,
             ),
           );
       ref.invalidate(changeRequestsProvider);

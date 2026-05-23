@@ -13,6 +13,8 @@ class ChangeRequest {
     this.reviewedAt,
     this.reviewNote,
     this.reviewedBy,
+    this.investorName,
+    this.investorEmail,
   });
 
   static const String kPending = "pending";
@@ -29,6 +31,8 @@ class ChangeRequest {
   final DateTime? reviewedAt;
   final String? reviewNote;
   final String? reviewedBy;
+  final String? investorName;
+  final String? investorEmail;
 
   bool get isPending => status == kPending;
   bool get isApproved => status == kApproved;
@@ -65,7 +69,15 @@ class ChangeRequest {
       reviewedAt: _parseTime(d["reviewedAt"]),
       reviewNote: (d["reviewNote"] as String?)?.trim(),
       reviewedBy: (d["reviewedBy"] as String?)?.trim(),
+      investorName: _readOptionalString(d["investorName"]),
+      investorEmail: _readOptionalString(d["investorEmail"]),
     );
+  }
+
+  static String? _readOptionalString(dynamic value) {
+    if (value == null) return null;
+    final s = value.toString().trim();
+    return s.isEmpty ? null : s;
   }
 
   /// Payload for Firestore `.add(...)` — no ticketId / review fields.
@@ -73,6 +85,8 @@ class ChangeRequest {
     required String requestType,
     required Map<String, dynamic> requestedFields,
     required Map<String, dynamic> currentFields,
+    String? investorName,
+    String? investorEmail,
   }) {
     return <String, dynamic>{
       "requestType": requestType,
@@ -83,6 +97,10 @@ class ChangeRequest {
       "reviewedAt": null,
       "reviewNote": null,
       "reviewedBy": null,
+      if (investorName != null && investorName.isNotEmpty)
+        "investorName": investorName,
+      if (investorEmail != null && investorEmail.isNotEmpty)
+        "investorEmail": investorEmail,
     };
   }
 }
