@@ -1,3 +1,4 @@
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -29,6 +30,10 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
   }
 
   Future<void> _checkInitial() async {
+    if (kIsWeb) {
+      setState(() => _isOnline = true);
+      return;
+    }
     final result = await ConnectivityService.hasInternet();
     if (mounted) {
       setState(() => _isOnline = result);
@@ -41,6 +46,8 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return widget.child;
+
     if (_isOnline == null) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
