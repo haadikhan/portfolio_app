@@ -13,6 +13,7 @@ const _kAdminShellRoutes = <String>[
   "/dashboard",
   "/kyc",
   "/deposits",
+  "/deposit-settings",
   "/withdrawals",
   "/change-requests",
   "/investors",
@@ -173,8 +174,17 @@ class AdminShell extends ConsumerWidget {
                       visualDensity: VisualDensity.compact,
                       leading: const Icon(Icons.inbox_outlined),
                       title: Text(context.tr("deposits")),
-                      selected: loc.startsWith("/deposits"),
+                      selected: loc.startsWith("/deposits") &&
+                          !loc.startsWith("/deposit-settings"),
                       onTap: () => _go(context, "/deposits"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: const Icon(Icons.account_balance_rounded),
+                      title: const Text("Deposit Settings"),
+                      selected: loc.startsWith("/deposit-settings"),
+                      onTap: () => _go(context, "/deposit-settings"),
                     ),
                     ListTile(
                       dense: true,
@@ -550,6 +560,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("deposits")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.account_balance_rounded),
+          selectedIcon: const Icon(Icons.account_balance),
+          label: const Text("Deposit Settings"),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.outbox_outlined),
           selectedIcon: const Icon(Icons.outbox),
           label: Text(context.tr("withdrawals")),
@@ -632,20 +647,21 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 16;
-  if (loc.startsWith("/notifications")) return 15;
-  if (loc.startsWith("/app-updates")) return 14;
-  if (loc.startsWith("/upload-reports")) return 13;
-  if (loc.startsWith("/earnings")) return 12;
-  if (loc.startsWith("/fees")) return 11;
-  if (loc.startsWith("/five-market")) return 10;
-  if (loc.startsWith("/returns")) return 9;
-  if (loc.startsWith("/crm/team")) return 8;
-  if (loc.startsWith("/crm/investors")) return 7;
-  if (loc.startsWith("/crm")) return 6;
-  if (loc.startsWith("/investors")) return 5;
-  if (loc.startsWith("/change-requests")) return 4;
-  if (loc.startsWith("/withdrawals")) return 3;
+  if (loc.startsWith("/broadcast")) return 17;
+  if (loc.startsWith("/notifications")) return 16;
+  if (loc.startsWith("/app-updates")) return 15;
+  if (loc.startsWith("/upload-reports")) return 14;
+  if (loc.startsWith("/earnings")) return 13;
+  if (loc.startsWith("/fees")) return 12;
+  if (loc.startsWith("/five-market")) return 11;
+  if (loc.startsWith("/returns")) return 10;
+  if (loc.startsWith("/crm/team")) return 9;
+  if (loc.startsWith("/crm/investors")) return 8;
+  if (loc.startsWith("/crm")) return 7;
+  if (loc.startsWith("/investors")) return 6;
+  if (loc.startsWith("/change-requests")) return 5;
+  if (loc.startsWith("/withdrawals")) return 4;
+  if (loc.startsWith("/deposit-settings")) return 3;
   if (loc.startsWith("/deposits")) return 2;
   if (loc.startsWith("/kyc")) return 1;
   return 0;

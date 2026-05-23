@@ -14,6 +14,7 @@ import "crm/crm_investor_detail_screen.dart";
 import "crm/crm_investor_list_screen.dart";
 import "crm/crm_team_screen.dart";
 import "screens/admin_dashboard_screen.dart";
+import "screens/admin_deposit_settings_screen.dart";
 import "screens/admin_deposits_queue_screen.dart";
 import "screens/admin_earnings_screen.dart";
 import "screens/admin_fees_screen.dart";
@@ -116,6 +117,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/deposits",
             builder: (_, __) => const AdminDepositsQueueScreen(),
+          ),
+          GoRoute(
+            path: "/deposit-settings",
+            builder: (_, __) => const AdminDepositSettingsScreen(),
           ),
           GoRoute(
             path: "/withdrawals",
