@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
+import "../../../core/formatting/transaction_display.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
@@ -60,7 +61,14 @@ class _TransactionHistoryScreenState
     }
 
     if (_statusFilter != "all") {
-      result = result.where((t) => t.status == _statusFilter).toList();
+      if (_statusFilter == "approved") {
+        result = result
+            .where((t) =>
+                t.status == "approved" || t.status == "completed")
+            .toList();
+      } else {
+        result = result.where((t) => t.status == _statusFilter).toList();
+      }
     }
 
     return result;
@@ -240,7 +248,7 @@ class TransactionRowItem extends StatelessWidget {
             ? context.tr("txn_type_withdrawal")
             : isFee
                 ? _feeLabel(context, txn.type)
-                : context.tr("txn_type_pl");
+                : context.tr("txn_type_profit_credit");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -353,8 +361,9 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (Color bg, Color fg) = switch (status) {
-      "approved" => (
+    final normalized = status.toLowerCase();
+    final (Color bg, Color fg) = switch (normalized) {
+      "approved" || "completed" => (
           scheme.primaryContainer.withValues(alpha: 0.5),
           AppColors.success
         ),
@@ -374,7 +383,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status[0].toUpperCase() + status.substring(1),
+        displayTransactionStatus(status),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,

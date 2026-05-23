@@ -7,7 +7,10 @@ import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 
 import "../../../core/branding/brand_assets.dart";
+import "../../../core/formatting/transaction_display.dart";
 import "../../investor/data/models/txn_item.dart";
+
+final _redemptionRed = PdfColor.fromHex("#D14343");
 
 final _brandGreen = PdfColor.fromHex("#0F7A2C");
 const _white = PdfColors.white;
@@ -366,6 +369,84 @@ pw.Widget _reportHeaderTable({
   );
 }
 
+String _pdfNoteCell(TxnItem t) {
+  final noteRaw = t.note?.trim();
+  var displayNote = displayTransactionNote(
+    (noteRaw == null || noteRaw.isEmpty) ? null : noteRaw,
+  );
+  // PDF standard fonts may not render the Unicode em dash reliably.
+  if (displayNote == "\u2014") {
+    displayNote = "-";
+  }
+  return displayNote.length > 50
+      ? "${displayNote.substring(0, 47)}..."
+      : displayNote;
+}
+
+pw.Widget _buildTransactionsLedgerTable({
+  required List<TxnItem> transactions,
+  required DateFormat dateTimeFmt,
+  required ReportPdfLabels labels,
+}) {
+  final headerStyle =
+      pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
+  final cellStyle = pw.TextStyle(fontSize: 9);
+  const cellHeight = 28.0;
+
+  final columnWidths = <int, pw.TableColumnWidth>{
+    0: const pw.FlexColumnWidth(2.5),
+    1: const pw.FlexColumnWidth(2),
+    2: const pw.FlexColumnWidth(1.8),
+    3: const pw.FlexColumnWidth(2.2),
+    4: const pw.FlexColumnWidth(3.5),
+  };
+
+  return pw.TableHelper.fromTextArray(
+    headers: [
+      labels.colDate,
+      labels.colType,
+      labels.colStatus,
+      labels.colAmount,
+      labels.colNote,
+    ],
+    data: transactions
+        .map(
+          (t) => [
+            dateTimeFmt.format(t.createdAt),
+            displayTransactionType(t.type),
+            displayTransactionStatus(t.status),
+            t.amount.toStringAsFixed(2),
+            _pdfNoteCell(t),
+          ],
+        )
+        .toList(),
+    headerStyle: headerStyle,
+    headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+    cellStyle: cellStyle,
+    cellHeight: cellHeight,
+    cellAlignments: const {
+      0: pw.Alignment.centerLeft,
+      1: pw.Alignment.centerLeft,
+      2: pw.Alignment.centerLeft,
+      3: pw.Alignment.centerRight,
+      4: pw.Alignment.centerLeft,
+    },
+    columnWidths: columnWidths,
+    border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+    oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+    textStyleBuilder: (index, cell, rowNum) {
+      if (index != 1) return null;
+      final txnIndex = rowNum - 1;
+      if (txnIndex < 0 || txnIndex >= transactions.length) return null;
+      final ty = transactions[txnIndex].type;
+      if (isRedemptionType(ty) || isFeeType(ty)) {
+        return pw.TextStyle(fontSize: 9, color: _redemptionRed);
+      }
+      return null;
+    },
+  );
+}
+
 /// Builds a multi-page A4 PDF; returns bytes for [Printing.layoutPdf].
 Future<Uint8List> buildInvestorReportPdf({
   required String accountLabel,
@@ -499,41 +580,12 @@ Future<Uint8List> buildInvestorReportPdf({
             ),
             pw.SizedBox(height: 8),
             if (transactions.isEmpty)
-              pw.Text("—")
+              pw.Text("-")
             else
-              pw.TableHelper.fromTextArray(
-                headers: [
-                  labels.colDate,
-                  labels.colType,
-                  labels.colStatus,
-                  labels.colAmount,
-                  labels.colNote,
-                ],
-                data: transactions.map((t) {
-                  final note = (t.note ?? "").replaceAll("\n", " ");
-                  final shortNote = note.length > 40
-                      ? "${note.substring(0, 37)}..."
-                      : note;
-                  return [
-                    dateTimeFmt.format(t.createdAt),
-                    t.type,
-                    t.status,
-                    t.amount.toStringAsFixed(2),
-                    shortNote,
-                  ];
-                }).toList(),
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: const pw.BoxDecoration(
-                  color: PdfColors.grey300,
-                ),
-                cellHeight: 24,
-                cellAlignments: {
-                  0: pw.Alignment.centerLeft,
-                  1: pw.Alignment.centerLeft,
-                  2: pw.Alignment.centerLeft,
-                  3: pw.Alignment.centerRight,
-                  4: pw.Alignment.centerLeft,
-                },
+              _buildTransactionsLedgerTable(
+                transactions: transactions,
+                dateTimeFmt: dateTimeFmt,
+                labels: labels,
               ),
             pw.SizedBox(height: 24),
             pw.Text(
