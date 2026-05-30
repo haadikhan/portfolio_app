@@ -527,5 +527,16 @@ service cloud.firestore {
     match /{path=**}/management_fee_daily/{dayId} {
       allow read: if isAdmin();
     }
+
+    // ── Fee System v2 — Performance Fee Daily (Phase 4) ─────────
+
+    match /portfolios/{portfolioUid}/performance_fee_daily/{dayId} {
+      allow read: if isOwner(portfolioUid) || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /{path=**}/performance_fee_daily/{dayId} {
+      allow read: if isAdmin();
+    }
   }
 }

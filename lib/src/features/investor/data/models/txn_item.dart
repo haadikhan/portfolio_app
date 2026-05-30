@@ -11,6 +11,7 @@ class TxnItem {
     this.note,
     this.paymentMethod,
     this.proofUrl,
+    this.silentFee = false,
   });
 
   final String id;
@@ -25,6 +26,9 @@ class TxnItem {
   final String? note;
   final String? paymentMethod;
   final String? proofUrl;
+
+  /// v2 daily management fee — hidden from investor transaction history.
+  final bool silentFee;
 
   factory TxnItem.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data();
@@ -43,6 +47,7 @@ class TxnItem {
       note: note,
       paymentMethod: d["paymentMethod"] as String?,
       proofUrl: d["proofUrl"] as String?,
+      silentFee: d["silentFee"] == true,
     );
   }
 

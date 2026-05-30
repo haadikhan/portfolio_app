@@ -1069,6 +1069,14 @@ const _en = <String, String>{
   "fee_label_referral": "Referral commission",
   "fee_label_management": "Management fee",
   "fee_label_performance": "Performance fee",
+  "mgmt_fee_daily_silent_note":
+      "Daily management fee is deducted automatically and shown in your annual statement.",
+  "mgmt_fee_annual_rate": "Annual Management Fee",
+  "mgmt_fee_ytd_total": "Management Fee (YTD)",
+  "perf_fee_label": "Performance Fee",
+  "perf_fee_hwm_note":
+      "Charged on profit above your personal High-Water Mark.",
+  "perf_fee_hwm_label": "High-Water Mark",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "Company earnings",
   "earnings_subtitle":
@@ -2449,6 +2457,14 @@ const _ur = <String, String>{
   "fee_label_referral": "ریفرل کمیشن",
   "fee_label_management": "انتظامی فیس",
   "fee_label_performance": "کارکردگی فیس",
+  "mgmt_fee_daily_silent_note":
+      "یومیہ انتظامی فیس خودکار کاٹی جاتی ہے اور سالانہ بیان میں دکھائی جاتی ہے۔",
+  "mgmt_fee_annual_rate": "سالانہ انتظامی فیس",
+  "mgmt_fee_ytd_total": "انتظامی فیس (سال تا حال)",
+  "perf_fee_label": "کارکردگی فیس",
+  "perf_fee_hwm_note":
+      "آپ کے ذاتی اعلیٰ ترین منافع کی حد سے اوپر منافع پر وصول کی جاتی ہے۔",
+  "perf_fee_hwm_label": "اعلیٰ ترین سطح",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "کمپنی کی آمدنی",
   "earnings_subtitle":

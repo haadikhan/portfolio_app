@@ -183,3 +183,12 @@ exports.fiveMarketDailyCredit = fiveMarketDaily.fiveMarketDailyCredit;
 exports.saveFiveMarketConfig = fiveMarketDaily.saveFiveMarketConfig;
 exports.saveFiveMarketDayOverride = fiveMarketDaily.saveFiveMarketDayOverride;
 exports.setFiveMarketDailyLedger = fiveMarketDaily.setFiveMarketDailyLedger;
+
+// ── Fee System v2 — Daily Management Fee (Phase 3) ───────────
+const mgmtFeeDaily = require("./management_fee_daily");
+exports.applyDailyManagementFeeJob = mgmtFeeDaily.applyDailyManagementFeeJob;
+exports.resetYtdManagementFee = mgmtFeeDaily.resetYtdManagementFee;
+
+// ── Fee System v2 — Daily Performance Fee (Phase 4) ──────────
+const perfFeeDaily = require("./performance_fee_daily");
+exports.applyDailyPerformanceFeeJob = perfFeeDaily.applyDailyPerformanceFeeJob;

@@ -30,7 +30,6 @@ class _TransactionHistoryScreenState
   static const _kFeeTypes = <String>{
     "front_end_load_fee",
     "referral_fee",
-    "management_fee",
     "performance_fee",
   };
 
@@ -70,6 +69,12 @@ class _TransactionHistoryScreenState
         result = result.where((t) => t.status == _statusFilter).toList();
       }
     }
+
+    result = result
+        .where(
+          (t) => !(t.type == "management_fee" && t.silentFee),
+        )
+        .toList();
 
     return result;
   }
@@ -187,7 +192,6 @@ class TransactionRowItem extends StatelessWidget {
   static const _kFeeTypes = <String>{
     "front_end_load_fee",
     "referral_fee",
-    "management_fee",
     "performance_fee",
   };
 

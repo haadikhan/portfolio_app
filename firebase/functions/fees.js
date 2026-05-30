@@ -68,6 +68,10 @@ async function getFeeConfig() {
     frontEndLoadPct: clampPct(data.frontEndLoadPct),
     frontEndLoadFirstDepositOnly: data.frontEndLoadFirstDepositOnly === true,
     exists: snap.exists,
+    defaultFeeVersion: data.defaultFeeVersion || "v1",
+    frontEndLoadAllDeposits: data.frontEndLoadAllDeposits === true,
+    managementFeeAnnualPct: clampPct(data.managementFeeAnnualPct ?? 1.5),
+    performanceFeeHwmPct: clampPct(data.performanceFeeHwmPct ?? 15.0),
   };
 }
 
@@ -148,6 +152,111 @@ async function getInvestorPrincipalBase(uid) {
 }
 
 /**
+ * Resolves effective fee version for an investor.
+ * Checks users/{uid}.feeVersion first, falls back to
+ * fee_config.defaultFeeVersion, then "v1" as final default.
+ * Cached cfg object passed in to avoid extra Firestore read.
+ */
+async function resolveInvestorFeeVersion(uid, cfg) {
+  try {
+    const userSnap = await db().collection("users").doc(uid).get();
+    const userVersion = userSnap.exists
+      ? userSnap.data().feeVersion || null
+      : null;
+    return userVersion || cfg.defaultFeeVersion || "v1";
+  } catch (e) {
+    logger.warn("resolveInvestorFeeVersion_failed", {
+      uid,
+      error: String(e),
+    });
+    return cfg.defaultFeeVersion || "v1";
+  }
+}
+
+/**
+ * Reads referrals/{investorUid} document.
+ * Returns the referral data object or null if no referral assigned.
+ */
+async function getOrCreateReferralRecord(investorUid) {
+  try {
+    const snap = await db().collection("referrals").doc(investorUid).get();
+    if (!snap.exists) return null;
+    return { id: snap.id, ...snap.data() };
+  } catch (e) {
+    logger.warn("getOrCreateReferralRecord_failed", {
+      investorUid,
+      error: String(e),
+    });
+    return null;
+  }
+}
+
+/**
+ * Calculates referral commission using halving sequence.
+ * depositCount = number of deposits already processed (0-based).
+ *
+ * Sequence (as % of frontEndLoadAmount):
+ *   depositCount 0 → 50%  of frontEndLoad
+ *   depositCount 1 → 25%  of frontEndLoad
+ *   depositCount 2 → 12.5% of frontEndLoad
+ *   depositCount n → 50% / 2^n of frontEndLoad
+ *
+ * Minimum commission: 0.01 PKR (stops when rounds to 0)
+ */
+function computeReferralCommission(frontEndLoadAmount, depositCount) {
+  if (frontEndLoadAmount <= 0) return 0;
+  const pct = 0.5 / Math.pow(2, depositCount);
+  const commission = +(frontEndLoadAmount * pct).toFixed(2);
+  return commission > 0 ? commission : 0;
+}
+
+/**
+ * Writes one entry to company_fee_ledger collection.
+ * Used for admin company earnings visibility.
+ * Never throws — fee ledger write failure must not block
+ * the deposit approval flow.
+ */
+async function writeCompanyFeeLedger({
+  investorUid,
+  feeType,
+  grossFeePkr,
+  referralSharePkr = 0,
+  referrerName = null,
+  depositRequestId = null,
+  transactionId = null,
+  periodKey,
+  now,
+}) {
+  try {
+    const netToCompanyPkr = +(grossFeePkr - referralSharePkr).toFixed(2);
+    const ref = db().collection("company_fee_ledger").doc();
+    const pktDate = new Date();
+    pktDate.setUTCHours(pktDate.getUTCHours() + 5);
+    const date = pktDate.toISOString().slice(0, 10);
+
+    await ref.set({
+      date,
+      investorUid,
+      feeType,
+      grossFeePkr,
+      referralSharePkr,
+      netToCompanyPkr,
+      referrerName,
+      depositRequestId,
+      transactionId,
+      periodKey,
+      createdAt: now,
+    });
+  } catch (e) {
+    logger.warn("writeCompanyFeeLedger_failed", {
+      investorUid,
+      feeType,
+      error: String(e),
+    });
+  }
+}
+
+/**
  * Book one-time fees triggered on an approved deposit.
  * Idempotent: skips if a fee row with the same `relatedTxId` + `feeKind`
  * already exists.
@@ -161,6 +270,17 @@ async function applyDepositFees({
 }) {
   const cfg = await getFeeConfig();
   if (!cfg.isEnabled) return { applied: [], cfg };
+
+  const feeVersion = await resolveInvestorFeeVersion(uid, cfg);
+  if (feeVersion === "v2") {
+    return applyDepositFeesV2({
+      uid,
+      depositTxId,
+      depositAmount,
+      approverUid,
+      now,
+    });
+  }
 
   const periodKey = ymKey(new Date());
   const applied = [];
@@ -247,6 +367,141 @@ async function applyDepositFees({
     await bumpCompanyEarnings(periodKey, {
       frontEndLoad: frontEndLoadDelta,
       referral: referralDelta,
+    });
+  }
+
+  return { applied, cfg };
+}
+
+/**
+ * v2 deposit fee handler.
+ * Differences from v1:
+ * 1. Front-end load charged on EVERY deposit (not first-only)
+ * 2. Referral commission uses halving sequence from referrals/{uid}
+ * 3. Referral comes FROM company's front-end load (not separate fee)
+ * 4. Writes to company_fee_ledger for admin visibility
+ * 5. Updates referrals/{uid}.depositCount after each deposit
+ */
+async function applyDepositFeesV2({
+  uid,
+  depositTxId,
+  depositAmount,
+  approverUid,
+  now = admin.firestore.FieldValue.serverTimestamp(),
+}) {
+  const cfg = await getFeeConfig();
+  if (!cfg.isEnabled) return { applied: [], cfg };
+
+  const periodKey = ymKey(new Date());
+  const applied = [];
+  let frontEndLoadDelta = 0;
+  let referralDelta = 0;
+
+  const frontEndPct = cfg.frontEndLoadPct || 0;
+  if (frontEndPct > 0) {
+    const fee = +(depositAmount * frontEndPct / 100).toFixed(2);
+    if (fee > 0) {
+      const exists = await db()
+        .collection("transactions")
+        .where("userId", "==", uid)
+        .where("type", "==", "front_end_load_fee")
+        .where("relatedTxId", "==", depositTxId)
+        .limit(1)
+        .get();
+
+      if (exists.empty) {
+        const ref = db().collection("transactions").doc();
+        await ref.set({
+          id: ref.id,
+          userId: uid,
+          type: "front_end_load_fee",
+          feeKind: "front_end_load",
+          amount: fee,
+          status: "approved",
+          feePct: frontEndPct,
+          feeBaseAmount: depositAmount,
+          relatedTxId: depositTxId,
+          periodKey,
+          feeVersion: "v2",
+          createdAt: now,
+          updatedAt: now,
+          approvedBy: approverUid,
+          notes:
+            `Front-end load (${frontEndPct}%) on deposit `
+            + `${depositTxId} [v2]`,
+        });
+
+        frontEndLoadDelta = fee;
+        applied.push({ kind: "front_end_load", amount: fee });
+
+        const referral = await getOrCreateReferralRecord(uid);
+
+        if (referral) {
+          const depositCount = Number(referral.depositCount || 0);
+          const commission = computeReferralCommission(fee, depositCount);
+
+          if (commission > 0) {
+            await writeCompanyFeeLedger({
+              investorUid: uid,
+              feeType: "referral_commission",
+              grossFeePkr: fee,
+              referralSharePkr: commission,
+              referrerName: referral.referrerName || null,
+              depositRequestId: null,
+              transactionId: ref.id,
+              periodKey,
+              now,
+            });
+
+            referralDelta = commission;
+            applied.push({
+              kind: "referral_commission",
+              amount: commission,
+              referrerName: referral.referrerName,
+              depositNumber: depositCount + 1,
+            });
+
+            await db()
+              .collection("referrals")
+              .doc(uid)
+              .set(
+                {
+                  depositCount: admin.firestore.FieldValue.increment(1),
+                  totalCommissionPkr: admin.firestore.FieldValue.increment(
+                    commission,
+                  ),
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                },
+                { merge: true },
+              );
+          }
+        }
+
+        await writeCompanyFeeLedger({
+          investorUid: uid,
+          feeType: "front_end_load",
+          grossFeePkr: fee,
+          referralSharePkr: referralDelta,
+          referrerName:
+            referralDelta > 0
+              ? (await getOrCreateReferralRecord(uid))?.referrerName
+              : null,
+          depositRequestId: null,
+          transactionId: ref.id,
+          periodKey,
+          now,
+        });
+      }
+    }
+  }
+
+  if (frontEndLoadDelta > 0) {
+    await recalculateWallet(uid);
+    await bumpCompanyEarnings(periodKey, {
+      frontEndLoad: frontEndLoadDelta,
+      referral: 0,
+      management: 0,
+      performance: 0,
     });
   }
 

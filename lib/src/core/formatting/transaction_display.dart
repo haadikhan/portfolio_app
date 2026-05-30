@@ -31,6 +31,8 @@ String displayTransactionType(String type) {
     case "profit":
     case "profit_entry":
       return "Profit Credit";
+    case "performance_fee":
+      return "Performance Fee";
     default:
       return _titleCaseWords(type.replaceAll("_", " "));
   }
