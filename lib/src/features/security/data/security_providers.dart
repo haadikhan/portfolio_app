@@ -152,13 +152,22 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
       .collection("trustedDevices")
       .doc(fp.deviceHash);
 
-  for (var attempt = 0; attempt < 3; attempt++) {
+  for (var attempt = 0; attempt < 5; attempt++) {
     try {
       DocumentSnapshot<Map<String, dynamic>> snap;
       try {
-        snap = await trustedDeviceDoc.get(
-          const GetOptions(source: Source.server),
-        );
+        // 8-second per-attempt cap — prevents each Firebase SDK call from
+        // blocking for its default ~60 s before we can retry or fall back.
+        snap = await trustedDeviceDoc
+            .get(const GetOptions(source: Source.server))
+            .timeout(
+              const Duration(seconds: 8),
+              onTimeout: () => throw FirebaseException(
+                plugin: "cloud_firestore",
+                code: "deadline-exceeded",
+                message: "trustedDevice probe timed out",
+              ),
+            );
       } on FirebaseException catch (e) {
         if (e.code == "unavailable" || e.code == "failed-precondition") {
           snap = await trustedDeviceDoc.get();
@@ -192,20 +201,65 @@ final currentDeviceTrustedProvider = FutureProvider<bool>((ref) async {
         return false;
       }
       if (!_firestoreUnavailableOrTransient(e)) rethrow;
-      if (attempt < 2) {
-        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      if (attempt < 4) {
+        // Short back-off between retries: 300ms, 600ms, 1000ms, 1500ms.
+        // Total worst-case before cache fallback: ~12 s (4×8 s probe + back-off).
+        const delays = [300, 600, 1000, 1500];
+        await Future<void>.delayed(
+          Duration(milliseconds: delays[attempt]),
+        );
         continue;
       }
+      // All server attempts failed (likely Play Integrity / App Check
+      // not yet initialized at startup). Try local cache as last resort.
+      // A cached "trusted" value from a recent successful session is
+      // more reliable than blindly requiring OTP on every startup.
       if (kDebugMode) {
         debugPrint(
-          "[security] trustedDevices probe failed (${e.code}); "
-          "treating device as trusted so startup can proceed",
+          "[security] trustedDevices server probe failed after all retries "
+          "(${e.code}). Trying local cache as fallback.",
         );
       }
-      return true;
+      try {
+        final cachedSnap = await trustedDeviceDoc.get(
+          const GetOptions(source: Source.cache),
+        );
+        if (!cachedSnap.exists) {
+          if (kDebugMode) {
+            debugPrint(
+              "[security] No cached trust doc found. Requiring OTP.",
+            );
+          }
+          return false;
+        }
+        final revokedInCache =
+            (cachedSnap.data()?["revoked"] as bool?) ?? false;
+        if (revokedInCache) {
+          if (kDebugMode) {
+            debugPrint(
+              "[security] Cached doc shows revoked=true. Requiring OTP.",
+            );
+          }
+          return false;
+        }
+        if (kDebugMode) {
+          debugPrint(
+            "[security] Using cached trust doc — device appears trusted. "
+            "OTP skipped. Server will reconfirm on next refresh.",
+          );
+        }
+        return true;
+      } catch (_) {
+        if (kDebugMode) {
+          debugPrint(
+            "[security] Cache read also failed. Requiring OTP.",
+          );
+        }
+        return false;
+      }
     }
   }
-  // All attempts either returned or rethrew; satisfy flow analysis.
+  // Exhausted retries — require OTP rather than falsely trusting.
   return false;
 });
 

@@ -495,5 +495,37 @@ service cloud.firestore {
         || crmManagesInvestor(portfolioUid);
       allow write: if false;
     }
+
+    // ── Fee System v2 (Phase 1) ──────────────────────────
+
+    // Referral assignments — admin writes, admin/CRM reads
+    match /referrals/{investorUid} {
+      allow read: if isAdmin()
+        || (isCrm() && resource.data.investorUid == request.auth.uid)
+        || isOwner(investorUid);
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Company fee ledger — admin read only, server writes
+    match /company_fee_ledger/{entryId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // Daily management fee subcollection under portfolios
+    match /portfolios/{portfolioUid}/management_fee_daily/{dayId} {
+      allow read: if isOwner(portfolioUid) || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // investors can read their own feeVersion from users doc
+    // (already covered by existing users/{userId} read rule)
+    // No new rule needed for users/{uid}.feeVersion field
+
+    // Admin collection-group read for fee audit
+    match /{path=**}/management_fee_daily/{dayId} {
+      allow read: if isAdmin();
+    }
   }
 }

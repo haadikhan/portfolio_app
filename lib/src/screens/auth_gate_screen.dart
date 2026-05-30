@@ -19,6 +19,7 @@ class AuthGateScreen extends ConsumerStatefulWidget {
 class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
   bool _isRouting = false;
   bool _routingScheduled = false;
+  bool _otpInProgress = false;
 
   Future<void> _routeAuthenticatedUser() async {
     if (_isRouting || !mounted) return;
@@ -44,9 +45,11 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
         final otpRequired = await ref.read(otpRequiredProvider.future);
         if (!mounted) return;
         if (otpRequired) {
+          _otpInProgress = true;
           context.go("/login-otp?phone=${Uri.encodeComponent(verifiedPhone)}");
           return;
         }
+        _otpInProgress = false;
       }
 
       final biometricEnabledForUser = await ref.read(
@@ -135,10 +138,10 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
 
     ref.listen<AsyncValue<bool>>(currentDeviceRevokedProvider, (_, next) async {
       final revoked = next.valueOrNull ?? false;
-      // Skip if not revoked, widget gone, or routing is already in progress.
-      // Firing logout while _routeAuthenticatedUser is awaiting (e.g. OTP probe)
-      // races with the OTP/re-trust flow and prevents re-authentication.
-      if (!revoked || !mounted || _isRouting) return;
+      // Do not interrupt:
+      // 1. _isRouting — mid-route in _routeAuthenticatedUser
+      // 2. _otpInProgress — user is completing OTP to re-trust device
+      if (!revoked || !mounted || _isRouting || _otpInProgress) return;
       final router = GoRouter.of(context);
       await ref.read(authControllerProvider.notifier).logout();
       if (mounted) router.go("/login");
@@ -150,6 +153,9 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       error: (error, _) =>
           Scaffold(body: Center(child: Text("Auth error: $error"))),
       data: (user) {
+        if (user == null) {
+          _otpInProgress = false;
+        }
         if (!_routingScheduled) {
           _routingScheduled = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {

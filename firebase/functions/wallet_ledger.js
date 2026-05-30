@@ -21,6 +21,28 @@ const {
 
 const db = () => admin.firestore();
 
+/** Fee System v2 (Phase 1): global default when users/{uid}.feeVersion is unset. */
+async function readDefaultFeeVersion() {
+  const feeConfigSnap = await db().collection("settings").doc("fee_config").get();
+  return feeConfigSnap.exists
+    ? feeConfigSnap.data().defaultFeeVersion || "v1"
+    : "v1";
+}
+
+/** True when monthly profit/fee booking must skip this uid (v2 → daily engine). */
+async function shouldSkipMonthlyFeeEngine(uid, defaultFeeVersion) {
+  const userSnap = await db().collection("users").doc(uid).get();
+  const userFeeVersion = userSnap.exists
+    ? userSnap.data().feeVersion || null
+    : null;
+  const effectiveFeeVersion = userFeeVersion || defaultFeeVersion || "v1";
+  if (effectiveFeeVersion === "v2") {
+    logger.info("monthly_fee_skip_v2_investor", { uid });
+    return true;
+  }
+  return false;
+}
+
 async function safeNotify(fn) {
   try {
     await fn();
@@ -265,6 +287,7 @@ async function runMonthEndProfitCredit({
   }
 
   const feeConfig = await getFeeConfigInternal();
+  const defaultFeeVersion = await readDefaultFeeVersion();
   const portfoliosSnap = await db().collection("portfolios").get();
   let successCount = 0;
   let failCount = 0;
@@ -277,6 +300,8 @@ async function runMonthEndProfitCredit({
   for (const portfolioDoc of portfoliosSnap.docs) {
     const uid = portfolioDoc.id;
     try {
+      if (await shouldSkipMonthlyFeeEngine(uid, defaultFeeVersion)) continue;
+
       const data = portfolioDoc.data();
       const previousValue = Number(data.currentValue) || 0;
       if (previousValue <= 0 || monthlyPct <= 0) continue;
@@ -1446,6 +1471,7 @@ exports.applyMonthlyReturns = onCall(
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
     const feeConfig = await getFeeConfigInternal();
+    const defaultFeeVersion = await readDefaultFeeVersion();
     const portfoliosSnap = await db().collection("portfolios").get();
 
     // Manual returns are applied for the current calendar month.
@@ -1467,6 +1493,8 @@ exports.applyMonthlyReturns = onCall(
     for (const portfolioDoc of portfoliosSnap.docs) {
       const uid = portfolioDoc.id;
       try {
+        if (await shouldSkipMonthlyFeeEngine(uid, defaultFeeVersion)) continue;
+
         const data = portfolioDoc.data();
         // Skip users on five-market daily ledger (default ON) to avoid double credits
         if (data.fiveMarketDailyLedger !== false) {

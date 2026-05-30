@@ -31,6 +31,7 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
   bool _verifying = false;
   int _cooldown = 30;
   String? _error;
+  int _cooldownTickGen = 0;
 
   // OTP expiry — 3 minutes from codeSent
   int _otpExpirySec = 0;
@@ -43,7 +44,6 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
   void initState() {
     super.initState();
     _sendCode();
-    _tick();
   }
 
   @override
@@ -53,11 +53,29 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
   }
 
   Future<void> _tick() async {
-    while (mounted && _cooldown > 0) {
+    final gen = ++_cooldownTickGen;
+    while (mounted && gen == _cooldownTickGen && _cooldown > 0) {
       await Future<void>.delayed(const Duration(seconds: 1));
-      if (!mounted) return;
+      if (!mounted || gen != _cooldownTickGen) return;
       setState(() => _cooldown -= 1);
     }
+  }
+
+  void _enableManualEntry({
+    required String verificationId,
+    int? resendToken,
+  }) {
+    setState(() {
+      _verificationId = verificationId;
+      _resendToken = resendToken ?? _resendToken;
+      _sending = false;
+      _cooldown = 30;
+      _otpExpirySec = 180;
+      _otpSendActive = true;
+      _error = null;
+    });
+    _tick();
+    _tickExpiry();
   }
 
   Future<void> _tickExpiry() async {
@@ -84,22 +102,26 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
     final res = await _otpService.sendCode(
       phoneE164: widget.phoneE164,
       resendToken: isResend ? _resendToken : null,
+      onCodeSent: (verificationId, resendToken) {
+        if (!mounted) return;
+        _enableManualEntry(
+          verificationId: verificationId,
+          resendToken: resendToken,
+        );
+      },
     );
     if (!mounted) return;
     switch (res) {
       case OtpCodeSent():
-        setState(() {
-          _verificationId = res.verificationId;
-          _resendToken = res.resendToken;
-          _sending = false;
-          _cooldown = 30;
-          _otpExpirySec = 180;
-          _otpSendActive = true;
-          _error = null;
-        });
-        _tick();
-        _tickExpiry();
+        _enableManualEntry(
+          verificationId: res.verificationId,
+          resendToken: res.resendToken,
+        );
       case OtpAutoFilled(:final credential):
+        final verificationId = credential.verificationId ?? _verificationId;
+        if (verificationId != null && verificationId.isNotEmpty) {
+          _enableManualEntry(verificationId: verificationId);
+        }
         await _completeOtp(credential);
       case OtpFailed():
         setState(() {
@@ -255,7 +277,7 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
                     _buildExpiryCountdown(context),
                   TextField(
                     controller: _otpCtrl,
-                    enabled: !_otpExpired && !_verifying && !_sending,
+                    enabled: _verificationId != null && !_otpExpired && !_verifying,
                     keyboardType: TextInputType.number,
                     autofillHints: const [AutofillHints.oneTimeCode],
                     inputFormatters: [
@@ -269,7 +291,7 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
                   ),
                   const SizedBox(height: 14),
                   FilledButton(
-                    onPressed: _verifying || _sending || _otpExpired
+                    onPressed: _verificationId == null || _verifying || _otpExpired
                         ? null
                         : _verifyManual,
                     child: _verifying

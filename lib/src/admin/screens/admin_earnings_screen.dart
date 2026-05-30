@@ -488,6 +488,8 @@ class _KpiCard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 color: scheme.onSurface,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -819,6 +821,8 @@ class _TransactionsTable extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: Colors.green.shade700,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           );
         },

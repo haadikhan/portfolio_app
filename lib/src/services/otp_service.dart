@@ -58,6 +58,7 @@ class OtpService {
     required String phoneE164,
     Duration timeout = const Duration(seconds: 60),
     int? resendToken,
+    void Function(String verificationId, int? resendToken)? onCodeSent,
   }) {
     if (kDebugMode) {
       // Mask all but first 3 + last 2 digits for logs.
@@ -68,6 +69,25 @@ class OtpService {
     }
 
     final completer = Completer<OtpSendResult>();
+
+    // Hard deadline: if Firebase never fires any callback (e.g. reCAPTCHA
+    // browser tab opened but failed to redirect back), surface an error so
+    // the OTP screen stays responsive instead of freezing forever.
+    final deadline = timeout + const Duration(seconds: 15);
+    Future<void>.delayed(deadline).then((_) {
+      if (!completer.isCompleted) {
+        if (kDebugMode) {
+          debugPrint("[OTP] sendCode deadline exceeded — no callback received");
+        }
+        completer.complete(
+          const OtpFailed(
+            "deadline-exceeded",
+            "Verification timed out. Please try again.",
+          ),
+        );
+      }
+    });
+
     _auth.verifyPhoneNumber(
       phoneNumber: phoneE164,
       timeout: timeout,
@@ -90,13 +110,19 @@ class OtpService {
       },
       codeSent: (String verificationId, int? token) {
         if (kDebugMode) debugPrint("[OTP] codeSent verificationId=$verificationId");
+        onCodeSent?.call(verificationId, token);
         if (!completer.isCompleted) {
           completer.complete(OtpCodeSent(verificationId, token));
         }
       },
-      codeAutoRetrievalTimeout: (String _) {
-        // Manual-entry path. The codeSent callback already completed the
-        // future, so nothing to do here.
+      codeAutoRetrievalTimeout: (String verificationId) {
+        // Fires after [timeout] when no auto-fill happened.
+        // codeSent already completed the future; use this id as fallback so
+        // manual entry stays possible even after auto-retrieval window closes.
+        onCodeSent?.call(verificationId, null);
+        if (!completer.isCompleted) {
+          completer.complete(OtpCodeSent(verificationId, null));
+        }
       },
     );
     return completer.future;

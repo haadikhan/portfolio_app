@@ -34,14 +34,20 @@ class AppScaffold extends StatelessWidget {
       color: scheme.onSurface,
     );
 
+    final compactBar = MediaQuery.sizeOf(context).width < 400;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0.5,
         elevation: 0,
+        leadingWidth: 40,
+        titleSpacing: 8,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           onPressed: () {
             if (canPop) {
               context.pop();
@@ -50,22 +56,45 @@ class AppScaffold extends StatelessWidget {
             }
           },
         ),
-        title: Row(
-          children: [
-            const BrandLogo(height: 26),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
+        title: compactBar
+            ? Text(
                 title,
                 style: titleStyle,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+              )
+            : Row(
+                children: [
+                  const SizedBox(
+                    width: 32,
+                    height: 24,
+                    child: BrandLogo(height: 24),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: titleStyle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
         actions: [
-          ...actions,
-          AppBarPreferenceActions(showNotificationAction: showNotificationAction),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...actions,
+                AppBarPreferenceActions(
+                  showNotificationAction: showNotificationAction,
+                ),
+              ],
+            ),
+          ),
           const SizedBox(width: 4),
         ],
       ),

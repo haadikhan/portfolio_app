@@ -36,6 +36,8 @@ class TrustedDevicesScreen extends ConsumerWidget {
     ref.listen<AsyncValue<bool>>(currentDeviceRevokedProvider, (_, next) async {
       final revoked = next.valueOrNull ?? false;
       if (!revoked || !context.mounted) return;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!context.mounted) return;
       await ref.read(authControllerProvider.notifier).logout();
       if (context.mounted) context.go("/login");
     });

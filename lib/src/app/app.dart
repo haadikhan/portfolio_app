@@ -54,30 +54,23 @@ import "investor_shell_scaffold.dart";
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-class WakalatInvestApp extends ConsumerWidget {
-  const WakalatInvestApp({super.key, required this.config});
-
-  final AppConfig config;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
-    final locale =
-        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
-    final useUrduFont = locale.languageCode == "ur";
-    final appUpdateGate = ref.watch(stableAppUpdateGateProvider);
-
-    final router = GoRouter(
-      navigatorKey: _rootNavigatorKey,
-      initialLocation: "/",
-      redirect: (_, state) {
-        final blocked = appUpdateGate.valueOrNull?.isBlocked == true;
-        final atForceUpdate = state.matchedLocation == "/force-update";
-        if (blocked && !atForceUpdate) return "/force-update";
-        if (!blocked && atForceUpdate) return "/";
-        return null;
-      },
-      routes: <RouteBase>[
+// Kept alive at the Provider level so it is never rebuilt when theme /
+// language / update-gate providers change.  Recreating GoRouter resets
+// initialLocation to "/" (AuthGate), which caused the infinite loading
+// spinner while the app was already on /investor.
+final _routerProvider = Provider<GoRouter>((ref) {
+  final appUpdateGate = ref.watch(stableAppUpdateGateProvider);
+  final router = GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: "/",
+    redirect: (_, state) {
+      final blocked = appUpdateGate.valueOrNull?.isBlocked == true;
+      final atForceUpdate = state.matchedLocation == "/force-update";
+      if (blocked && !atForceUpdate) return "/force-update";
+      if (!blocked && atForceUpdate) return "/";
+      return null;
+    },
+    routes: <RouteBase>[
         GoRoute(path: "/", builder: (_, __) => const AuthGateScreen()),
         GoRoute(
           path: "/force-update",
@@ -311,6 +304,21 @@ class WakalatInvestApp extends ConsumerWidget {
         GoRoute(path: "/crm", builder: (_, __) => const CrmDashboardScreen()),
       ],
     );
+  return router;
+});
+
+class WakalatInvestApp extends ConsumerWidget {
+  const WakalatInvestApp({super.key, required this.config});
+
+  final AppConfig config;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider).valueOrNull ?? ThemeMode.system;
+    final locale =
+        ref.watch(languageProvider).valueOrNull ?? const Locale("en");
+    final useUrduFont = locale.languageCode == "ur";
+    final router = ref.watch(_routerProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
