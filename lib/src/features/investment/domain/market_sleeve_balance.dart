@@ -1,5 +1,7 @@
 import "package:flutter/foundation.dart";
 
+import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
+
 import "five_market_models.dart";
 
 /// The five P&L sleeves aligned with Daily Markets.
@@ -102,7 +104,8 @@ bool todayDocCredited(Map<String, dynamic>? todayDoc) {
   return todayDoc["creditedToWallet"] == true;
 }
 
-/// Build snapshot. Non-money bases are pct×[allocationTotal] (already includes wallet profit).
+/// Build snapshot. [allocationTotalPkr] is net capital after fees (see
+/// [netPortfolioValueFromWallet]). Non-money bases are pct×that total.
 /// Non-money: display = base + pending only — [creditedBySleeve] is tracked for MM and optional UI.
 /// Money: display = [moneyBase] + credited money (backend does not move profit into MM) + pending.
 SleeveBalanceSnapshot buildSleeveBalanceSnapshot({
@@ -217,4 +220,42 @@ SleeveBalanceSnapshot buildSleeveBalanceSnapshot({
     allocationTotalPkr: allocationTotalPkr,
     todayFiveMarketCredited: todayCreditedToWallet,
   );
+}
+
+/// Live total for dashboard hero: net capital after fees plus today's
+/// uncredited five-market P/L (wallet credit runs overnight).
+double dashboardTotalPortfolioPkr({
+  required Map<String, dynamic>? wallet,
+  SleeveBalanceSnapshot? sleeveSnap,
+  FiveMarketDailyResult? todayDailyResult,
+  bool todayFiveMarketCredited = false,
+}) {
+  if (wallet == null) return 0;
+  if (sleeveSnap != null) return sleeveSnap.totalDisplayPkr;
+
+  final pending = _pendingTodayPkr(
+    sleeveSnap: sleeveSnap,
+    todayDailyResult: todayDailyResult,
+    todayCredited: todayFiveMarketCredited,
+  );
+
+  final base = netPortfolioValueFromWallet(wallet);
+  if (pending != 0) {
+    return double.parse((base + pending).toStringAsFixed(2));
+  }
+  return base;
+}
+
+double _pendingTodayPkr({
+  SleeveBalanceSnapshot? sleeveSnap,
+  FiveMarketDailyResult? todayDailyResult,
+  required bool todayCredited,
+}) {
+  if (sleeveSnap != null) return sleeveSnap.pendingTodayTotalPkr;
+  if (todayCredited ||
+      todayDailyResult == null ||
+      !todayDailyResult.isTradingDay) {
+    return 0;
+  }
+  return todayDailyResult.totalProfitPkr;
 }

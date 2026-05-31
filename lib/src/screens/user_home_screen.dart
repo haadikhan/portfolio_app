@@ -715,9 +715,10 @@ class _WalletCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
-    final allocationTotalPkr = allocationTotalFromWallet(wallet);
     final moneyMarketPkr = moneyMarketAvailableFromWallet(wallet);
-    final totalPortfolioPkr = sleeveSnap?.totalDisplayPkr ?? allocationTotalPkr;
+    final totalPortfolioPkr =
+        ref.watch(dashboardTotalPortfolioProvider) ??
+        netPortfolioValueFromWallet(wallet);
     final avail = (wallet?["availableBalance"] as num?)?.toDouble() ?? 0;
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;

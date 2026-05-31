@@ -106,17 +106,31 @@ double moneyMarketAvailableFromWallet(Map<String, dynamic>? wallet) {
   return derived > 0 ? derived : 0;
 }
 
-/// Net-invested allocation total used by dashboard / wallet hero / portfolio
-/// allocation pie. Drops by completed withdrawals (matches user's chosen model:
-/// 100,000 deposit, 100 withdrawn => Total = 99,900).
+/// Gross capital before fees: deposits − withdrawals + credited profit/adjustments.
 ///
 /// Pending/reserved withdrawals do NOT shrink this number — they only reduce
-/// `availableBalance`, leaving Total at its post-settlement value.
+/// `availableBalance`, leaving this at its post-settlement value.
 double allocationTotalFromWallet(Map<String, dynamic>? wallet) {
   final deposited = _safeNum(wallet?["totalDeposited"]);
   final profit = _safeNum(wallet?["totalProfit"]);
   final adjustments = _safeNum(wallet?["totalAdjustments"]);
   final withdrawn = _safeNum(wallet?["totalWithdrawn"]);
   final net = deposited + profit + adjustments - withdrawn;
+  return net > 0 ? net : 0;
+}
+
+/// Actual current portfolio capital after fees (and before today's uncredited P/L).
+///
+/// Uses `availableBalance + reservedAmount` from the wallet ledger (fees already
+/// deducted). Falls back to [allocationTotalFromWallet] minus `totalFees`.
+double netPortfolioValueFromWallet(Map<String, dynamic>? wallet) {
+  if (wallet == null) return 0;
+  final avail = _safeNum(wallet["availableBalance"]);
+  final reserved = _safeNum(wallet["reservedAmount"]);
+  final fromLedger = avail + reserved;
+  if (fromLedger > 0) return fromLedger;
+  final fees = _safeNum(wallet["totalFees"]);
+  final gross = allocationTotalFromWallet(wallet);
+  final net = gross - fees;
   return net > 0 ? net : 0;
 }

@@ -111,7 +111,7 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
     return null;
   }
 
-  final basePkr = allocationTotalFromWallet(wallet);
+  final basePkr = netPortfolioValueFromWallet(wallet);
   final kmi30Pct = kmi30Tick?.changePercent ?? 0.0;
   final goldPct = goldQuote?.changePercent ?? 0.0;
 
