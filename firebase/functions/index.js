@@ -46,6 +46,9 @@ exports.getFeeConfig = fees.getFeeConfig;
 exports.saveFeeConfig = fees.saveFeeConfig;
 exports.sendMonthlyFeeStatements = fees.sendMonthlyFeeStatements;
 exports.applyMonthEndFeeStatements = fees.applyMonthEndFeeStatements;
+exports.setInvestorFeeVersion = fees.setInvestorFeeVersion;
+exports.saveReferralV2 = fees.saveReferralV2;
+exports.generateYearEndFeeStatements = fees.generateYearEndFeeStatements;
 
 exports.onKycSubmittedForReview = onDocumentUpdated(
   {

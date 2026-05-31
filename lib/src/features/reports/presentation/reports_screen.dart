@@ -610,19 +610,40 @@ class _FeeStatementRow extends StatelessWidget {
 
     final parts = statement.periodKey.split("-");
     String monthLabel = statement.periodKey;
-    if (parts.length == 2) {
+    if (statement.isAnnualManagement) {
+      monthLabel =
+          "${context.tr("year_end_statement_title")} FY ${statement.periodKey}";
+    } else if (parts.length == 2) {
       final y = int.tryParse(parts[0]);
       final m = int.tryParse(parts[1]);
-      if (y != null && m != null) {
+      if (y != null && m != null && m >= 1 && m <= 12) {
         monthLabel = DateFormat.yMMMM().format(DateTime(y, m));
       }
     }
+
+    final subtitle = statement.isAnnualManagement
+        ? "${context.tr("fee_statement_total_fees")}: "
+            "${money.format(statement.totalFees)}"
+        : "${context.tr("fee_statement_total_fees")}: "
+            "${money.format(statement.totalFees)}"
+            " · "
+            "${context.tr("fee_statement_net_credited")}: "
+            "${money.format(statement.netProfit)}";
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {
+        onTap: () async {
+          final url = statement.fileUrl?.trim() ?? "";
+          if (url.isNotEmpty) {
+            final u = Uri.tryParse(url);
+            if (u != null && await canLaunchUrl(u)) {
+              await launchUrl(u, mode: LaunchMode.externalApplication);
+              return;
+            }
+          }
+          if (!context.mounted) return;
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>
@@ -667,11 +688,7 @@ class _FeeStatementRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "${context.tr("fee_statement_total_fees")}: "
-                      "${money.format(statement.totalFees)}"
-                      " · "
-                      "${context.tr("fee_statement_net_credited")}: "
-                      "${money.format(statement.netProfit)}",
+                      subtitle,
                       style: TextStyle(
                         fontSize: 11,
                         color: scheme.onSurfaceVariant,

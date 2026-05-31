@@ -23,9 +23,15 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
   final _perfCtl = TextEditingController();
   final _frontCtl = TextEditingController();
   final _refCtl = TextEditingController();
+  late final TextEditingController _mgmtV2Ctl;
+  late final TextEditingController _perfV2Ctl;
 
   bool _isEnabled = false;
   bool _frontEndLoadFirstDepositOnly = false;
+  String _defaultFeeVersion = "v1";
+  bool _frontEndLoadAllDeposits = false;
+  double _managementFeeAnnualPct = 1.5;
+  double _performanceFeeHwmPct = 15.0;
   bool _loaded = false;
   bool _saving = false;
   bool _sendingStatements = false;
@@ -33,6 +39,8 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
   @override
   void initState() {
     super.initState();
+    _mgmtV2Ctl = TextEditingController();
+    _perfV2Ctl = TextEditingController();
     _load();
   }
 
@@ -42,6 +50,8 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
     _perfCtl.dispose();
     _frontCtl.dispose();
     _refCtl.dispose();
+    _mgmtV2Ctl.dispose();
+    _perfV2Ctl.dispose();
     super.dispose();
   }
 
@@ -66,6 +76,16 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
         _refCtl.text =
             ((data["referralFeePct"] as num?)?.toDouble() ?? 0)
                 .toStringAsFixed(2);
+        _defaultFeeVersion =
+            (data["defaultFeeVersion"] as String?) ?? "v1";
+        _frontEndLoadAllDeposits =
+            data["frontEndLoadAllDeposits"] == true;
+        _managementFeeAnnualPct =
+            (data["managementFeeAnnualPct"] as num?)?.toDouble() ?? 1.5;
+        _performanceFeeHwmPct =
+            (data["performanceFeeHwmPct"] as num?)?.toDouble() ?? 15.0;
+        _mgmtV2Ctl.text = _managementFeeAnnualPct.toString();
+        _perfV2Ctl.text = _performanceFeeHwmPct.toString();
         _loaded = true;
       });
     } catch (e) {
@@ -96,6 +116,12 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
         "frontEndLoadPct": _parsePct(_frontCtl),
         "referralFeePct": _parsePct(_refCtl),
         "frontEndLoadFirstDepositOnly": _frontEndLoadFirstDepositOnly,
+        "defaultFeeVersion": _defaultFeeVersion,
+        "frontEndLoadAllDeposits": _frontEndLoadAllDeposits,
+        "managementFeeAnnualPct":
+            double.tryParse(_mgmtV2Ctl.text.trim()) ?? 1.5,
+        "performanceFeeHwmPct":
+            double.tryParse(_perfV2Ctl.text.trim()) ?? 15.0,
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -290,6 +316,17 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
                 ],
               );
             },
+          ),
+          const SizedBox(height: 24),
+          _V2FeeConfigSection(
+            defaultFeeVersion: _defaultFeeVersion,
+            frontEndLoadAllDeposits: _frontEndLoadAllDeposits,
+            managementFeeAnnualPct: _mgmtV2Ctl,
+            performanceFeeHwmPct: _perfV2Ctl,
+            onFeeVersionChanged: (v) =>
+                setState(() => _defaultFeeVersion = v),
+            onFrontEndAllChanged: (v) =>
+                setState(() => _frontEndLoadAllDeposits = v),
           ),
           const SizedBox(height: 28),
           Text(
@@ -1095,5 +1132,113 @@ class _FeeHistoryTable extends StatelessWidget {
       default:
         return ty;
     }
+  }
+}
+
+class _V2FeeConfigSection extends StatelessWidget {
+  const _V2FeeConfigSection({
+    required this.defaultFeeVersion,
+    required this.frontEndLoadAllDeposits,
+    required this.managementFeeAnnualPct,
+    required this.performanceFeeHwmPct,
+    required this.onFeeVersionChanged,
+    required this.onFrontEndAllChanged,
+  });
+
+  final String defaultFeeVersion;
+  final bool frontEndLoadAllDeposits;
+  final TextEditingController managementFeeAnnualPct;
+  final TextEditingController performanceFeeHwmPct;
+  final ValueChanged<String> onFeeVersionChanged;
+  final ValueChanged<bool> onFrontEndAllChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr("fee_v2_section_title"),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "v1 = legacy monthly system. "
+              "v2 = new daily management + HWM performance.",
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text(
+                  context.tr("fee_version_label"),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(width: 16),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: "v1", label: Text("v1 Legacy")),
+                    ButtonSegment(value: "v2", label: Text("v2 Daily")),
+                  ],
+                  selected: {defaultFeeVersion},
+                  onSelectionChanged: (s) => onFeeVersionChanged(s.first),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text("Charge front-end load on ALL deposits"),
+              subtitle: const Text(
+                "v2 only. When OFF, first deposit only (v1 behavior).",
+              ),
+              value: frontEndLoadAllDeposits,
+              onChanged: onFrontEndAllChanged,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: managementFeeAnnualPct,
+              decoration: const InputDecoration(
+                labelText: "v2 Daily Management Fee Rate (% annual)",
+                hintText: "1.5",
+                suffixText: "%",
+                border: OutlineInputBorder(),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: performanceFeeHwmPct,
+              decoration: const InputDecoration(
+                labelText: "v2 HWM Performance Fee Rate (%)",
+                hintText: "15",
+                suffixText: "%",
+                border: OutlineInputBorder(),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

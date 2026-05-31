@@ -20,6 +20,8 @@ class FeeStatement {
     required this.totalFees,
     required this.effectiveFeeRatePct,
     required this.generatedAt,
+    this.feeType,
+    this.fileUrl,
   });
 
   final String periodKey;
@@ -35,6 +37,14 @@ class FeeStatement {
   final double totalFees;
   final double effectiveFeeRatePct;
   final DateTime? generatedAt;
+  final String? feeType;
+  final String? fileUrl;
+
+  bool get isAnnualManagement =>
+      feeType == "management_annual" ||
+      (periodKey.contains("-") &&
+          periodKey.split("-").length == 2 &&
+          (periodKey.split("-")[1].length == 2));
 
   factory FeeStatement.fromDoc(
     DocumentSnapshot<Map<String, dynamic>> doc,
@@ -45,6 +55,10 @@ class FeeStatement {
       if (v is Timestamp) return v.toDate();
       return null;
     }
+
+    final totalFees = n(d["totalFees"]) > 0
+        ? n(d["totalFees"])
+        : n(d["totalFeePkr"]);
 
     return FeeStatement(
       periodKey: (d["periodKey"] as String?) ?? doc.id,
@@ -57,9 +71,11 @@ class FeeStatement {
       performanceFee: n(d["performanceFee"]),
       frontEndLoadFee: n(d["frontEndLoadFee"]),
       referralFee: n(d["referralFee"]),
-      totalFees: n(d["totalFees"]),
+      totalFees: totalFees,
       effectiveFeeRatePct: n(d["effectiveFeeRatePct"]),
       generatedAt: t(d["generatedAt"]),
+      feeType: d["feeType"] as String?,
+      fileUrl: d["fileUrl"] as String?,
     );
   }
 }

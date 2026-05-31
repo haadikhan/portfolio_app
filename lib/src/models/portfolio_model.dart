@@ -8,6 +8,8 @@ class PortfolioModel {
     required this.lastMonthlyReturnPct,
     required this.lastUpdated,
     required this.createdAt,
+    this.feeVersion,
+    this.performanceHwm,
   });
 
   final String uid;
@@ -16,6 +18,8 @@ class PortfolioModel {
   final double lastMonthlyReturnPct;
   final DateTime lastUpdated;
   final DateTime createdAt;
+  final String? feeVersion;
+  final double? performanceHwm;
 
   double get totalReturnPct =>
       totalDeposited <= 0 ? 0 : ((currentValue - totalDeposited) / totalDeposited) * 100;
@@ -30,6 +34,8 @@ class PortfolioModel {
       lastMonthlyReturnPct: (map["lastMonthlyReturnPct"] as num?)?.toDouble() ?? 0,
       lastUpdated: _parseTime(map["lastUpdated"]) ?? DateTime.now(),
       createdAt: _parseTime(map["createdAt"]) ?? DateTime.now(),
+      feeVersion: map["feeVersion"] as String?,
+      performanceHwm: (map["performanceHwm"] as num?)?.toDouble(),
     );
   }
 

@@ -408,6 +408,8 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
             CrmAssignmentSection(investorUid: user.userId),
             const SizedBox(height: 24),
             _ReferrerCard(uid: user.userId),
+            const SizedBox(height: 24),
+            _ReferralV2Card(userId: user.userId),
           ],
           const SizedBox(height: 28),
           Text("Transactions", style: Theme.of(context).textTheme.titleLarge),
@@ -497,8 +499,326 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
           if (isAdmin) ...[
             const SizedBox(height: 28),
             _FiveMarketLedgerSection(userId: user.userId),
+            _FeeVersionSection(userId: user.userId),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Admin-only: toggle investor between v1 and v2 fee engine.
+class _FeeVersionSection extends ConsumerStatefulWidget {
+  const _FeeVersionSection({required this.userId});
+
+  final String userId;
+
+  @override
+  ConsumerState<_FeeVersionSection> createState() =>
+      _FeeVersionSectionState();
+}
+
+class _FeeVersionSectionState extends ConsumerState<_FeeVersionSection> {
+  bool _busy = false;
+
+  Future<void> _setVersion(String version) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Change Fee Engine"),
+        content: Text(
+          version == "v2"
+              ? "Switch to v2 daily fee engine? "
+                  "Monthly batch will skip this investor."
+              : "Switch back to v1 legacy engine? "
+                  "Daily fees will stop for this investor.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.tr("cancel")),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Confirm"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await FirebaseFunctions.instanceFor(region: "us-central1")
+          .httpsCallable("setInvestorFeeVersion")
+          .call({"userId": widget.userId, "feeVersion": version});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Fee engine set to $version")),
+        );
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Error"),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.userId)
+          .snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data() ?? {};
+        final current = (data["feeVersion"] as String?) ?? "v1";
+
+        return Card(
+          margin: const EdgeInsets.only(top: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: scheme.outline.withValues(alpha: 0.2)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr("fee_version_label"),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        current == "v2"
+                            ? "v2 Daily engine active. "
+                                "Monthly batch skips this investor."
+                            : "v1 Legacy monthly engine active.",
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: "v1", label: Text("v1")),
+                        ButtonSegment(value: "v2", label: Text("v2")),
+                      ],
+                      selected: {current},
+                      onSelectionChanged:
+                          _busy ? null : (s) => _setVersion(s.first),
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
+                ),
+                if (current == "v2") ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.errorContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "Do NOT run monthly returns for this investor manually.",
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onErrorContainer,
+                          ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// v2 referral record — writes to referrals/{investorUid}.
+class _ReferralV2Card extends StatefulWidget {
+  const _ReferralV2Card({required this.userId});
+
+  final String userId;
+
+  @override
+  State<_ReferralV2Card> createState() => _ReferralV2CardState();
+}
+
+class _ReferralV2CardState extends State<_ReferralV2Card> {
+  final _nameCtl = TextEditingController();
+  final _cnicCtl = TextEditingController();
+  final _addrCtl = TextEditingController();
+  final _faNameCtl = TextEditingController();
+  final _notesCtl = TextEditingController();
+  bool _busy = false;
+  Map<String, dynamic>? _existing;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final snap = await FirebaseFirestore.instance
+        .collection("referrals")
+        .doc(widget.userId)
+        .get();
+    if (!snap.exists || !mounted) return;
+    final d = snap.data()!;
+    setState(() {
+      _existing = d;
+      _nameCtl.text = (d["referrerName"] as String?) ?? "";
+      _cnicCtl.text = (d["referrerCnic"] as String?) ?? "";
+      _addrCtl.text = (d["referrerAddress"] as String?) ?? "";
+      _faNameCtl.text = (d["referrerFaName"] as String?) ?? "";
+      _notesCtl.text = (d["notes"] as String?) ?? "";
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameCtl.dispose();
+    _cnicCtl.dispose();
+    _addrCtl.dispose();
+    _faNameCtl.dispose();
+    _notesCtl.dispose();
+    super.dispose();
+  }
+
+  Widget _field(TextEditingController ctl, String label) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: TextFormField(
+          controller: ctl,
+          decoration: InputDecoration(
+            labelText: label,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+      );
+
+  Future<void> _save() async {
+    if (_nameCtl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Referrer name is required")),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await FirebaseFunctions.instanceFor(region: "us-central1")
+          .httpsCallable("saveReferralV2")
+          .call({
+        "investorUid": widget.userId,
+        "referrerName": _nameCtl.text.trim(),
+        "referrerCnic": _cnicCtl.text.trim(),
+        "referrerAddress": _addrCtl.text.trim(),
+        "referrerFaName": _faNameCtl.text.trim(),
+        "notes": _notesCtl.text.trim(),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Referral record saved")),
+        );
+        await _load();
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Error"),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  context.tr("referral_v2_section_title"),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                if (_existing != null) ...[
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(
+                      "Deposits: ${_existing!["depositCount"] ?? 0}",
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 4),
+                  Chip(
+                    label: Text(
+                      "Paid: PKR "
+                      "${((_existing!["totalCommissionPkr"] as num?) ?? 0).toStringAsFixed(2)}",
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            _field(_nameCtl, "Referrer Full Name"),
+            _field(_cnicCtl, "CNIC (e.g. 42101-1234567-1)"),
+            _field(_addrCtl, "Address"),
+            _field(_faNameCtl, "Bank Account Holder (FA Name)"),
+            _field(_notesCtl, "Notes (optional)"),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _busy ? null : _save,
+              child: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text("Save v2 Referral"),
+            ),
+          ],
+        ),
       ),
     );
   }

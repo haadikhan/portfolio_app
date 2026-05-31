@@ -139,6 +139,8 @@ class _InvestmentPortfolioScreenState
                       _SectionHeader(label: context.tr("performance")),
                       const SizedBox(height: 12),
                       PerformanceMetricsWidget(portfolio: portfolio),
+                      const SizedBox(height: 24),
+                      const _PerformanceFeeCard(),
                       const SizedBox(height: 28),
                       _SectionHeader(
                         label: context.tr("portfolio_markets_section"),
@@ -304,6 +306,116 @@ class _PortfolioMarketTabsPanel extends StatelessWidget {
 
 double _readAvailableBalance(Map<String, dynamic>? wallet) {
   return allocationTotalFromWallet(wallet);
+}
+
+class _PerformanceFeeCard extends ConsumerWidget {
+  const _PerformanceFeeCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final portfolio = ref.watch(myPortfolioProvider).valueOrNull;
+    if (portfolio == null) return const SizedBox.shrink();
+    if (portfolio.feeVersion != "v2") return const SizedBox.shrink();
+
+    final hwm = portfolio.performanceHwm;
+    if (hwm == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
+
+    final available =
+        (wallet?["availableBalance"] as num?)?.toDouble() ?? 0;
+    final deposited = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
+    final withdrawn = (wallet?["totalWithdrawn"] as num?)?.toDouble() ?? 0;
+    final netDeposits = deposited - withdrawn;
+    final ae = available - netDeposits;
+    final hwmVal = hwm;
+
+    return Card(
+      color: scheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.15)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr("perf_fee_hwm_label"),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              context.tr("perf_fee_hwm_note"),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            _HwmRow(
+              label: "High-Water Mark",
+              value: "PKR ${hwmVal.toStringAsFixed(2)}",
+              color: scheme.primary,
+            ),
+            _HwmRow(
+              label: "Adjusted Equity (today)",
+              value: "PKR ${ae.toStringAsFixed(2)}",
+              color: ae >= hwmVal ? scheme.primary : scheme.error,
+            ),
+            if (ae > hwmVal) ...[
+              const SizedBox(height: 4),
+              _HwmRow(
+                label: "Profit above HWM",
+                value: "PKR ${(ae - hwmVal).toStringAsFixed(2)}",
+                color: scheme.primary,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HwmRow extends StatelessWidget {
+  const _HwmRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Portfolio value hero card ────────────────────────────────────────────────

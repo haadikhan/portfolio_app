@@ -72,8 +72,11 @@ async function getFeeConfig() {
     frontEndLoadAllDeposits: data.frontEndLoadAllDeposits === true,
     managementFeeAnnualPct: clampPct(data.managementFeeAnnualPct ?? 1.5),
     performanceFeeHwmPct: clampPct(data.performanceFeeHwmPct ?? 15.0),
+    financialYearStartMonth: Number(data.financialYearStartMonth ?? 7),
   };
 }
+
+const REGION = "us-central1";
 
 /**
  * Increment company_earnings/{periodKey} totals atomically.
@@ -754,7 +757,15 @@ exports.getFeeConfig = onCall(
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Sign in required.");
     }
-    return getFeeConfig();
+    const cfg = await getFeeConfig();
+    return {
+      ...cfg,
+      defaultFeeVersion: cfg.defaultFeeVersion || "v1",
+      frontEndLoadAllDeposits: cfg.frontEndLoadAllDeposits === true,
+      managementFeeAnnualPct: cfg.managementFeeAnnualPct ?? 1.5,
+      performanceFeeHwmPct: cfg.performanceFeeHwmPct ?? 15.0,
+      financialYearStartMonth: cfg.financialYearStartMonth ?? 7,
+    };
   },
 );
 
@@ -767,6 +778,7 @@ exports.saveFeeConfig = onCall(
     await assertAdmin(request.auth.uid);
 
     const body = request.data || {};
+    const fyMonth = Number(body.financialYearStartMonth ?? 7);
     const next = {
       isEnabled: body.isEnabled === true,
       managementFeePctAnnual: clampPct(body.managementFeePctAnnual),
@@ -775,6 +787,13 @@ exports.saveFeeConfig = onCall(
       frontEndLoadPct: clampPct(body.frontEndLoadPct),
       frontEndLoadFirstDepositOnly:
         body.frontEndLoadFirstDepositOnly === true,
+      defaultFeeVersion: body.defaultFeeVersion === "v2" ? "v2" : "v1",
+      frontEndLoadAllDeposits: body.frontEndLoadAllDeposits === true,
+      managementFeeAnnualPct: clampPct(body.managementFeeAnnualPct ?? 1.5),
+      performanceFeeHwmPct: clampPct(body.performanceFeeHwmPct ?? 15.0),
+      financialYearStartMonth: Number.isFinite(fyMonth)
+        ? Math.max(1, Math.min(12, Math.round(fyMonth)))
+        : 7,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedBy: request.auth.uid,
     };
@@ -795,6 +814,136 @@ exports.saveFeeConfig = onCall(
     } catch (e) {
       logger.warn("saveFeeConfig_audit_failed", { error: String(e) });
     }
+
+    return { ok: true };
+  },
+);
+
+/**
+ * Admin callable: set feeVersion on users/{uid} and
+ * portfolios/{uid} atomically.
+ */
+exports.setInvestorFeeVersion = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const { userId, feeVersion } = request.data || {};
+    if (!userId) {
+      throw new HttpsError("invalid-argument", "userId required.");
+    }
+    if (feeVersion !== "v1" && feeVersion !== "v2") {
+      throw new HttpsError(
+        "invalid-argument",
+        "feeVersion must be 'v1' or 'v2'.",
+      );
+    }
+
+    const userRef = db().collection("users").doc(userId);
+    const beforeSnap = await userRef.get();
+    const beforeVersion =
+      (beforeSnap.data() || {}).feeVersion || "v1";
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const batch = db().batch();
+
+    batch.set(
+      userRef,
+      {
+        feeVersion,
+        feeVersionUpdatedAt: now,
+        feeVersionUpdatedBy: request.auth.uid,
+      },
+      { merge: true },
+    );
+    batch.set(
+      db().collection("portfolios").doc(userId),
+      { feeVersion, feeVersionUpdatedAt: now },
+      { merge: true },
+    );
+
+    await batch.commit();
+
+    try {
+      await appendAudit(
+        request.auth.uid,
+        "admin",
+        "setInvestorFeeVersion",
+        "users",
+        userId,
+        { feeVersion: beforeVersion },
+        { feeVersion },
+      );
+    } catch (e) {
+      logger.warn("setInvestorFeeVersion_audit_failed", {
+        error: String(e),
+      });
+    }
+
+    return { ok: true };
+  },
+);
+
+/**
+ * Admin callable: create or update referrals/{investorUid}
+ * document with v2 referral details.
+ */
+exports.saveReferralV2 = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const {
+      investorUid,
+      referrerName,
+      referrerCnic,
+      referrerAddress,
+      referrerFaName,
+      notes,
+    } = request.data || {};
+
+    if (!investorUid) {
+      throw new HttpsError("invalid-argument", "investorUid required.");
+    }
+    if (!referrerName || !referrerName.trim()) {
+      throw new HttpsError("invalid-argument", "referrerName required.");
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const existing = await db()
+      .collection("referrals")
+      .doc(investorUid)
+      .get();
+
+    await db()
+      .collection("referrals")
+      .doc(investorUid)
+      .set(
+        {
+          investorUid,
+          referrerName: referrerName.trim(),
+          referrerCnic: (referrerCnic || "").trim(),
+          referrerAddress: (referrerAddress || "").trim(),
+          referrerFaName: (referrerFaName || "").trim(),
+          notes: (notes || "").trim(),
+          ...(existing.exists
+            ? {}
+            : {
+                depositCount: 0,
+                totalCommissionPkr: 0,
+                assignedAt: now,
+              }),
+          assignedBy: request.auth.uid,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
 
     return { ok: true };
   },
@@ -993,6 +1142,285 @@ exports.applyMonthEndFeeStatements = onSchedule(
       periodKey,
       investors: uids.size,
       written,
+    });
+  },
+);
+
+/**
+ * Scheduled year-end management fee statement generator.
+ * Fires 30 June 23:59 PKT.
+ */
+exports.generateYearEndFeeStatements = onSchedule(
+  {
+    schedule: "59 23 30 6 *",
+    timeZone: "Asia/Karachi",
+    region: REGION,
+    memory: "1GiB",
+    timeoutSeconds: 540,
+  },
+  async () => {
+    const { PDFDocument, rgb, StandardFonts } = require("pdf-lib");
+
+    const nowPkt = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Karachi" }),
+    );
+    const fyYear = nowPkt.getFullYear() - 1;
+    const fyLabel = `${fyYear}-${String(fyYear + 1).slice(2)}`;
+    const fyStart = `${fyYear}-07-01`;
+    const fyEnd = `${fyYear + 1}-06-30`;
+
+    logger.info("generateYearEndFeeStatements_start", { fyLabel });
+
+    const cfg = await getFeeConfig();
+    const annualRatePct = cfg.managementFeeAnnualPct ?? 1.5;
+
+    const portfoliosSnap = await db().collection("portfolios").get();
+
+    let success = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const portfolioDoc of portfoliosSnap.docs) {
+      const uid = portfolioDoc.id;
+      try {
+        const portfolio = portfolioDoc.data();
+
+        const userSnap = await db().collection("users").doc(uid).get();
+        if (!userSnap.exists) {
+          skipped++;
+          continue;
+        }
+        const userData = userSnap.data();
+        const feeVersion =
+          userData.feeVersion || portfolio.feeVersion || "v1";
+        if (feeVersion !== "v2") {
+          skipped++;
+          continue;
+        }
+
+        const ytdFee = Number(portfolio.ytdManagementFee || 0);
+        const investorName = (
+          userData.name ||
+          userData.fullName ||
+          "Investor"
+        ).trim();
+
+        const dailySnap = await db()
+          .collection("portfolios")
+          .doc(uid)
+          .collection("management_fee_daily")
+          .where("date", ">=", fyStart)
+          .where("date", "<=", fyEnd)
+          .orderBy("date")
+          .get();
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([595, 842]);
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const { width, height } = page.getSize();
+
+        page.drawText("ISC-WAI", {
+          x: 50,
+          y: height - 60,
+          size: 22,
+          font: bold,
+          color: rgb(0.1, 0.3, 0.6),
+        });
+        page.drawText("Annual Management Fee Statement", {
+          x: 50,
+          y: height - 85,
+          size: 14,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+
+        page.drawLine({
+          start: { x: 50, y: height - 95 },
+          end: { x: width - 50, y: height - 95 },
+          thickness: 1,
+          color: rgb(0.8, 0.8, 0.8),
+        });
+
+        let y = height - 130;
+        const row = (label, value) => {
+          page.drawText(label, {
+            x: 50,
+            y,
+            size: 10,
+            font: bold,
+            color: rgb(0.4, 0.4, 0.4),
+          });
+          page.drawText(String(value), {
+            x: 200,
+            y,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          y -= 20;
+        };
+
+        row("Investor Name:", investorName);
+        row("Account ID:", uid.slice(-8).toUpperCase());
+        row(
+          "Financial Year:",
+          `1 July ${fyYear} – 30 June ${fyYear + 1}`,
+        );
+        row("Fee Rate:", `${annualRatePct}% per annum`);
+        row("Deduction Method:", "Daily accrual (silent)");
+        row("Total Fee Paid:", `PKR ${ytdFee.toFixed(2)}`);
+
+        y -= 20;
+
+        if (dailySnap.docs.length > 0) {
+          page.drawText("Daily Deduction Summary", {
+            x: 50,
+            y,
+            size: 12,
+            font: bold,
+            color: rgb(0.1, 0.3, 0.6),
+          });
+          y -= 25;
+
+          const cols = [50, 140, 260, 380, 480];
+          ["Date", "Base (PKR)", "Rate", "Fee (PKR)", "YTD (PKR)"].forEach(
+            (h, i) => {
+              page.drawText(h, {
+                x: cols[i],
+                y,
+                size: 9,
+                font: bold,
+                color: rgb(0.3, 0.3, 0.3),
+              });
+            },
+          );
+          y -= 15;
+
+          const maxRows = Math.min(dailySnap.docs.length, 50);
+          for (let i = 0; i < maxRows; i++) {
+            const d = dailySnap.docs[i].data();
+            if (y < 80) break;
+            [
+              d.date || "",
+              (d.basePkr || 0).toFixed(2),
+              `${(d.annualRatePct || annualRatePct).toFixed(2)}%`,
+              (d.dailyFeePkr || 0).toFixed(2),
+              (d.ytdTotal || 0).toFixed(2),
+            ].forEach((v, col) => {
+              page.drawText(String(v), {
+                x: cols[col],
+                y,
+                size: 8,
+                font,
+                color: rgb(0.2, 0.2, 0.2),
+              });
+            });
+            y -= 13;
+          }
+
+          if (dailySnap.docs.length > 50) {
+            page.drawText(
+              `(Showing first 50 of ${dailySnap.docs.length} records)`,
+              {
+                x: 50,
+                y: y - 5,
+                size: 8,
+                font,
+                color: rgb(0.5, 0.5, 0.5),
+              },
+            );
+          }
+        }
+
+        page.drawText(
+          "This statement is auto-generated by ISC-WAI. "
+            + "Management fee is deducted daily and shown "
+            + "annually for transparency.",
+          {
+            x: 50,
+            y: 50,
+            size: 7,
+            font,
+            color: rgb(0.5, 0.5, 0.5),
+          },
+        );
+
+        const pdfBytes = await pdfDoc.save();
+
+        const bucket = admin.storage().bucket();
+        const storagePath = `fee_statements/${uid}/FY_${fyLabel}.pdf`;
+        const file = bucket.file(storagePath);
+        await file.save(Buffer.from(pdfBytes), {
+          metadata: { contentType: "application/pdf" },
+          resumable: false,
+        });
+
+        let fileUrl = "";
+        try {
+          const [signed] = await file.getSignedUrl({
+            action: "read",
+            expires: "03-01-2099",
+          });
+          fileUrl = signed;
+        } catch (signErr) {
+          logger.warn("yearEndStatement_signedUrl_failed", {
+            uid,
+            error: String(signErr),
+          });
+        }
+
+        await db()
+          .collection("users")
+          .doc(uid)
+          .collection("fee_statements")
+          .doc(fyLabel)
+          .set(
+            {
+              periodKey: fyLabel,
+              fyStart,
+              fyEnd,
+              feeType: "management_annual",
+              totalFeePkr: ytdFee,
+              totalFees: ytdFee,
+              annualRatePct,
+              daysCount: dailySnap.docs.length,
+              storagePath,
+              fileUrl,
+              generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              generatedBy: "system_year_end",
+            },
+            { merge: true },
+          );
+
+        await db()
+          .collection("users")
+          .doc(uid)
+          .collection("notifications")
+          .add({
+            title: "Annual Fee Statement Available",
+            body: `Your FY ${fyLabel} management fee statement is ready in Reports.`,
+            type: "fee_statement",
+            category: "wallet",
+            action: "open_fee_statement",
+            refId: fyLabel,
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+        success++;
+        logger.info("yearEndStatement_generated", { uid, fyLabel, ytdFee });
+      } catch (e) {
+        failed++;
+        logger.error("yearEndStatement_failed", { uid, error: String(e) });
+      }
+    }
+
+    logger.info("generateYearEndFeeStatements_complete", {
+      fyLabel,
+      success,
+      skipped,
+      failed,
     });
   },
 );

@@ -1077,6 +1077,12 @@ const _en = <String, String>{
   "perf_fee_hwm_note":
       "Charged on profit above your personal High-Water Mark.",
   "perf_fee_hwm_label": "High-Water Mark",
+  "fee_version_label": "Fee Engine Version",
+  "fee_v2_section_title": "Fee Engine v2 Configuration",
+  "referral_v2_section_title": "v2 Referral Record",
+  "year_end_statement_title": "Annual Management Fee Statement",
+  "year_end_statement_available":
+      "Your annual fee statement is ready in Reports.",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "Company earnings",
   "earnings_subtitle":
@@ -2465,6 +2471,12 @@ const _ur = <String, String>{
   "perf_fee_hwm_note":
       "آپ کے ذاتی اعلیٰ ترین منافع کی حد سے اوپر منافع پر وصول کی جاتی ہے۔",
   "perf_fee_hwm_label": "اعلیٰ ترین سطح",
+  "fee_version_label": "فیس انجن ورژن",
+  "fee_v2_section_title": "فیس انجن v2 ترتیب",
+  "referral_v2_section_title": "v2 ریفرل ریکارڈ",
+  "year_end_statement_title": "سالانہ انتظامی فیس بیان",
+  "year_end_statement_available":
+      "آپ کا سالانہ فیس بیان رپورٹس میں دستیاب ہے۔",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "کمپنی کی آمدنی",
   "earnings_subtitle":
