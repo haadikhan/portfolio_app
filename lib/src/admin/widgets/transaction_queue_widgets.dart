@@ -257,8 +257,67 @@ class _RequestSheet extends ConsumerStatefulWidget {
   ConsumerState<_RequestSheet> createState() => _RequestSheetState();
 }
 
+class _DepositFeeEstimate {
+  const _DepositFeeEstimate({
+    required this.frontEndPct,
+    required this.grossFee,
+    required this.referralCommission,
+    required this.netToCompany,
+    required this.netInvested,
+    this.referrerName,
+    this.feeVersion = "v1",
+  });
+  final double frontEndPct;
+  final double grossFee;
+  final double referralCommission;
+  final double netToCompany;
+  final double netInvested;
+  final String? referrerName;
+  final String feeVersion;
+}
+
 class _RequestSheetState extends ConsumerState<_RequestSheet> {
   bool _busy = false;
+  _DepositFeeEstimate? _feeEstimate;
+  bool _feeLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.txnType == "deposit") {
+      _loadFeeEstimate();
+    }
+  }
+
+  Future<void> _loadFeeEstimate() async {
+    if (widget.amount <= 0) return;
+    setState(() => _feeLoading = true);
+    try {
+      final fn = FirebaseFunctions.instanceFor(region: "us-central1");
+      final result = await fn.httpsCallable("estimateDepositFee").call({
+        "userId": widget.userId,
+        "amount": widget.amount,
+      });
+      final d = Map<String, dynamic>.from(result.data as Map);
+      if (!mounted) return;
+      setState(() {
+        _feeEstimate = _DepositFeeEstimate(
+          frontEndPct: (d["frontEndPct"] as num?)?.toDouble() ?? 0,
+          grossFee: (d["grossFee"] as num?)?.toDouble() ?? 0,
+          referralCommission:
+              (d["referralCommission"] as num?)?.toDouble() ?? 0,
+          netToCompany: (d["netToCompany"] as num?)?.toDouble() ?? 0,
+          netInvested: (d["netInvested"] as num?)?.toDouble() ?? 0,
+          referrerName: d["referrerName"] as String?,
+          feeVersion: (d["feeVersion"] as String?) ?? "v1",
+        );
+      });
+    } catch (_) {
+      // fee estimate is advisory only — never block approval
+    } finally {
+      if (mounted) setState(() => _feeLoading = false);
+    }
+  }
 
   Future<void> _approve() async {
     setState(() => _busy = true);
@@ -466,6 +525,27 @@ class _RequestSheetState extends ConsumerState<_RequestSheet> {
           ),
 
           const Divider(height: 1),
+
+          // ── Fee breakdown (deposits only) ───────────────────────────
+          if (widget.txnType == "deposit") ...[
+            if (_feeLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (_feeEstimate != null &&
+                _feeEstimate!.frontEndPct > 0)
+              _DepositFeePreviewCard(
+                estimate: _feeEstimate!,
+                currency: widget.currency,
+              ),
+          ],
 
           // ── Action buttons ──────────────────────────────────────────
           SafeArea(
@@ -967,6 +1047,120 @@ class _ProofViewerPageState extends State<_ProofViewerPage> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Deposit fee preview card ──────────────────────────────────────────────────
+
+class _DepositFeePreviewCard extends StatelessWidget {
+  const _DepositFeePreviewCard({
+    required this.estimate,
+    required this.currency,
+  });
+  final _DepositFeeEstimate estimate;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 15, color: scheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                "Fee breakdown (${estimate.feeVersion.toUpperCase()} engine)",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _FeeRow(
+            label: "Front-end load (${estimate.frontEndPct.toStringAsFixed(1)}%)",
+            value: "− ${currency.format(estimate.grossFee)}",
+            valueColor: scheme.error,
+          ),
+          if (estimate.referralCommission > 0) ...[
+            _FeeRow(
+              label: "Referral commission"
+                  "${estimate.referrerName != null ? " (${estimate.referrerName})" : ""}",
+              value: "− ${currency.format(estimate.referralCommission)}",
+              valueColor: Colors.orange.shade700,
+            ),
+            _FeeRow(
+              label: "Net to company",
+              value: currency.format(estimate.netToCompany),
+              valueColor: scheme.onSurface,
+            ),
+          ],
+          const Divider(height: 16),
+          _FeeRow(
+            label: "Net invested",
+            value: currency.format(estimate.netInvested),
+            valueColor: Colors.green.shade700,
+            bold: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeeRow extends StatelessWidget {
+  const _FeeRow({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+    this.bold = false,
+  });
+  final String label;
+  final String value;
+  final Color valueColor;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight:
+                  bold ? FontWeight.w700 : FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ],
       ),
     );
   }

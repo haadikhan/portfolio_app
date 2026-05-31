@@ -24,6 +24,7 @@ const _kAdminShellRoutes = <String>[
   "/five-market",
   "/fees",
   "/earnings",
+  "/fee-ledger",
   "/upload-reports",
   "/app-updates",
   "/notifications",
@@ -274,6 +275,18 @@ class AdminShell extends ConsumerWidget {
                       subtitle: Text(context.tr("nav_earnings_subtitle")),
                       selected: loc.startsWith("/earnings"),
                       onTap: () => _go(context, "/earnings"),
+                    ),
+                    ListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      leading: Icon(
+                        Icons.receipt_long_rounded,
+                        color: scheme.primary,
+                      ),
+                      title: Text(context.tr("fee_ledger_nav")),
+                      subtitle: Text(context.tr("fee_ledger_subtitle")),
+                      selected: loc.startsWith("/fee-ledger"),
+                      onTap: () => _go(context, "/fee-ledger"),
                     ),
                     ListTile(
                       dense: true,
@@ -615,6 +628,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("nav_earnings")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.receipt_long_outlined),
+          selectedIcon: const Icon(Icons.receipt_long_rounded),
+          label: Text(context.tr("fee_ledger_nav")),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.picture_as_pdf_outlined),
           selectedIcon: const Icon(Icons.picture_as_pdf),
           label: Text(context.tr("admin_nav_upload_reports")),
@@ -647,10 +665,11 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 17;
-  if (loc.startsWith("/notifications")) return 16;
-  if (loc.startsWith("/app-updates")) return 15;
-  if (loc.startsWith("/upload-reports")) return 14;
+  if (loc.startsWith("/broadcast")) return 18;
+  if (loc.startsWith("/notifications")) return 17;
+  if (loc.startsWith("/app-updates")) return 16;
+  if (loc.startsWith("/upload-reports")) return 15;
+  if (loc.startsWith("/fee-ledger")) return 14;
   if (loc.startsWith("/earnings")) return 13;
   if (loc.startsWith("/fees")) return 12;
   if (loc.startsWith("/five-market")) return 11;

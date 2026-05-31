@@ -49,6 +49,7 @@ exports.applyMonthEndFeeStatements = fees.applyMonthEndFeeStatements;
 exports.setInvestorFeeVersion = fees.setInvestorFeeVersion;
 exports.saveReferralV2 = fees.saveReferralV2;
 exports.generateYearEndFeeStatements = fees.generateYearEndFeeStatements;
+exports.estimateDepositFee = fees.estimateDepositFee;
 
 exports.onKycSubmittedForReview = onDocumentUpdated(
   {

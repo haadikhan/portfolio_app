@@ -6,6 +6,7 @@ const logger = require("firebase-functions/logger");
 const { recalculateWallet } = require("./wallet_helpers");
 const {
   bumpCompanyEarnings,
+  writeCompanyFeeLedger,
   getFeeConfig_internal: getFeeConfig,
 } = require("./fees");
 
@@ -227,6 +228,15 @@ async function applyDailyManagementFee({
     referral: 0,
     management: dailyFeePkr,
     performance: 0,
+  });
+
+  await writeCompanyFeeLedger({
+    investorUid: uid,
+    feeType: "management_daily",
+    grossFeePkr: dailyFeePkr,
+    referralSharePkr: 0,
+    periodKey,
+    now,
   });
 
   logger.info("mgmtFee_applied", {

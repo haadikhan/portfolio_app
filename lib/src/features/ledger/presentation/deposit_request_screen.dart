@@ -1,11 +1,13 @@
 import "dart:io";
 
+import "package:cloud_functions/cloud_functions.dart";
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
+import "package:intl/intl.dart";
 
 import "../../../core/formatting/grouped_decimal_input.dart";
 import "../../../core/i18n/app_translations.dart";
@@ -39,8 +41,39 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
   File? _proofFile;
   bool _busy = false;
 
+  double _frontEndLoadPct = 0;
+  bool _feeConfigLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController.addListener(_onAmountChanged);
+    _loadFeeConfig();
+  }
+
+  void _onAmountChanged() {
+    setState(() {}); // rebuild to update fee preview
+  }
+
+  Future<void> _loadFeeConfig() async {
+    try {
+      final fn = FirebaseFunctions.instanceFor(region: "us-central1");
+      final result = await fn.httpsCallable("getFeeConfig").call();
+      final d = Map<String, dynamic>.from(result.data as Map);
+      if (!mounted) return;
+      setState(() {
+        _frontEndLoadPct =
+            (d["frontEndLoadPct"] as num?)?.toDouble() ?? 0;
+        _feeConfigLoaded = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _feeConfigLoaded = true);
+    }
+  }
+
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountChanged);
     _amountController.dispose();
     super.dispose();
   }
@@ -195,6 +228,14 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
                   return null;
                 },
               ),
+              // ── Fee preview ─────────────────────────────────────────────
+              if (_feeConfigLoaded && _frontEndLoadPct > 0) ...[
+                const SizedBox(height: 12),
+                _DepositFeePreview(
+                  rawText: _amountController.text,
+                  frontEndLoadPct: _frontEndLoadPct,
+                ),
+              ],
               const SizedBox(height: 20),
               _SectionLabel(label: context.tr("payment_method")),
               const SizedBox(height: 8),
@@ -246,6 +287,123 @@ class _DepositRequestScreenState extends ConsumerState<DepositRequestScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DepositFeePreview extends StatelessWidget {
+  const _DepositFeePreview({
+    required this.rawText,
+    required this.frontEndLoadPct,
+  });
+  final String rawText;
+  final double frontEndLoadPct;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final amount = parseGroupedDecimal(rawText);
+    if (amount == null || amount <= 0) return const SizedBox.shrink();
+
+    final fee = amount * frontEndLoadPct / 100;
+    final invested = amount - fee;
+    final money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: Container(
+        key: ValueKey(invested.round()),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: scheme.primary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.receipt_outlined,
+                    size: 14, color: scheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  context.tr("deposit_fee_preview_line"),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _PreviewRow(
+              label: context.tr("deposit_gross_label"),
+              value: money.format(amount),
+              color: scheme.onSurface,
+            ),
+            _PreviewRow(
+              label:
+                  "Front-end load (${frontEndLoadPct.toStringAsFixed(1)}%)",
+              value: "− ${money.format(fee)}",
+              color: scheme.error,
+            ),
+            const Divider(height: 14),
+            _PreviewRow(
+              label: context.tr("deposit_net_invested_label"),
+              value: money.format(invested),
+              color: Colors.green.shade700,
+              bold: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.bold = false,
+  });
+  final String label;
+  final String value;
+  final Color color;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight:
+                  bold ? FontWeight.w700 : FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

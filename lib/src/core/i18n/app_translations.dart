@@ -1083,6 +1083,25 @@ const _en = <String, String>{
   "year_end_statement_title": "Annual Management Fee Statement",
   "year_end_statement_available":
       "Your annual fee statement is ready in Reports.",
+  "referral_enabled_label": "Enable referral commissions globally",
+  "fee_ledger_nav": "Company Fee Ledger",
+  "fee_ledger_subtitle":
+      "Full audit trail of all fee income by type.",
+  "fee_ledger_total_gross": "Total gross fees",
+  "fee_ledger_total_referral": "Total referral paid",
+  "fee_ledger_filter_all": "All types",
+  "fee_ledger_filter_date": "Date range",
+  "fee_ledger_entries_label": "entries",
+  "fee_ledger_empty": "No ledger entries found.",
+  "fee_ledger_col_date": "Date",
+  "fee_ledger_col_investor": "Investor",
+  "fee_ledger_col_type": "Fee type",
+  "fee_ledger_col_gross": "Gross (PKR)",
+  "fee_ledger_col_referral": "Referral (PKR)",
+  "fee_ledger_col_referrer": "Referrer",
+  "deposit_fee_preview_line": "Fee breakdown (estimate)",
+  "deposit_gross_label": "Gross deposit",
+  "deposit_net_invested_label": "Net invested",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "Company earnings",
   "earnings_subtitle":
@@ -2477,6 +2496,25 @@ const _ur = <String, String>{
   "year_end_statement_title": "سالانہ انتظامی فیس بیان",
   "year_end_statement_available":
       "آپ کا سالانہ فیس بیان رپورٹس میں دستیاب ہے۔",
+  "referral_enabled_label": "ریفرل کمیشن فعال کریں",
+  "fee_ledger_nav": "کمپنی فیس لیجر",
+  "fee_ledger_subtitle":
+      "تمام فیس آمدنی کا مکمل آڈٹ ریکارڈ۔",
+  "fee_ledger_total_gross": "کل مجموعی فیسیں",
+  "fee_ledger_total_referral": "کل ریفرل ادا",
+  "fee_ledger_filter_all": "تمام اقسام",
+  "fee_ledger_filter_date": "تاریخ کی حد",
+  "fee_ledger_entries_label": "اندراجات",
+  "fee_ledger_empty": "کوئی لیجر اندراج نہیں ملا۔",
+  "fee_ledger_col_date": "تاریخ",
+  "fee_ledger_col_investor": "سرمایہ کار",
+  "fee_ledger_col_type": "فیس کی قسم",
+  "fee_ledger_col_gross": "مجموعی (PKR)",
+  "fee_ledger_col_referral": "ریفرل (PKR)",
+  "fee_ledger_col_referrer": "ریفرر",
+  "deposit_fee_preview_line": "فیس کا تخمینہ",
+  "deposit_gross_label": "مجموعی جمع",
+  "deposit_net_invested_label": "خالص سرمایہ کاری",
   // ── Earnings dashboard ───────────────────────────────────────────────
   "earnings_title": "کمپنی کی آمدنی",
   "earnings_subtitle":

@@ -73,6 +73,7 @@ async function getFeeConfig() {
     managementFeeAnnualPct: clampPct(data.managementFeeAnnualPct ?? 1.5),
     performanceFeeHwmPct: clampPct(data.performanceFeeHwmPct ?? 15.0),
     financialYearStartMonth: Number(data.financialYearStartMonth ?? 7),
+    referralEnabled: data.referralEnabled !== false,
   };
 }
 
@@ -330,6 +331,7 @@ async function applyDepositFees({
   }
 
   if (
+    cfg.referralEnabled !== false &&
     cfg.referralFeePct > 0 &&
     (await isFirstApprovedDeposit(uid, depositTxId))
   ) {
@@ -437,7 +439,9 @@ async function applyDepositFeesV2({
         frontEndLoadDelta = fee;
         applied.push({ kind: "front_end_load", amount: fee });
 
-        const referral = await getOrCreateReferralRecord(uid);
+        const referral = cfg.referralEnabled !== false
+          ? await getOrCreateReferralRecord(uid)
+          : null;
 
         if (referral) {
           const depositCount = Number(referral.depositCount || 0);
@@ -765,6 +769,7 @@ exports.getFeeConfig = onCall(
       managementFeeAnnualPct: cfg.managementFeeAnnualPct ?? 1.5,
       performanceFeeHwmPct: cfg.performanceFeeHwmPct ?? 15.0,
       financialYearStartMonth: cfg.financialYearStartMonth ?? 7,
+      referralEnabled: cfg.referralEnabled !== false,
     };
   },
 );
@@ -794,6 +799,7 @@ exports.saveFeeConfig = onCall(
       financialYearStartMonth: Number.isFinite(fyMonth)
         ? Math.max(1, Math.min(12, Math.round(fyMonth)))
         : 7,
+      referralEnabled: body.referralEnabled !== false,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedBy: request.auth.uid,
     };
@@ -1271,6 +1277,20 @@ exports.generateYearEndFeeStatements = onSchedule(
         row("Deduction Method:", "Daily accrual (silent)");
         row("Total Fee Paid:", `PKR ${ytdFee.toFixed(2)}`);
 
+        // Portfolio value as at 30 June (from live wallet)
+        try {
+          const walletSnap = await db().collection("wallets").doc(uid).get();
+          const portfolioValueAfterFees = walletSnap.exists
+            ? Number(walletSnap.data().availableBalance || 0)
+            : 0;
+          row(
+            "Portfolio Value (30 June):",
+            `PKR ${portfolioValueAfterFees.toFixed(2)}`,
+          );
+        } catch (_) {
+          // non-fatal — skip if wallet unavailable
+        }
+
         y -= 20;
 
         if (dailySnap.docs.length > 0) {
@@ -1425,10 +1445,77 @@ exports.generateYearEndFeeStatements = onSchedule(
   },
 );
 
-// Used by wallet_ledger.js
+/**
+ * Admin callable: estimate fees for a prospective deposit before approval.
+ * Returns { feeVersion, frontEndPct, grossFee, referralCommission,
+ *           netToCompany, netInvested, referrerName }.
+ */
+exports.estimateDepositFee = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const { userId, amount } = request.data || {};
+    if (!userId) {
+      throw new HttpsError("invalid-argument", "userId required.");
+    }
+    const amt = Number(amount || 0);
+    if (amt <= 0) {
+      throw new HttpsError("invalid-argument", "amount must be > 0.");
+    }
+
+    const cfg = await getFeeConfig();
+    const feeVersion = await resolveInvestorFeeVersion(userId, cfg);
+    const frontEndPct = cfg.frontEndLoadPct || 0;
+    const grossFee = parseFloat((amt * frontEndPct / 100).toFixed(2));
+
+    let referralCommission = 0;
+    let referrerName = null;
+
+    if (cfg.referralEnabled !== false) {
+      if (feeVersion === "v2") {
+        const refDoc = await db()
+          .collection("referrals")
+          .doc(userId)
+          .get();
+        if (refDoc.exists) {
+          const dc = Number(refDoc.data().depositCount || 0);
+          referralCommission = computeReferralCommission(grossFee, dc);
+          referrerName = refDoc.data().referrerName || null;
+        }
+      } else {
+        // v1: referral fee on first deposit only
+        const isFirst = await isFirstApprovedDeposit(userId, "__estimate__");
+        if (isFirst && cfg.referralFeePct > 0) {
+          referralCommission = parseFloat(
+            (amt * cfg.referralFeePct / 100).toFixed(2),
+          );
+        }
+      }
+    }
+
+    return {
+      feeVersion,
+      frontEndPct,
+      grossFee,
+      referralCommission,
+      netToCompany: parseFloat((grossFee - referralCommission).toFixed(2)),
+      netInvested: parseFloat((amt - grossFee).toFixed(2)),
+      referrerName,
+    };
+  },
+);
+
+// Used by wallet_ledger.js and daily fee modules
 module.exports.getFeeConfig_internal = getFeeConfig;
+module.exports.computeReferralCommission = computeReferralCommission;
+module.exports.resolveInvestorFeeVersion_internal = resolveInvestorFeeVersion;
 module.exports.applyDepositFees = applyDepositFees;
 module.exports.bookMonthEndFeesAndProfit = bookMonthEndFeesAndProfit;
 module.exports.bumpCompanyEarnings = bumpCompanyEarnings;
 module.exports.writeFeeStatement = writeFeeStatement;
+module.exports.writeCompanyFeeLedger = writeCompanyFeeLedger;
 module.exports.ymKey = ymKey;

@@ -311,6 +311,60 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
               ),
             ],
           ),
+          // ── v2 fee metrics (shown for feeVersion=v2 investors) ───────
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection("portfolios")
+                .doc(user.userId)
+                .snapshots(),
+            builder: (context, portfolioSnap) {
+              final pd = portfolioSnap.data?.data();
+              if (pd == null) return const SizedBox.shrink();
+              final fv = (pd["feeVersion"] as String?) ?? "v1";
+              if (fv != "v2") return const SizedBox.shrink();
+              final hwm =
+                  (pd["performanceHwm"] as num?)?.toDouble() ?? 0;
+              final ytd =
+                  (pd["ytdManagementFee"] as num?)?.toDouble() ?? 0;
+              final nd =
+                  (pd["netDeposits"] as num?)?.toDouble() ?? 0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  Text(
+                    "v2 Fee Metrics",
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _MetricCard(
+                        title: "High-Water Mark",
+                        value: currency.format(hwm),
+                        icon: Icons.water_outlined,
+                      ),
+                      _MetricCard(
+                        title: "YTD Management Fee",
+                        value: currency.format(ytd),
+                        icon: Icons.manage_accounts_outlined,
+                      ),
+                      _MetricCard(
+                        title: "Net Deposits",
+                        value: currency.format(nd),
+                        icon: Icons.account_balance_outlined,
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 24),
           StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
             stream: FirebaseFirestore.instance

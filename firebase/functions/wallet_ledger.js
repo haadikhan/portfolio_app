@@ -21,6 +21,33 @@ const {
 
 const db = () => admin.firestore();
 
+/**
+ * Fee System v2 (Phase 6): Sync portfolios/{uid}.netDeposits from live wallet.
+ * Called after every recalculateWallet on deposit approval or withdrawal completion.
+ */
+async function syncPortfolioNetDeposits(uid) {
+  try {
+    const snap = await db().collection("wallets").doc(uid).get();
+    if (!snap.exists) return;
+    const w = snap.data();
+    const netDeposits = parseFloat(
+      (Number(w.totalDeposited || 0) - Number(w.totalWithdrawn || 0)).toFixed(2),
+    );
+    await db()
+      .collection("portfolios")
+      .doc(uid)
+      .set(
+        {
+          netDeposits,
+          netDepositsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+  } catch (e) {
+    logger.warn("syncPortfolioNetDeposits_failed", { uid, error: String(e) });
+  }
+}
+
 /** Fee System v2 (Phase 1): global default when users/{uid}.feeVersion is unset. */
 async function readDefaultFeeVersion() {
   const feeConfigSnap = await db().collection("settings").doc("fee_config").get();
@@ -665,6 +692,7 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
   });
   await batch.commit();
   await recalculateWallet(req.userId);
+  await syncPortfolioNetDeposits(req.userId);
 
   const amt = Number(req.amount) || 0;
   let feesApplied = [];
@@ -892,6 +920,7 @@ exports.completeWithdrawal = onCall(
     });
     await batch.commit();
     await recalculateWallet(req.userId);
+    await syncPortfolioNetDeposits(req.userId);
     await safeAppendAudit(
       request.auth.uid,
       "admin",
@@ -1223,6 +1252,9 @@ exports.adminApproveTransaction = onCall(
 
     await batch.commit();
     await recalculateWallet(userId);
+    if (type === "deposit") {
+      await syncPortfolioNetDeposits(userId);
+    }
 
     let feesApplied = [];
     if (type === "deposit") {

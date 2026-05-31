@@ -30,6 +30,7 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
   bool _frontEndLoadFirstDepositOnly = false;
   String _defaultFeeVersion = "v1";
   bool _frontEndLoadAllDeposits = false;
+  bool _referralEnabled = true;
   double _managementFeeAnnualPct = 1.5;
   double _performanceFeeHwmPct = 15.0;
   bool _loaded = false;
@@ -80,6 +81,8 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
             (data["defaultFeeVersion"] as String?) ?? "v1";
         _frontEndLoadAllDeposits =
             data["frontEndLoadAllDeposits"] == true;
+        _referralEnabled =
+            (data["referralEnabled"] as bool?) ?? true;
         _managementFeeAnnualPct =
             (data["managementFeeAnnualPct"] as num?)?.toDouble() ?? 1.5;
         _performanceFeeHwmPct =
@@ -118,6 +121,7 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
         "frontEndLoadFirstDepositOnly": _frontEndLoadFirstDepositOnly,
         "defaultFeeVersion": _defaultFeeVersion,
         "frontEndLoadAllDeposits": _frontEndLoadAllDeposits,
+        "referralEnabled": _referralEnabled,
         "managementFeeAnnualPct":
             double.tryParse(_mgmtV2Ctl.text.trim()) ?? 1.5,
         "performanceFeeHwmPct":
@@ -321,12 +325,15 @@ class _AdminFeesScreenState extends ConsumerState<AdminFeesScreen> {
           _V2FeeConfigSection(
             defaultFeeVersion: _defaultFeeVersion,
             frontEndLoadAllDeposits: _frontEndLoadAllDeposits,
+            referralEnabled: _referralEnabled,
             managementFeeAnnualPct: _mgmtV2Ctl,
             performanceFeeHwmPct: _perfV2Ctl,
             onFeeVersionChanged: (v) =>
                 setState(() => _defaultFeeVersion = v),
             onFrontEndAllChanged: (v) =>
                 setState(() => _frontEndLoadAllDeposits = v),
+            onReferralEnabledChanged: (v) =>
+                setState(() => _referralEnabled = v),
           ),
           const SizedBox(height: 28),
           Text(
@@ -1139,18 +1146,22 @@ class _V2FeeConfigSection extends StatelessWidget {
   const _V2FeeConfigSection({
     required this.defaultFeeVersion,
     required this.frontEndLoadAllDeposits,
+    required this.referralEnabled,
     required this.managementFeeAnnualPct,
     required this.performanceFeeHwmPct,
     required this.onFeeVersionChanged,
     required this.onFrontEndAllChanged,
+    required this.onReferralEnabledChanged,
   });
 
   final String defaultFeeVersion;
   final bool frontEndLoadAllDeposits;
+  final bool referralEnabled;
   final TextEditingController managementFeeAnnualPct;
   final TextEditingController performanceFeeHwmPct;
   final ValueChanged<String> onFeeVersionChanged;
   final ValueChanged<bool> onFrontEndAllChanged;
+  final ValueChanged<bool> onReferralEnabledChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1211,6 +1222,15 @@ class _V2FeeConfigSection extends StatelessWidget {
               ),
               value: frontEndLoadAllDeposits,
               onChanged: onFrontEndAllChanged,
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.tr("referral_enabled_label")),
+              subtitle: const Text(
+                "When OFF, no referral fee or commission is charged for any investor.",
+              ),
+              value: referralEnabled,
+              onChanged: onReferralEnabledChanged,
             ),
             const SizedBox(height: 12),
             TextFormField(
