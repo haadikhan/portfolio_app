@@ -163,7 +163,10 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
       final restAsync = ref.watch(kmi30RestTickProvider(c.symbol));
       final liveAsync =
           ref.watch(selectedCompanyLiveTickStreamProvider(c.symbol));
-      final t = liveAsync.valueOrNull ?? restAsync.valueOrNull;
+      final t = selectKmi30CompanyTick(
+        liveAsync.valueOrNull,
+        restAsync.valueOrNull,
+      );
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 6),
@@ -367,6 +370,17 @@ class _InvestedColumn extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          "${a.weightPercent.toStringAsFixed(1)}% of index",
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.end,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontSize: 10,
           ),
         ),
         const SizedBox(height: 2),

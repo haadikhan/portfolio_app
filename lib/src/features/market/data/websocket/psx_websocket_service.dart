@@ -89,10 +89,11 @@ class PsxWebSocketService {
     }));
     for (var i = 0; i < _symbols.length; i++) {
       final sym = _symbols[i];
+      final marketType = sym == "KMI30" ? "IDX" : "EQ";
       ch.sink.add(jsonEncode({
         "type": "subscribe",
         "subscriptionType": "marketData",
-        "params": {"marketType": "IDX", "symbol": sym},
+        "params": {"marketType": marketType, "symbol": sym},
         "requestId": "kmi30-$i-$sym",
       }));
     }
