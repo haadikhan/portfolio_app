@@ -107,5 +107,14 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "changeRequests",
+      "fieldPath": "requestedAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

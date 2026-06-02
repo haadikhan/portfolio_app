@@ -49,6 +49,7 @@ class PsxWebSocketService {
     if (_channel != null) return;
     debugPrint("[PSX-WS] Attempting connection...");
     debugPrint("[PSX-WS] URI: wss://psxterminal.com:443/");
+
     _setStatus(
       _attempt == 0 ? PsxWsStatus.connecting : PsxWsStatus.reconnecting,
     );

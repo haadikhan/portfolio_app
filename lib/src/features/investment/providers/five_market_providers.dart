@@ -112,12 +112,29 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   }
 
   final basePkr = netPortfolioValueFromWallet(wallet);
-  final kmi30Pct = kmi30Tick?.changePercent ?? 0.0;
-  final goldPct = goldQuote?.changePercent ?? 0.0;
 
-  // LIVE only during market hours (09:00–16:00 PKT) on trading days
-  // REALIZED after 16:00 PKT on trading days
-  final isIntraday = tradingDay.isTradingDay && _isWithinMarketHours();
+  // Determine if we are currently within market hours
+  final withinMarketHours =
+      tradingDay.isTradingDay && _isWithinMarketHours();
+
+  // After market close (or on non-trading days), use 0.0
+  // for live tick percentages.
+  //
+  // Reason: the day's P&L snapshot is booked by the EOD
+  // Cloud Function (fiveMarketDailyCredit at 00:05 PKT).
+  // Any deposit approved after 4pm must NOT be subjected
+  // to that day's price movement — the investor bought at
+  // today's closing price and their P&L starts fresh from
+  // the next trading day open.
+  //
+  // During market hours (09:00–16:00 PKT): use live tick
+  // so the screen shows real-time movement.
+  final kmi30Pct = withinMarketHours
+      ? (kmi30Tick?.changePercent ?? 0.0)
+      : 0.0;
+  final goldPct = withinMarketHours
+      ? (goldQuote?.changePercent ?? 0.0)
+      : 0.0;
 
   return FiveMarketDailyEngine.calculate(
     basePkr: basePkr,
@@ -125,7 +142,7 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
     tradingDay: tradingDay,
     kmi30Percent: kmi30Pct,
     goldPercent: goldPct,
-    isIntraday: isIntraday,
+    isIntraday: withinMarketHours,
   );
 });
 
