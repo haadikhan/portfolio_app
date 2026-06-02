@@ -48,12 +48,24 @@ class Kmi30Tick {
 
   factory Kmi30Tick.fromRestJson(Map<String, dynamic> json) {
     final data = (json["data"] as Map?)?.cast<String, dynamic>() ?? json;
+    final price = (data["price"] as num?)?.toDouble() ?? 0;
+    final open = (data["open"] as num?)?.toDouble();
+    double changePercent =
+        ((data["changePercent"] ??
+                    data["changePct"] ??
+                    data["pct"] ??
+                    data["pc"]) as num?)
+                ?.toDouble() ??
+            0;
+    if (changePercent == 0 && open != null && open != 0 && price != 0) {
+      changePercent = (price - open) / open * 100;
+    }
     return Kmi30Tick(
       symbol: (data["symbol"] as String? ?? "").trim().toUpperCase(),
-      price: (data["price"] as num?)?.toDouble() ?? 0,
+      price: price,
       change: (data["change"] as num?)?.toDouble() ?? 0,
-      changePercent: (data["changePercent"] as num?)?.toDouble() ?? 0,
-      open: (data["open"] as num?)?.toDouble(),
+      changePercent: changePercent,
+      open: open,
       high: (data["high"] as num?)?.toDouble() ?? 0,
       low: (data["low"] as num?)?.toDouble() ?? 0,
       volume: (data["volume"] as num?)?.toDouble() ?? 0,
@@ -68,13 +80,25 @@ class Kmi30Tick {
       json["symbol"] ?? json["s"] ?? (json["params"] as Map?)?["symbol"],
     );
     final openRaw = json["open"] ?? json["o"];
+    final price = ((json["price"] ?? json["c"]) as num?)?.toDouble() ?? 0;
+    final open = (openRaw is num) ? openRaw.toDouble() : null;
+    double changePercent =
+        ((json["changePercent"] ??
+                    json["pch"] ??
+                    json["changePct"] ??
+                    json["pct"] ??
+                    json["pc"]) as num?)
+                ?.toDouble() ??
+            0;
+    if (changePercent == 0 && open != null && open != 0 && price != 0) {
+      changePercent = (price - open) / open * 100;
+    }
     return Kmi30Tick(
       symbol: symbol,
-      price: ((json["price"] ?? json["c"]) as num?)?.toDouble() ?? 0,
+      price: price,
       change: ((json["change"] ?? json["ch"]) as num?)?.toDouble() ?? 0,
-      changePercent:
-          ((json["changePercent"] ?? json["pch"]) as num?)?.toDouble() ?? 0,
-      open: (openRaw is num) ? openRaw.toDouble() : null,
+      changePercent: changePercent,
+      open: open,
       high: ((json["high"] ?? json["h"]) as num?)?.toDouble() ?? 0,
       low: ((json["low"] ?? json["l"]) as num?)?.toDouble() ?? 0,
       volume: ((json["volume"] ?? json["v"]) as num?)?.toDouble() ?? 0,

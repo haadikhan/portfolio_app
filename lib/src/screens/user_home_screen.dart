@@ -10,6 +10,7 @@ import "../core/compliance/risk_disclaimer_prefs.dart";
 import "../core/widgets/app_bar_actions.dart";
 import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
+import "../features/investment/providers/five_market_providers.dart";
 import "../features/investment/providers/market_sleeve_balance_provider.dart";
 import "../features/investment/data/allocation_money_market.dart";
 import "../features/update/data/app_update_providers.dart";
@@ -24,6 +25,12 @@ final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
 String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
   if (hide) return "PKR ••••••";
   return formattedIfVisible;
+}
+
+/// True when current PKT time is within PSX market hours (09:00–16:00).
+bool _isDashboardMarketHours() {
+  final hour = DateTime.now().toUtc().add(const Duration(hours: 5)).hour;
+  return hour >= 9 && hour < 16;
 }
 
 /// Last segment of Firebase UID for compact "portfolio number" display.
@@ -714,6 +721,9 @@ class _WalletCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tradingDay = ref.watch(todayTradingDayProvider);
+    final isMarketOpen =
+        tradingDay.isTradingDay && _isDashboardMarketHours();
     final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
     final moneyMarketPkr = moneyMarketAvailableFromWallet(wallet);
     final totalPortfolioPkr =
@@ -883,14 +893,18 @@ class _WalletCard extends ConsumerWidget {
                             Container(
                               width: 7,
                               height: 7,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF69F0AE),
+                              decoration: BoxDecoration(
+                                color: isMarketOpen
+                                    ? const Color(0xFF69F0AE)
+                                    : Colors.white38,
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              context.tr("live_badge"),
+                              isMarketOpen
+                                  ? context.tr("live_badge")
+                                  : context.tr("market_closed_badge"),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,

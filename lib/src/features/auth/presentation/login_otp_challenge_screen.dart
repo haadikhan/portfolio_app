@@ -126,7 +126,11 @@ class _LoginOtpChallengeScreenState extends State<LoginOtpChallengeScreen> {
       case OtpFailed():
         setState(() {
           _sending = false;
-          _error = res.message;
+          _error = res.isAttestationError
+              ? context.tr("otp_send_failed_attestation")
+              : res.code == "too-many-requests"
+                  ? context.tr("otp_challenge_too_many_requests")
+                  : context.tr("otp_challenge_generic_error");
         });
     }
   }

@@ -10,7 +10,9 @@ import "../../../models/portfolio_model.dart";
 import "../../../providers/portfolio_providers.dart";
 import "../../../providers/wallet_providers.dart";
 import "../data/allocation_money_market.dart";
+import "../domain/five_market_models.dart";
 import "../domain/market_sleeve_balance.dart";
+import "../providers/five_market_providers.dart";
 import "../providers/market_sleeve_balance_provider.dart";
 import "widgets/allocation_pie_chart_widget.dart";
 import "widgets/performance_metrics_widget.dart";
@@ -67,6 +69,8 @@ class _InvestmentPortfolioScreenState
     final historyAsync = ref.watch(myReturnHistoryProvider);
     final walletAsync = ref.watch(userWalletStreamProvider);
     final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
+    final config = ref.watch(fiveMarketConfigProvider).valueOrNull ??
+        FiveMarketConfig.defaults;
     final double availableBalance = walletAsync.maybeWhen(
       data: (wallet) => _readAvailableBalance(wallet),
       orElse: () => 0.0,
@@ -114,6 +118,7 @@ class _InvestmentPortfolioScreenState
                     child: AllocationPieChartWidget(
                       totalAmountPkr: chartTotalPkr,
                       sleeveEntries: sleeveSnap?.sleeves,
+                      configAllocations: config.allocations,
                     ),
                   );
                 },

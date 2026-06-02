@@ -22,7 +22,7 @@ enum PsxWsStatus { connecting, connected, disconnected, reconnecting }
 
 class PsxWebSocketService {
   PsxWebSocketService({required List<String> symbols})
-      : _symbols = symbols.map((e) => e.trim().toUpperCase()).toSet().toList();
+    : _symbols = symbols.map((e) => e.trim().toUpperCase()).toSet().toList();
 
   final List<String> _symbols;
 
@@ -49,7 +49,9 @@ class PsxWebSocketService {
     if (_channel != null) return;
     debugPrint("[PSX-WS] Attempting connection...");
     debugPrint("[PSX-WS] URI: wss://psxterminal.com:443/");
-    _setStatus(_attempt == 0 ? PsxWsStatus.connecting : PsxWsStatus.reconnecting);
+    _setStatus(
+      _attempt == 0 ? PsxWsStatus.connecting : PsxWsStatus.reconnecting,
+    );
     try {
       final wsUri = Uri(
         scheme: "wss",
@@ -60,12 +62,14 @@ class PsxWebSocketService {
       debugPrint("[PSX-WS] Built URI: $wsUri");
       final channel = WebSocketChannel.connect(wsUri);
       _channel = channel;
-      channel.ready.then((_) {
-        debugPrint("[PSX-WS] Connection ready ✓");
-      }).catchError((Object e) {
-        debugPrint("[PSX-WS] ready failed: $e");
-        debugPrint("[PSX-WS] runtimeType: ${e.runtimeType}");
-      });
+      channel.ready
+          .then((_) {
+            debugPrint("[PSX-WS] Connection ready ✓");
+          })
+          .catchError((Object e) {
+            debugPrint("[PSX-WS] ready failed: $e");
+            debugPrint("[PSX-WS] runtimeType: ${e.runtimeType}");
+          });
       _sub = channel.stream.listen(
         _handleMessage,
         onError: (Object e) => _handleDisconnect(e),
@@ -83,19 +87,18 @@ class PsxWebSocketService {
   void _sendSubscribe() {
     final ch = _channel;
     if (ch == null) return;
-    ch.sink.add(jsonEncode({
-      "action": "subscribe",
-      "symbols": _symbols,
-    }));
+    ch.sink.add(jsonEncode({"action": "subscribe", "symbols": _symbols}));
     for (var i = 0; i < _symbols.length; i++) {
       final sym = _symbols[i];
       final marketType = sym == "KMI30" ? "IDX" : "EQ";
-      ch.sink.add(jsonEncode({
-        "type": "subscribe",
-        "subscriptionType": "marketData",
-        "params": {"marketType": marketType, "symbol": sym},
-        "requestId": "kmi30-$i-$sym",
-      }));
+      ch.sink.add(
+        jsonEncode({
+          "type": "subscribe",
+          "subscriptionType": "marketData",
+          "params": {"marketType": marketType, "symbol": sym},
+          "requestId": "kmi30-$i-$sym",
+        }),
+      );
     }
   }
 
@@ -118,7 +121,8 @@ class PsxWebSocketService {
     // 1) direct tick payload
     // 2) { type: "tickUpdate", data: {...} }
     // 3) { event: "...", payload: {...} }
-    Map<String, dynamic> data = (map["data"] as Map?)?.cast<String, dynamic>() ??
+    Map<String, dynamic> data =
+        (map["data"] as Map?)?.cast<String, dynamic>() ??
         (map["payload"] as Map?)?.cast<String, dynamic>() ??
         map;
 
@@ -188,7 +192,9 @@ class PsxWebSocketService {
     await _sub?.cancel();
     _sub = null;
     try {
-      _channel?.sink.add(jsonEncode({"action": "unsubscribe", "symbols": _symbols}));
+      _channel?.sink.add(
+        jsonEncode({"action": "unsubscribe", "symbols": _symbols}),
+      );
     } catch (_) {}
     await _channel?.sink.close();
     _channel = null;

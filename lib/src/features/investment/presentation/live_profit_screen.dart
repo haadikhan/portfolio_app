@@ -1234,28 +1234,18 @@ class _MarketStatusRow extends StatelessWidget {
       runSpacing: 8,
       children: [
         _StatusChip(
-          label: live.isTradingDay
-              ? context.tr("live_profit_market_open")
-              : context.tr("live_profit_market_closed"),
-          background: live.isTradingDay
-              ? scheme.primaryContainer
-              : scheme.errorContainer,
-          foreground: live.isTradingDay
-              ? scheme.onPrimaryContainer
-              : scheme.onErrorContainer,
+          label: !live.isTradingDay
+              ? context.tr("live_profit_market_closed")
+              : live.isMarketHours
+                  ? context.tr("live_profit_market_open")
+                  : context.tr("live_profit_after_hours_closed"),
+          background: !live.isTradingDay || !live.isMarketHours
+              ? scheme.errorContainer
+              : scheme.primaryContainer,
+          foreground: !live.isTradingDay || !live.isMarketHours
+              ? scheme.onErrorContainer
+              : scheme.onPrimaryContainer,
         ),
-        if (live.isTradingDay)
-          _StatusChip(
-            label: live.isMarketHours
-                ? context.tr("live_profit_live_label")
-                : context.tr("live_profit_after_hours"),
-            background: live.isMarketHours
-                ? scheme.tertiaryContainer
-                : scheme.surfaceContainerHighest,
-            foreground: live.isMarketHours
-                ? scheme.onTertiaryContainer
-                : scheme.onSurfaceVariant,
-          ),
       ],
     );
   }

@@ -102,6 +102,7 @@ const _en = <String, String>{
   "show_amounts": "Show amounts",
   "hide_amounts": "Hide amounts",
   "live_badge": "Live",
+  "market_closed_badge": "Closed",
   "available": "Available",
   "reserved": "Pending",
   "profit_label": "Profit",
@@ -353,6 +354,7 @@ const _en = <String, String>{
   "live_profit_market_closed": "Market Closed",
   "live_profit_live_label": "Live",
   "live_profit_after_hours": "After Hours",
+  "live_profit_after_hours_closed": "Closed (After Hours)",
   "live_profit_kmi30_sub": "KMI30 Index",
   "live_profit_fixed_sub": "Fixed rate · accruing per second",
   "live_profit_gold_sub": "Gold / Asset Market",
@@ -1216,6 +1218,8 @@ const _en = <String, String>{
       "Something is wrong with this device’s security data. Please try again or restart the app.",
   "otp_enroll_send_cooldown": "Wait %ss",
   "otp_challenge_generic_error": "Something went wrong. Please try again.",
+  "otp_send_failed_attestation":
+      "Verification is temporarily unavailable on this device. Please try again later or contact support.",
   "otp_enroll_title": "Verify your phone",
   "otp_enroll_subtitle":
       "We'll send a one-time 6-digit code to confirm this number belongs to you.",
@@ -1536,6 +1540,7 @@ const _ur = <String, String>{
   "show_amounts": "رقم دکھائیں",
   "hide_amounts": "رقم چھپائیں",
   "live_badge": "لائیو",
+  "market_closed_badge": "بند",
   "available": "دستیاب",
   "reserved": "زیر التواء",
   "profit_label": "منافع",
@@ -1784,6 +1789,7 @@ const _ur = <String, String>{
   "live_profit_market_closed": "مارکیٹ بند ہے",
   "live_profit_live_label": "لائیو",
   "live_profit_after_hours": "اوقات کے بعد",
+  "live_profit_after_hours_closed": "بند (ٹریڈنگ کے بعد)",
   "live_profit_kmi30_sub": "KMI30 انڈیکس",
   "live_profit_fixed_sub": "مقررہ شرح · فی سیکنڈ",
   "live_profit_gold_sub": "سونا / اثاثہ مارکیٹ",
@@ -2632,6 +2638,8 @@ const _ur = <String, String>{
       "اس ڈیوائس پر سکیورٹی ڈیٹا میں مسئلہ ہے۔ دوبارہ کوشش کریں یا ایپ ری اسٹارٹ کریں۔",
   "otp_enroll_send_cooldown": "%s سیکنڈ",
   "otp_challenge_generic_error": "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
+  "otp_send_failed_attestation":
+      "اس ڈیوائس پر تصدیق فی الحال دستیاب نہیں۔ بعد میں دوبارہ کوشش کریں یا سپورٹ سے رابطہ کریں۔",
   "otp_enroll_title": "اپنا فون تصدیق کریں",
   "otp_enroll_subtitle":
       "ہم 6 ہندسی ون ٹائم کوڈ بھیج کر تصدیق کریں گے کہ یہ نمبر آپ کا ہے۔",

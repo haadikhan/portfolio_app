@@ -2,18 +2,23 @@
 // Must sum to 100.
 
 /// Money market / liquidity sleeve ([`allocation_pie_chart_widget.dart`]).
+@Deprecated("Use FiveMarketConfig.defaults.allocations instead")
 const double kMoneyMarketAllocationPercent = 5.0;
 
 /// Listed equities / PSX-oriented sleeve.
+@Deprecated("Use FiveMarketConfig.defaults.allocations instead")
 const double kStockMarketAllocationPercent = 40.0;
 
 /// Technology-oriented growth sleeve.
+@Deprecated("Use FiveMarketConfig.defaults.allocations instead")
 const double kTechAllocationPercent = 25.0;
 
 /// Debt / income sleeve (e.g. Sukuk).
+@Deprecated("Use FiveMarketConfig.defaults.allocations instead")
 const double kDebtMarketAllocationPercent = 25.0;
 
 /// Alternative sleeve represented here as digital gold / commodities-style exposure.
+@Deprecated("Use FiveMarketConfig.defaults.allocations instead")
 const double kAlternativeAssetAllocationPercent = 5.0;
 
 /// Same rule as segment amounts in the allocation pie: [percentage] of [total].

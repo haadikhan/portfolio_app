@@ -4,9 +4,26 @@ import "package:intl/intl.dart";
 
 import "../../../../core/i18n/app_translations.dart";
 import "../../data/allocation_money_market.dart";
+import "../../domain/five_market_models.dart";
 import "../../domain/market_sleeve_balance.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
+
+const _allocationColors = <Color>[
+  Color(0xFF0F7A2C),
+  Color(0xFF2196F3),
+  Color(0xFFFF9800),
+  Color(0xFF9C27B0),
+  Color(0xFFE91E63),
+];
+
+List<String> _allocationLabels(BuildContext context) => [
+      context.tr("alloc_stock_market"),
+      context.tr("alloc_tech"),
+      context.tr("alloc_debt"),
+      context.tr("alloc_money"),
+      context.tr("alloc_asset"),
+    ];
 
 List<_Allocation> _allocationsFor(BuildContext context, double totalAmountPkr) => [
       _Allocation(
@@ -41,38 +58,59 @@ List<_Allocation> _allocationsFor(BuildContext context, double totalAmountPkr) =
       ),
     ];
 
-/// When [sleeves] matches snapshot order (stock→tech→debt→money→gold), slices use [displayPkr].
+/// When [sleeves] matches snapshot order (stock→tech→debt→money→gold), labels
+/// use [config] target %; PKR amounts stay on actual [SleeveBalanceEntry.displayPkr].
 List<_Allocation> _allocationsMerged(
   BuildContext context,
   double totalAmountPkr,
   List<SleeveBalanceEntry>? sleeves,
+  FiveMarketAllocations? config,
 ) {
+  final labels = _allocationLabels(context);
+  final configPcts = config != null
+      ? [
+          config.stock,
+          config.tech,
+          config.debt,
+          config.money,
+          config.gold,
+        ]
+      : null;
+
   if (sleeves != null && sleeves.length == 5) {
-    const colors = <Color>[
-      Color(0xFF0F7A2C),
-      Color(0xFF2196F3),
-      Color(0xFFFF9800),
-      Color(0xFF9C27B0),
-      Color(0xFFE91E63),
-    ];
-    final labels = <String>[
-      context.tr("alloc_stock_market"),
-      context.tr("alloc_tech"),
-      context.tr("alloc_debt"),
-      context.tr("alloc_money"),
-      context.tr("alloc_asset"),
-    ];
     final pos = sleeves
         .map((e) => e.displayPkr.isFinite && e.displayPkr > 0 ? e.displayPkr : 0.0)
         .toList();
     final sumPos = pos.fold(0.0, (a, b) => a + b);
-    if (sumPos > 0) {
+
+    if (sumPos > 0 || configPcts != null) {
       return List<_Allocation>.generate(5, (i) {
-        final pctShare = pos[i] / sumPos * 100;
-        return _Allocation(labels[i], pctShare, colors[i], sleeves[i].displayPkr);
+        final displayPct = configPcts != null
+            ? configPcts[i]
+            : pos[i] / sumPos * 100;
+
+        return _Allocation(
+          labels[i],
+          displayPct,
+          _allocationColors[i],
+          sleeves[i].displayPkr,
+        );
       });
     }
   }
+
+  if (configPcts != null) {
+    return List<_Allocation>.generate(
+      5,
+      (i) => _Allocation(
+        labels[i],
+        configPcts[i],
+        _allocationColors[i],
+        totalAmountPkr * configPcts[i] / 100,
+      ),
+    );
+  }
+
   return _allocationsFor(context, totalAmountPkr);
 }
 
@@ -94,10 +132,12 @@ class AllocationPieChartWidget extends StatefulWidget {
     super.key,
     this.totalAmountPkr = 0,
     this.sleeveEntries,
+    this.configAllocations,
   });
 
   final double totalAmountPkr;
   final List<SleeveBalanceEntry>? sleeveEntries;
+  final FiveMarketAllocations? configAllocations;
 
   @override
   State<AllocationPieChartWidget> createState() =>
@@ -113,15 +153,19 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
       context,
       widget.totalAmountPkr,
       widget.sleeveEntries,
+      widget.configAllocations,
     );
     final scheme = Theme.of(context).colorScheme;
     final se = widget.sleeveEntries;
     final mmPkr = (se != null && se.length == 5 && se[3].displayPkr.isFinite)
         ? se[3].displayPkr
         : moneyMarketAmountFromAllocationTotal(widget.totalAmountPkr);
-    final pieSlices = allocations
-        .map((a) => a.amountPkr.isFinite && a.amountPkr > 0 ? a.amountPkr : 0.0)
-        .toList();
+    final useConfigSizing = widget.configAllocations != null;
+    final pieSlices = useConfigSizing
+        ? allocations.map((a) => a.pct).toList()
+        : allocations
+            .map((a) => a.amountPkr.isFinite && a.amountPkr > 0 ? a.amountPkr : 0.0)
+            .toList();
     final pieSum = pieSlices.fold(0.0, (a, b) => a + b);
 
     return Column(
@@ -197,9 +241,7 @@ class _AllocationPieChartWidgetState extends State<AllocationPieChartWidget> {
                     final a = allocations[i];
                     final isTouched = i == _touched;
                     final v = pieSum > 0 ? pieSlices[i] : a.pct;
-                    final pctLabel = pieSum > 0
-                        ? (pieSlices[i] / pieSum * 100).round()
-                        : a.pct.round();
+                    final pctLabel = a.pct.round();
                     return PieChartSectionData(
                       value: v,
                       color: a.color,
@@ -389,7 +431,7 @@ class _AllocationBar extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    "${allocation.pct.toInt()}%",
+                    "${allocation.pct.round()}%",
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
