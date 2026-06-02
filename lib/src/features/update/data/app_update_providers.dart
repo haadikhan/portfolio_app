@@ -243,6 +243,11 @@ AppUpdateGateState _generationGate({
 }
 
 final appReleaseStreamProvider = StreamProvider<AppReleaseInfo?>((ref) {
+  // Watch auth state so this provider restarts when the user signs in or out.
+  // This recovers the Firestore stream if it previously errored before auth
+  // was available (e.g., cold boot with old security rules, transient error).
+  ref.watch(authStateProvider);
+
   return ref
       .read(firebaseFirestoreProvider)
       .collection("app_releases")

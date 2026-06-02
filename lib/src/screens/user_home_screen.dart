@@ -276,6 +276,15 @@ class _DashboardViewState extends ConsumerState<_DashboardView> {
 class _DashboardAppBar extends ConsumerWidget {
   const _DashboardAppBar();
 
+  String _timeBasedGreeting(BuildContext context) {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return "Good morning,";
+    if (hour >= 12 && hour < 17) return "Good afternoon,";
+    if (hour >= 17 && hour < 21) return "Good evening,";
+    if (hour >= 21 || hour < 5) return "Good night,";
+    return context.tr("good_day");
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -294,7 +303,7 @@ class _DashboardAppBar extends ConsumerWidget {
         ),
       ),
       title: Text(
-        context.tr("good_day"),
+        _timeBasedGreeting(context),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(

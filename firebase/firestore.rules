@@ -357,12 +357,16 @@ service cloud.firestore {
     }
 
     // Admin-published app update metadata consumed by investor app.
+    // Public read: APK version name, build number, and download URL are not
+    // sensitive. Unauthenticated clients (login screen, cold boot before auth
+    // restores) must be able to read this so the update banner appears before
+    // the user signs in.
     match /app_releases/{releaseId} {
-      allow read: if isSignedIn();
+      allow read: if true;             // Public — APK metadata is not sensitive
       allow create, update, delete: if isAdmin();
 
       match /{document=**} {
-        allow read: if isSignedIn();
+        allow read: if true;           // Public
         allow create, update, delete: if isAdmin();
       }
     }
