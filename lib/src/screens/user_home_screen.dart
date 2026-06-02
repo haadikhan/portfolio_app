@@ -11,6 +11,7 @@ import "../core/widgets/app_bar_actions.dart";
 import "../core/widgets/app_error_dialog.dart";
 import "../core/widgets/mandatory_risk_disclaimer_strip.dart";
 import "../features/investment/providers/five_market_providers.dart";
+import "../features/investment/providers/five_market_live_profit_provider.dart";
 import "../features/investment/providers/market_sleeve_balance_provider.dart";
 import "../features/investment/data/allocation_money_market.dart";
 import "../features/update/data/app_update_providers.dart";
@@ -733,7 +734,7 @@ class _WalletCard extends ConsumerWidget {
     final tradingDay = ref.watch(todayTradingDayProvider);
     final isMarketOpen =
         tradingDay.isTradingDay && _isDashboardMarketHours();
-    final sleeveSnap = ref.watch(marketSleeveBalancesProvider);
+    final liveProfit = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
     final moneyMarketPkr = moneyMarketAvailableFromWallet(wallet);
     final totalPortfolioPkr =
         ref.watch(dashboardTotalPortfolioProvider) ??
@@ -1055,13 +1056,14 @@ class _WalletCard extends ConsumerWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            if (sleeveSnap != null &&
-                                sleeveSnap.pendingTodayTotalPkr != 0)
+                            if (liveProfit != null &&
+                                liveProfit.isTradingDay &&
+                                liveProfit.totalProfitPkr != 0)
                               Padding(
                                 padding: const EdgeInsets.only(top: 5),
                                 child: Text(
                                   "${context.tr("dashboard_profit_pending_overnight_label")}: "
-                                  "${_dashboardMoneyDisplay(hideMoney, _money.format(sleeveSnap.pendingTodayTotalPkr))}",
+                                  "${_dashboardMoneyDisplay(hideMoney, _money.format(liveProfit.totalProfitPkr))}",
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.88),
                                     fontSize: 12,
