@@ -39,6 +39,7 @@ import "../features/market/presentation/kmi30_companies_screen.dart";
 import "../features/market/presentation/kmi30_company_chart_screen.dart";
 import "../features/reports/presentation/reports_screen.dart";
 import "../features/security/presentation/trusted_devices_screen.dart";
+import "../features/fee_manual/presentation/fee_manual_screen.dart";
 import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../features/update/data/app_update_providers.dart";
 import "../features/update/presentation/force_update_screen.dart";
@@ -175,6 +176,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           path: "/transparency",
           builder: (_, __) =>
               const ConsentGateScreen(child: TransparencyHubScreen()),
+        ),
+        GoRoute(
+          path: "/fee-manual",
+          builder: (_, __) => const FeeManualScreen(),
         ),
         GoRoute(
           path: "/portfolio",

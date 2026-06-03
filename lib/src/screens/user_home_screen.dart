@@ -423,6 +423,14 @@ class _AppDrawer extends ConsumerWidget {
                     },
                   ),
                   _DrawerItem(
+                    icon: Icons.receipt_long_rounded,
+                    label: context.tr("drawer_fee_manual"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/fee-manual");
+                    },
+                  ),
+                  _DrawerItem(
                     icon: Icons.pie_chart,
                     label: context.tr("drawer_portfolio"),
                     onTap: () {
