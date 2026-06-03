@@ -8,7 +8,6 @@ import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/transaction_history_providers.dart";
 
-final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
 final _dateFmt = DateFormat("MMM d, yyyy");
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
@@ -30,6 +29,7 @@ class _TransactionHistoryScreenState
   static const _kFeeTypes = <String>{
     "front_end_load_fee",
     "referral_fee",
+    "management_fee",
     "performance_fee",
   };
 
@@ -189,12 +189,6 @@ class TransactionRowItem extends StatelessWidget {
   const TransactionRowItem({super.key, required this.txn});
   final TxnItem txn;
 
-  static const _kFeeTypes = <String>{
-    "front_end_load_fee",
-    "referral_fee",
-    "performance_fee",
-  };
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -204,7 +198,7 @@ class TransactionRowItem extends StatelessWidget {
     final isGain = isProfit && txn.amount >= 0;
     final isLoss = isProfit && txn.amount < 0;
     final isWithdrawal = txn.type == "withdrawal";
-    final isFee = _kFeeTypes.contains(txn.type);
+    final isFee = isFeeType(txn.type);
 
     final (Color iconBg, Color iconFg, IconData icon) = isDeposit
         ? (
@@ -242,17 +236,11 @@ class TransactionRowItem extends StatelessWidget {
                             Icons.receipt_long_outlined,
                           );
 
-    final amountColor =
-        (isDeposit || isGain) ? AppColors.success : AppColors.error;
-    final amountSign = (isDeposit || isGain) ? "+" : "-";
-
-    final typeLabel = isDeposit
-        ? context.tr("txn_type_deposit")
-        : isWithdrawal
-            ? context.tr("txn_type_withdrawal")
-            : isFee
-                ? _feeLabel(context, txn.type)
-                : context.tr("txn_type_profit_credit");
+    final typeLabel = localizedTransactionTypeLabel(context, txn.type);
+    final detailLine = transactionListSubtitle(
+      id: txn.id,
+      notes: txn.note,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -287,6 +275,16 @@ class TransactionRowItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
+                  detailLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
                   _dateFmt.format(txn.createdAt),
                   style: TextStyle(
                     fontSize: 11,
@@ -311,11 +309,15 @@ class TransactionRowItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "$amountSign${_money.format(txn.amount.abs())}",
+                formatTransactionAmount(txn.type, txn.amount),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: amountColor,
+                  color: transactionAmountColor(
+                    txn.type,
+                    context,
+                    amount: txn.amount,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
@@ -342,20 +344,6 @@ class TransactionRowItem extends StatelessWidget {
     }
   }
 
-  String _feeLabel(BuildContext context, String ty) {
-    switch (ty) {
-      case "front_end_load_fee":
-        return context.tr("fee_label_front_load");
-      case "referral_fee":
-        return context.tr("fee_label_referral");
-      case "management_fee":
-        return context.tr("fee_label_management");
-      case "performance_fee":
-        return context.tr("fee_label_performance");
-      default:
-        return context.tr("txn_type_fee");
-    }
-  }
 }
 
 class _StatusBadge extends StatelessWidget {

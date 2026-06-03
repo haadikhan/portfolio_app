@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../../../core/formatting/transaction_display.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
@@ -29,17 +30,6 @@ Color _stripeForType(String typeRaw, double amount) {
         : AppColors.dashboardWithdrawFg;
   }
   return AppColors.primary;
-}
-
-String _txnTypeDisplayLabel(BuildContext context, String typeRaw) {
-  final t = typeRaw.toLowerCase();
-  if (t.contains("deposit")) return context.tr("txn_type_deposit");
-  if (t.contains("withdraw")) return context.tr("txn_type_withdrawal");
-  if (t.contains("profit") || t.contains("return")) {
-    return context.tr("txn_type_pl");
-  }
-  if (t.contains("fee")) return context.tr("txn_type_fee");
-  return typeRaw.toUpperCase();
 }
 
 class WalletLedgerScreen extends ConsumerStatefulWidget {
@@ -495,20 +485,15 @@ class _LedgerTransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = doc.data();
     final type = (m["type"] ?? "").toString();
-    final typeLower = type.toLowerCase();
     final status = (m["status"] ?? "").toString();
     final amt = (m["amount"] as num?)?.toDouble() ?? 0;
     final stripe = _stripeForType(type, amt);
-    final isDeposit = typeLower.contains("deposit");
-    final isProfit =
-        typeLower.contains("profit") || typeLower.contains("return");
-    final isGain = isProfit && amt >= 0;
-    final isLoss = isProfit && amt < 0;
-    final amountText = (isDeposit || isGain)
-        ? "+${_money.format(amt.abs())}"
-        : (typeLower.contains("withdraw") || isLoss)
-            ? "-${_money.format(amt.abs())}"
-            : _money.format(amt);
+    final amountText = formatTransactionAmount(type, amt);
+    final amountColor = transactionAmountColor(
+      type,
+      context,
+      amount: amt,
+    );
 
     return Material(
       color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
@@ -542,7 +527,7 @@ class _LedgerTransactionCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            _txnTypeDisplayLabel(context, type),
+                            localizedTransactionTypeLabel(context, type),
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
@@ -555,19 +540,23 @@ class _LedgerTransactionCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
-                            color: stripe,
+                            color: amountColor,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "${doc.id}\n$status · ${_formatTxTs(context, m["createdAt"])}",
+                      "${transactionListSubtitleFromMap(id: doc.id, data: m)}\n"
+                      "${displayTransactionStatus(status)} · "
+                      "${_formatTxTs(context, m["createdAt"])}",
                       style: TextStyle(
                         fontSize: 11,
                         height: 1.35,
                         color: scheme.onSurfaceVariant,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

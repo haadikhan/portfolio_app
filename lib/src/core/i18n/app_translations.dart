@@ -1141,6 +1141,12 @@ const _en = <String, String>{
   // ── Investor side ───────────────────────────────────────────────────
   "tab_fees": "Fees",
   "txn_type_fee": "Fee",
+  "tx_label_management_fee": "Management Fee",
+  "tx_label_performance_fee": "Performance Fee",
+  "tx_label_front_end_load_fee": "Front-End Load Fee",
+  "tx_label_referral_fee": "Referral Commission",
+  "tx_label_fee": "Fee",
+  "tx_label_profit_entry": "Daily Profit",
   "fee_statement_screen_title": "Monthly fee statement",
   "fee_statement_section_title": "Monthly fee statements",
   "fee_statement_section_subtitle":
@@ -2557,6 +2563,12 @@ const _ur = <String, String>{
   // ── Investor side ───────────────────────────────────────────────────
   "tab_fees": "فیسیں",
   "txn_type_fee": "فیس",
+  "tx_label_management_fee": "انتظامی فیس",
+  "tx_label_performance_fee": "کارکردگی فیس",
+  "tx_label_front_end_load_fee": "فرنٹ اینڈ لوڈ فیس",
+  "tx_label_referral_fee": "ریفرل کمیشن",
+  "tx_label_fee": "فیس",
+  "tx_label_profit_entry": "یومیہ منافع",
   "fee_statement_screen_title": "ماہانہ فیس گوشوارہ",
   "fee_statement_section_title": "ماہانہ فیس گوشوارے",
   "fee_statement_section_subtitle":
