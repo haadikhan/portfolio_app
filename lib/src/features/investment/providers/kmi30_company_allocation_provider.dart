@@ -47,6 +47,7 @@ Kmi30Tick? selectKmi30CompanyTick(Kmi30Tick? live, Kmi30Tick? rest) {
 final kmi30CompanyAllocationsProvider =
     Provider<List<Kmi30CompanyAllocation>>((ref) {
   assertKmi30WeightSum();
+  final tradingDay = ref.watch(todayTradingDayProvider);
   final dailyResult = ref.watch(fiveMarketDailyResultProvider);
   final stockAlloc = dailyResult?.stock.allocatedPkr ?? 0.0;
 
@@ -57,6 +58,20 @@ final kmi30CompanyAllocationsProvider =
   final indexPct = indexTick?.changePercent ?? 0.0;
 
   return kmi30SeedCompanies.map((c) {
+    final invested = _r2(stockAlloc * c.weightPercent / 100);
+
+    if (!tradingDay.isTradingDay) {
+      return Kmi30CompanyAllocation(
+        symbol: c.symbol,
+        name: c.name,
+        investedPkr: invested,
+        currentValuePkr: invested,
+        todayProfitPkr: 0,
+        todayChangePct: 0,
+        weightPercent: c.weightPercent,
+      );
+    }
+
     final live =
         ref.watch(selectedCompanyLiveTickStreamProvider(c.symbol)).valueOrNull;
     final rest = ref.watch(kmi30RestTickProvider(c.symbol)).valueOrNull;
@@ -90,7 +105,6 @@ final kmi30CompanyAllocationsProvider =
       pct = indexPct;
     }
 
-    final invested = _r2(stockAlloc * c.weightPercent / 100);
     final profit = invested == 0 ? 0.0 : _r2(invested * pct / 100);
     final current = _r2(invested + profit);
 

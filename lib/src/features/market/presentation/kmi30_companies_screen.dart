@@ -5,6 +5,8 @@ import "package:intl/intl.dart";
 
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../../features/investment/domain/five_market_models.dart";
+import "../../../features/investment/providers/five_market_providers.dart";
 import "../../../features/investment/providers/kmi30_company_allocation_provider.dart";
 import "../data/models/kmi30_tick.dart";
 import "../data/websocket/psx_websocket_service.dart";
@@ -23,6 +25,8 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
     final ws = ref.watch(wsConnectionStatusProvider);
     final allocList = ref.watch(kmi30CompanyAllocationsProvider);
     final sortMode = ref.watch(kmi30SortModeProvider);
+    final tradingDay = ref.watch(todayTradingDayProvider);
+    final isTradingDay = tradingDay.isTradingDay;
     final allocBySymbol = {
       for (final a in allocList) a.symbol: a,
     };
@@ -47,9 +51,16 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
 
     // Header slivers rendered as leading items in a single scrollable list
     final headerItems = <Widget>[
-      const Padding(
-        padding: EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: GoldPriceCard(),
+      if (!isTradingDay) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: _OffDayBanner(tradingDay: tradingDay),
+        ),
+        const SizedBox(height: 8),
+      ],
+      Padding(
+        padding: EdgeInsets.fromLTRB(12, isTradingDay ? 12 : 0, 12, 8),
+        child: _Kmi30HeroHeader(isTradingDay: isTradingDay),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
@@ -221,6 +232,35 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                         );
                       }
                       final last = t.price;
+                      final scheme = Theme.of(context).colorScheme;
+                      if (!isTradingDay) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "${context.tr("market_last")} ${last.toStringAsFixed(2)}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              context.tr("kmi30_market_closed_today"),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                       final dayPct =
                           displayKmi30Percent(t.changePercent);
                       return Column(
@@ -258,7 +298,10 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
                   flex: 3,
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: _InvestedColumn(alloc: alloc),
+                    child: _InvestedColumn(
+                      alloc: alloc,
+                      isTradingDay: isTradingDay,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -336,10 +379,160 @@ class _SortChip extends StatelessWidget {
   }
 }
 
+class _Kmi30HeroHeader extends StatelessWidget {
+  const _Kmi30HeroHeader({required this.isTradingDay});
+
+  final bool isTradingDay;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isTradingDay) {
+      return const GoldPriceCard();
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            const GoldPriceCard(),
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: constraints.maxWidth / 2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: 0.92),
+                  borderRadius: const BorderRadius.horizontal(
+                    right: Radius.circular(16),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.show_chart_rounded,
+                              size: 16,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "KMI-30",
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.onSurface,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(
+                        context.tr("kmi30_market_closed_today"),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr("kmi30_day_change_off_day"),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _OffDayBanner extends StatelessWidget {
+  const _OffDayBanner({required this.tradingDay});
+
+  final TradingDayResult tradingDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final subKey = switch (tradingDay.source) {
+      TradingDaySource.forceOpen => "five_market_closed_sub_force_open",
+      TradingDaySource.forceClosed => "five_market_closed_sub_force_closed",
+      TradingDaySource.weekend => "five_market_closed_sub_weekend",
+      TradingDaySource.holiday => "five_market_closed_sub_holiday",
+      TradingDaySource.calendar => "kmi30_off_day_banner_sub",
+    };
+
+    return Card(
+      color: scheme.errorContainer.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.25)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.event_busy_rounded, color: scheme.error, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr("kmi30_off_day_banner_title"),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onErrorContainer,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr(subKey),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onErrorContainer,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InvestedColumn extends StatelessWidget {
-  const _InvestedColumn({required this.alloc});
+  const _InvestedColumn({
+    required this.alloc,
+    required this.isTradingDay,
+  });
 
   final Kmi30CompanyAllocation? alloc;
+  final bool isTradingDay;
 
   @override
   Widget build(BuildContext context) {
@@ -352,12 +545,15 @@ class _InvestedColumn extends StatelessWidget {
       );
     }
     final a = alloc!;
-    final plColor = a.todayProfitPkr > 0
-        ? Colors.green.shade600
-        : a.todayProfitPkr < 0
-            ? Colors.red.shade600
-            : theme.colorScheme.onSurfaceVariant;
-    final plSign = a.todayProfitPkr >= 0 ? "+" : "";
+    final todayPl = isTradingDay ? a.todayProfitPkr : 0.0;
+    final plColor = !isTradingDay
+        ? theme.colorScheme.onSurfaceVariant
+        : todayPl > 0
+            ? Colors.green.shade600
+            : todayPl < 0
+                ? Colors.red.shade600
+                : theme.colorScheme.onSurfaceVariant;
+    final plSign = todayPl >= 0 ? "+" : "";
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
@@ -385,7 +581,7 @@ class _InvestedColumn extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          "${context.tr("kmi30_today_pl_short")}: $plSign${_pkr.format(a.todayProfitPkr)}",
+          "${context.tr("kmi30_today_pl_short")}: $plSign${_pkr.format(todayPl)}",
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
