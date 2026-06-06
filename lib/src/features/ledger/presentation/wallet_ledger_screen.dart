@@ -23,7 +23,9 @@ String _formatTxTs(BuildContext context, dynamic v) {
 Color _stripeForType(String typeRaw, double amount) {
   final t = typeRaw.toLowerCase();
   if (t.contains("deposit")) return AppColors.dashboardDepositFg;
-  if (t.contains("withdraw")) return AppColors.dashboardWithdrawFg;
+  if (t.contains("withdraw") || t.contains("fee")) {
+    return AppColors.dashboardWithdrawFg;
+  }
   if (t.contains("profit") || t.contains("return")) {
     return amount >= 0
         ? AppColors.dashboardDepositFg
@@ -404,12 +406,43 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
               return cb.compareTo(ca);
             });
 
+          final visible = sorted
+              .where(
+                (d) =>
+                    (d.data()["type"] ?? "").toString() != "management_fee",
+              )
+              .toList();
+
+          if (visible.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color:
+                        scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Text(
+                    context.tr("no_transactions_yet"),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            );
+          }
+
           final children = <Widget>[];
 
           if (groupByMonth) {
             String? lastMonth;
             var firstMonthHeader = true;
-            for (final d in sorted) {
+            for (final d in visible) {
               final t = d.data()["createdAt"];
               final monthLabel = t is Timestamp
                   ? DateFormat.yMMMM().format(t.toDate())
@@ -445,7 +478,7 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
               );
             }
           } else {
-            for (final d in sorted) {
+            for (final d in visible) {
               children.add(
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -527,7 +560,11 @@ class _LedgerTransactionCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            localizedTransactionTypeLabel(context, type),
+                            localizedTransactionTypeLabel(
+                              context,
+                              type,
+                              amount: amt,
+                            ),
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,

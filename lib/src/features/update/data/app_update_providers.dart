@@ -170,15 +170,9 @@ AppUpdateGateState _generationGate({
   required int acknowledgedGeneration,
   required int effectiveReleaseGeneration,
 }) {
-  // Generation gate is synchronous (Riverpod Provider). Compare live install to
-  // Firestore: [installedCode] is PackageInfo.buildNumber; [release.versionCode]
-  // is parsed from admin's APK when published (current_android). If the investor
-  // already has this build—or newer—we must never show mandate UI for it.
-  //
-  // Prefs ack is synced from [appUpdateGateProvider] via Future.microtask
-  // acknowledgeUpTo(effectiveGeneration) because async is not allowed here.
-  if (release.versionCode > 0 &&
-      installedCode >= release.versionCode) {
+  // Version-first: if installed versionCode already satisfies required
+  // versionCode, no update is needed regardless of releaseGeneration.
+  if (release.versionCode > 0 && installedCode >= release.versionCode) {
     return AppUpdateGateState(
       installedVersionCode: installedCode,
       installedVersionName: installedName,
@@ -330,22 +324,8 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
 
   final effectiveGen = release.effectiveReleaseGenerationForGate;
 
-  if (release.versionCode <= 0 && effectiveGen <= 0) {
-    return AsyncData(
-      AppUpdateGateState(
-        installedVersionCode: installedCode,
-        installedVersionName: installedName,
-        release: null,
-        isOutdated: false,
-        isBlocked: false,
-        daysLeft: 0,
-      ),
-    );
-  }
-
-  // Investor already meets required build: clear mandate immediately without
-  // requiring force-update "Continue". Persist ack in background (_generationGate
-  // stays sync). Fresh installs on the latest APK (ack still 0) get the same path.
+  // Version-first: installed build meets/exceeds required — skip generation gate
+  // entirely (e.g. admin re-published same versionCode with higher generation).
   if (release.versionCode > 0 && installedCode >= release.versionCode) {
     if (effectiveGen > ack) {
       Future.microtask(() {
@@ -359,6 +339,19 @@ final appUpdateGateProvider = Provider<AsyncValue<AppUpdateGateState>>((ref) {
         installedVersionCode: installedCode,
         installedVersionName: installedName,
         release: release,
+        isOutdated: false,
+        isBlocked: false,
+        daysLeft: 0,
+      ),
+    );
+  }
+
+  if (release.versionCode <= 0 && effectiveGen <= 0) {
+    return AsyncData(
+      AppUpdateGateState(
+        installedVersionCode: installedCode,
+        installedVersionName: installedName,
+        release: null,
         isOutdated: false,
         isBlocked: false,
         daysLeft: 0,

@@ -357,6 +357,8 @@ const _en = <String, String>{
   "live_profit_after_hours_closed": "Closed (After Hours)",
   "live_profit_kmi30_sub": "KMI30 Index",
   "live_profit_fixed_sub": "Fixed rate · accruing per second",
+  "market_no_accrual_today": "No accrual today · market closed",
+  "market_accruing_per_second": "Fixed rate · accruing per second",
   "live_profit_gold_sub": "Gold / Asset Market",
   "live_profit_total_today": "Total Today's Profit",
   "profit_tab_daily": "Daily",
@@ -1248,6 +1250,7 @@ const _en = <String, String>{
   "tx_label_referral_fee": "Referral Commission",
   "tx_label_fee": "Fee",
   "tx_label_profit_entry": "Daily Profit",
+  "tx_label_daily_loss": "Daily Loss",
   "fee_statement_screen_title": "Monthly fee statement",
   "fee_statement_section_title": "Monthly fee statements",
   "fee_statement_section_subtitle":
@@ -1899,6 +1902,8 @@ const _ur = <String, String>{
   "live_profit_after_hours_closed": "بند (ٹریڈنگ کے بعد)",
   "live_profit_kmi30_sub": "KMI30 انڈیکس",
   "live_profit_fixed_sub": "مقررہ شرح · فی سیکنڈ",
+  "market_no_accrual_today": "آج کوئی منافع نہیں · مارکیٹ بند ہے",
+  "market_accruing_per_second": "مقررہ شرح · فی سیکنڈ جمع ہو رہا ہے",
   "live_profit_gold_sub": "سونا / اثاثہ مارکیٹ",
   "live_profit_total_today": "آج کا کل منافع",
   "profit_tab_daily": "یومیہ",
@@ -2771,6 +2776,7 @@ const _ur = <String, String>{
   "tx_label_referral_fee": "ریفرل کمیشن",
   "tx_label_fee": "فیس",
   "tx_label_profit_entry": "یومیہ منافع",
+  "tx_label_daily_loss": "یومیہ نقصان",
   "fee_statement_screen_title": "ماہانہ فیس گوشوارہ",
   "fee_statement_section_title": "ماہانہ فیس گوشوارے",
   "fee_statement_section_subtitle":

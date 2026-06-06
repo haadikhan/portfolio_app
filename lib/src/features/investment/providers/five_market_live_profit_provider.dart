@@ -124,8 +124,14 @@ class FiveMarketPeriodSummary {
   );
 }
 
+/// True when current PKT time is within PSX market hours (09:00–16:00).
+bool isWithinPktMarketHours() => _isMarketHours();
+
 /// PKT session elapsed seconds (09:00–16:00) for smooth fixed-rate UI ticks.
-int elapsedSessionSeconds() {
+/// Returns 0 on non-trading days so fixed-rate sleeves never accrue off-session.
+int elapsedSessionSeconds({required bool isTradingDay}) {
+  if (!isTradingDay) return 0;
+
   final nowPkt = DateTime.now().toUtc().add(const Duration(hours: 5));
   final sessionStart = DateTime.utc(
     nowPkt.year,
@@ -184,8 +190,8 @@ FiveMarketLiveProfitState _buildState({
   final basePkr =
       wallet != null ? allocationTotalFromWallet(wallet) : 0.0;
   final isTradingDay = tradingDay.isTradingDay;
-  final isMarketHours = _isMarketHours();
-  final elapsedSec = elapsedSessionSeconds();
+  final isMarketHours = isTradingDay && _isMarketHours();
+  final elapsedSec = elapsedSessionSeconds(isTradingDay: isTradingDay);
   final alloc = config.allocations;
   final rates = config.rates;
 
@@ -302,10 +308,13 @@ final fiveMarketLiveProfitProvider =
 
   emit();
 
-  final timer = Timer.periodic(const Duration(minutes: 1), (_) => emit());
+  Timer? timer;
+  if (tradingDay.isTradingDay) {
+    timer = Timer.periodic(const Duration(minutes: 1), (_) => emit());
+  }
 
   ref.onDispose(() {
-    timer.cancel();
+    timer?.cancel();
     controller.close();
   });
 

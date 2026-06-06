@@ -33,8 +33,7 @@ bool isCredit(String type, [double? amount]) {
   final t = type.toLowerCase();
   return switch (t) {
     "deposit" => true,
-    "profit_entry" => true,
-    "profit" => true,
+    "profit_entry" || "profit" => (amount ?? 0) >= 0,
     "adjustment" => (amount ?? 0) >= 0,
     _ => false,
   };
@@ -57,7 +56,7 @@ String formatTransactionAmount(String type, double amount) {
 }
 
 /// User-facing transaction type label (English; PDF / non-UI).
-String displayTransactionType(String type) {
+String displayTransactionType(String type, {double? amount}) {
   switch (type.toLowerCase()) {
     case "deposit":
       return "Deposit";
@@ -65,7 +64,7 @@ String displayTransactionType(String type) {
       return "Redemption";
     case "profit":
     case "profit_entry":
-      return "Daily Profit";
+      return (amount ?? 0) < 0 ? "Daily Loss" : "Daily Profit";
     case "management_fee":
       return "Management Fee";
     case "performance_fee":
@@ -83,7 +82,11 @@ String displayTransactionType(String type) {
 }
 
 /// Localized transaction type label for in-app lists.
-String localizedTransactionTypeLabel(BuildContext context, String type) {
+String localizedTransactionTypeLabel(
+  BuildContext context,
+  String type, {
+  double? amount,
+}) {
   switch (type.toLowerCase()) {
     case "deposit":
       return context.tr("txn_type_deposit");
@@ -91,7 +94,9 @@ String localizedTransactionTypeLabel(BuildContext context, String type) {
       return context.tr("txn_type_withdrawal");
     case "profit":
     case "profit_entry":
-      return context.tr("tx_label_profit_entry");
+      return (amount ?? 0) < 0
+          ? context.tr("tx_label_daily_loss")
+          : context.tr("tx_label_profit_entry");
     case "management_fee":
       return context.tr("tx_label_management_fee");
     case "performance_fee":

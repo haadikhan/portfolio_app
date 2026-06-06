@@ -43,24 +43,60 @@ double _localFixedProfit({
   return double.parse((daily / 25200 * elapsedSec).toStringAsFixed(2));
 }
 
+/// Fixed-rate sleeve display: zero off-day; per-second during hours; realized after close.
+double _fixedRateDisplayProfit({
+  required FiveMarketLiveProfitState live,
+  required double allocatedPkr,
+  required double annualPercent,
+  required double realizedProfitPkr,
+  required int elapsedSec,
+}) {
+  if (!live.isTradingDay) return 0;
+  if (live.isMarketHours) {
+    return _localFixedProfit(
+      allocatedPkr: allocatedPkr,
+      annualPercent: annualPercent,
+      elapsedSec: elapsedSec,
+    );
+  }
+  return realizedProfitPkr;
+}
+
+String _fixedRateSubLabel(BuildContext context, FiveMarketLiveProfitState live) {
+  if (!live.isTradingDay) {
+    return context.tr("market_no_accrual_today");
+  }
+  if (live.isMarketHours) {
+    return context.tr("market_accruing_per_second");
+  }
+  return context.tr("live_profit_fixed_sub");
+}
+
 double _displayDailyTotal(FiveMarketLiveProfitState live, int elapsedSec) {
   if (!live.isTradingDay) return 0;
+  if (!live.isMarketHours) return live.totalProfitPkr;
   return double.parse(
     (
       live.stockProfitPkr +
-      _localFixedProfit(
+      _fixedRateDisplayProfit(
+        live: live,
         allocatedPkr: live.techAllocatedPkr,
         annualPercent: live.techAnnualPercent,
+        realizedProfitPkr: live.techProfitPkr,
         elapsedSec: elapsedSec,
       ) +
-      _localFixedProfit(
+      _fixedRateDisplayProfit(
+        live: live,
         allocatedPkr: live.debtAllocatedPkr,
         annualPercent: live.debtAnnualPercent,
+        realizedProfitPkr: live.debtProfitPkr,
         elapsedSec: elapsedSec,
       ) +
-      _localFixedProfit(
+      _fixedRateDisplayProfit(
+        live: live,
         allocatedPkr: live.moneyAllocatedPkr,
         annualPercent: live.moneyAnnualPercent,
+        realizedProfitPkr: live.moneyProfitPkr,
         elapsedSec: elapsedSec,
       ) +
       live.goldProfitPkr
@@ -421,17 +457,19 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
   @override
   void initState() {
     super.initState();
-    _elapsedSec = elapsedSessionSeconds();
-    _countdownInfo = _resolveCountdown(
-      ref.read(todayTradingDayProvider).isTradingDay,
-    );
+    final isTradingDay = ref.read(todayTradingDayProvider).isTradingDay;
+    _elapsedSec = elapsedSessionSeconds(isTradingDay: isTradingDay);
+    _countdownInfo = _resolveCountdown(isTradingDay);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {
-          _elapsedSec = elapsedSessionSeconds();
-          _countdownInfo = _resolveCountdown(
-            ref.read(todayTradingDayProvider).isTradingDay,
-          );
+          final trading = ref.read(todayTradingDayProvider).isTradingDay;
+          final shouldAccrue =
+              trading && isWithinPktMarketHours();
+          _elapsedSec = shouldAccrue
+              ? elapsedSessionSeconds(isTradingDay: true)
+              : 0;
+          _countdownInfo = _resolveCountdown(trading);
         });
       }
     });
@@ -458,19 +496,26 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
       error: (e, _) =>
           Center(child: Text("${context.tr("error_prefix")} $e")),
       data: (live) {
-        final techDisplay = _localFixedProfit(
+        final fixedSubLabel = _fixedRateSubLabel(context, live);
+        final techDisplay = _fixedRateDisplayProfit(
+          live: live,
           allocatedPkr: live.techAllocatedPkr,
           annualPercent: live.techAnnualPercent,
+          realizedProfitPkr: live.techProfitPkr,
           elapsedSec: _elapsedSec,
         );
-        final debtDisplay = _localFixedProfit(
+        final debtDisplay = _fixedRateDisplayProfit(
+          live: live,
           allocatedPkr: live.debtAllocatedPkr,
           annualPercent: live.debtAnnualPercent,
+          realizedProfitPkr: live.debtProfitPkr,
           elapsedSec: _elapsedSec,
         );
-        final moneyDisplay = _localFixedProfit(
+        final moneyDisplay = _fixedRateDisplayProfit(
+          live: live,
           allocatedPkr: live.moneyAllocatedPkr,
           annualPercent: live.moneyAnnualPercent,
+          realizedProfitPkr: live.moneyProfitPkr,
           elapsedSec: _elapsedSec,
         );
         final totalDisplay = _displayDailyTotal(live, _elapsedSec);
@@ -516,7 +561,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
                 allocatedPkr: live.techAllocatedPkr,
                 profitPkr: techDisplay,
                 changePercent: null,
-                subLabel: context.tr("live_profit_fixed_sub"),
+                subLabel: fixedSubLabel,
                 annualRateLabel:
                     "${live.techAnnualPercent.toStringAsFixed(0)}% ${context.tr("five_market_per_annum")} benchmark",
                 icon: Icons.memory_rounded,
@@ -528,7 +573,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
                 allocatedPkr: live.debtAllocatedPkr,
                 profitPkr: debtDisplay,
                 changePercent: null,
-                subLabel: context.tr("live_profit_fixed_sub"),
+                subLabel: fixedSubLabel,
                 annualRateLabel:
                     "${live.debtAnnualPercent.toStringAsFixed(1)}% ${context.tr("five_market_per_annum")}",
                 icon: Icons.account_balance_rounded,
@@ -540,7 +585,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
                 allocatedPkr: live.moneyAllocatedPkr,
                 profitPkr: moneyDisplay,
                 changePercent: null,
-                subLabel: context.tr("live_profit_fixed_sub"),
+                subLabel: fixedSubLabel,
                 annualRateLabel:
                     "${live.moneyAnnualPercent.toStringAsFixed(1)}% ${context.tr("five_market_per_annum")}",
                 icon: Icons.account_balance_wallet_rounded,

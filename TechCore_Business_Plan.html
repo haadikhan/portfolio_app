@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TechCore — Revenue Execution Plan 2026</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f8f9fa; --bg3: #f1f3f5;
+    --border: #e9ecef; --border2: #dee2e6;
+    --text: #1a1a2e; --text2: #495057; --text3: #868e96;
+    --accent: #2563eb; --accent-light: #eff6ff;
+    --success: #16a34a; --success-light: #f0fdf4;
+    --warning: #d97706; --warning-light: #fffbeb;
+    --danger: #dc2626; --danger-light: #fef2f2;
+    --info: #0891b2; --info-light: #ecfeff;
+    --radius: 10px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; font-size: 14px;
+  }
+  .header {
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 28px 40px 0; position: sticky; top: 0; z-index: 100;
+  }
+  .header-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .header-title h1 { font-size: 22px; font-weight: 700; }
+  .header-title p { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge-success { background: var(--success-light); color: var(--success); }
+  .badge-info { background: var(--info-light); color: var(--info); }
+  .badge-warning { background: var(--warning-light); color: var(--warning); }
+  .badge-neutral { background: var(--bg3); color: var(--text2); }
+  .badge-danger { background: var(--danger-light); color: var(--danger); }
+  .tabs { display: flex; gap: 0; overflow-x: auto; }
+  .tab-btn {
+    padding: 10px 18px; border: none; background: transparent; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text3); border-bottom: 2px solid transparent;
+    white-space: nowrap; transition: all 0.15s; font-family: inherit;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .content { padding: 32px 40px; max-width: 1100px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .header { padding: 20px 16px 0; }
+    .content { padding: 20px 16px; }
+  }
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg2); }
+  .card-header h3 { font-size: 14px; font-weight: 600; flex: 1; margin: 0; }
+  .card-body { padding: 20px; }
+  .stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; flex: 1; min-width: 130px; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); font-weight: 600; }
+  .stat-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .stat-value.success { color: var(--success); }
+  .stat-value.warning { color: var(--warning); }
+  .callout { border-radius: var(--radius); padding: 14px 18px; font-size: 13px; border-left: 3px solid; margin-bottom: 20px; }
+  .callout-info { background: var(--info-light); border-color: var(--info); color: #164e63; }
+  .callout-warning { background: var(--warning-light); border-color: var(--warning); color: #78350f; }
+  .callout-success { background: var(--success-light); border-color: var(--success); color: #14532d; }
+  .section { margin-bottom: 28px; }
+  .section > h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+  .dot-list { display: flex; flex-direction: column; gap: 7px; }
+  .dot-item { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 7px; }
+  .dot-sm { width: 4px; height: 4px; border-radius: 50%; background: var(--text3); flex-shrink: 0; margin-top: 8px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; padding: 9px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); border-bottom: 2px solid var(--border); font-weight: 600; }
+  .tbl td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .right { text-align: right; font-weight: 600; }
+  .bar-chart { margin-top: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-label { font-size: 12px; color: var(--text2); min-width: 36px; text-align: right; font-weight: 600; }
+  .bar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 24px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 600; color: white; min-width: 30px; }
+  .bar-value { font-size: 13px; font-weight: 700; min-width: 56px; color: var(--text); }
+  .month-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .month-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; background: var(--bg2); flex-wrap: wrap; user-select: none; }
+  .month-header:hover { background: var(--bg3); }
+  .month-header h3 { font-size: 14px; font-weight: 700; flex: 1; margin: 0; }
+  .month-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .mini-stat { font-size: 12px; }
+  .mval { font-weight: 700; }
+  .month-body { padding: 20px; display: none; border-top: 1px solid var(--border); }
+  .month-body.open { display: block; }
+  .team-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .team-header { padding: 14px 20px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .team-header h3 { font-size: 14px; font-weight: 600; flex: 1; margin: 0; }
+  .project-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .project-header { padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .project-header h3 { font-size: 14px; font-weight: 600; flex: 1; margin: 0; }
+  .project-body { padding: 20px; }
+  .ai-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; }
+  .slide { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .slide-header { padding: 14px 20px; background: var(--accent); color: white; display: flex; align-items: center; gap: 10px; }
+  .slide-num { font-size: 11px; font-weight: 600; opacity: 0.8; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .slide-header h3 { font-size: 14px; font-weight: 700; flex: 1; margin: 0; color: white; }
+  .slide-body { padding: 16px 20px; }
+  .slide-point { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .slide-point:last-child { border-bottom: none; }
+  .slide-num-circle { min-width: 24px; height: 24px; border-radius: 6px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .slide-point-text { font-size: 13px; line-height: 1.6; }
+  .ul-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); font-weight: 600; margin-bottom: 8px; }
+  .gap { height: 20px; }
+  .gap-sm { height: 12px; }
+  .text-accent { color: var(--accent); font-weight: 600; }
+  .text-success { color: var(--success); font-weight: 600; }
+  .text-warning { color: var(--warning); font-weight: 600; }
+  .text-danger { color: var(--danger); font-weight: 600; }
+  .text-secondary { color: var(--text2); }
+  .text-sm { font-size: 12px; color: var(--text3); }
+  .font-bold { font-weight: 700; }
+  .font-semibold { font-weight: 600; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  @media print {
+    .tabs { display: none; }
+    .tab-panel { display: block !important; page-break-before: always; }
+    .tab-panel:first-child { page-break-before: auto; }
+    .month-body { display: block !important; }
+    .header { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-title">
+      <h1>TechCore — Revenue Execution Plan 2026</h1>
+      <p>Mansehra, KPK &nbsp;·&nbsp; Farhad (CTO, 25%) &amp; Raja Hammad (CEO, 75%) &nbsp;·&nbsp; Budget: 35–50 Lac PKR &nbsp;·&nbsp; Launch: July 1, 2026</p>
+    </div>
+    <span class="badge badge-success">Active Plan · June 2026</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="showTab('june',this)">June Setup</button>
+    <button class="tab-btn" onclick="showTab('team',this)">Team &amp; Roles</button>
+    <button class="tab-btn" onclick="showTab('projects',this)">Projects</button>
+    <button class="tab-btn" onclick="showTab('revenue',this)">Revenue Plan</button>
+    <button class="tab-btn" onclick="showTab('ai',this)">AI Opportunities</button>
+    <button class="tab-btn" onclick="showTab('deck',this)">Presentation Deck</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- OVERVIEW -->
+<div id="tab-overview" class="tab-panel active">
+<div class="section">
+  <div class="callout callout-info">
+    June 2026 is your setup month. Every system, tool, contract, and template must be ready before July 1. When the first employee walks in, they must have a task waiting — not questions.
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Budget Available</div><div class="stat-value">35–50 Lac</div></div>
+    <div class="stat"><div class="stat-label">Employees by Aug 1</div><div class="stat-value">6 People</div></div>
+    <div class="stat"><div class="stat-label">Break-Even Month</div><div class="stat-value warning">Month 2–3</div></div>
+    <div class="stat"><div class="stat-label">Dec Revenue Target</div><div class="stat-value success">46 Lac/mo</div></div>
+    <div class="stat"><div class="stat-label">Dec Net Profit</div><div class="stat-value success">33.5 Lac</div></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card">
+      <div class="card-header"><h3>The Founding Team</h3></div>
+      <div class="card-body">
+        <p class="font-semibold">Raja Hammad — CEO · 75% Stakeholder</p>
+        <p class="text-secondary" style="font-size:13px;margin:6px 0 14px">Chartered Accountant &amp; Financial Advisor. Leads all local client sales, enterprise &amp; government relationships, and company finances. His CA credential is a massive trust signal with KPK business owners.</p>
+        <hr>
+        <p class="font-semibold" style="margin-top:14px">Farhad — CTO · 25% Stakeholder</p>
+        <p class="text-secondary" style="font-size:13px;margin-top:6px">Flutter &amp; Firebase developer with QA and project management skills. Leads technical delivery, product architecture, developer management, and international freelancing.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>6 Revenue Pillars</h3></div>
+      <div class="card-body">
+        <table class="tbl">
+          <tr><td><strong>Pillar 1</strong> — Local Business Retainer</td><td><span class="badge badge-success">Fastest Cash</span></td></tr>
+          <tr><td><strong>Pillar 2</strong> — Flutter Apps + AdMob</td><td><span class="badge badge-neutral">Passive Income</span></td></tr>
+          <tr><td><strong>Pillar 3</strong> — YouTube / TikTok AI Content</td><td><span class="badge badge-neutral">Passive Income</span></td></tr>
+          <tr><td><strong>Pillar 4</strong> — ERP / Inventory System</td><td><span class="badge badge-warning">High Ticket</span></td></tr>
+          <tr><td><strong>Pillar 5</strong> — AI Chatbot SaaS</td><td><span class="badge badge-info">MRR Product</span></td></tr>
+          <tr><td><strong>Pillar 6</strong> — International Freelancing</td><td><span class="badge badge-success">USD Revenue</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header"><h3>Revenue Growth — July to December 2026 (Lac PKR)</h3></div>
+    <div class="card-body">
+      <div class="bar-chart">
+        <div class="bar-row"><span class="bar-label">Jul</span><div class="bar-track"><div class="bar-fill" style="width:4.3%;background:#2563eb">2</div></div><span class="bar-value">2 Lac</span></div>
+        <div class="bar-row"><span class="bar-label">Aug</span><div class="bar-track"><div class="bar-fill" style="width:12.6%;background:#2563eb">5.8</div></div><span class="bar-value">5.8 Lac</span></div>
+        <div class="bar-row"><span class="bar-label">Sep</span><div class="bar-track"><div class="bar-fill" style="width:23.5%;background:#2563eb">10.8</div></div><span class="bar-value">10.8 Lac</span></div>
+        <div class="bar-row"><span class="bar-label">Oct</span><div class="bar-track"><div class="bar-fill" style="width:45.6%;background:#2563eb">21</div></div><span class="bar-value">21 Lac</span></div>
+        <div class="bar-row"><span class="bar-label">Nov</span><div class="bar-track"><div class="bar-fill" style="width:69.5%;background:#2563eb">32</div></div><span class="bar-value">32 Lac</span></div>
+        <div class="bar-row"><span class="bar-label">Dec</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#16a34a">46</div></div><span class="bar-value text-success">46 Lac</span></div>
+      </div>
+      <p class="text-sm" style="margin-top:10px">Projected total monthly revenue across all 6 pillars · TechCore internal forecast</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>6-Month Financial Summary</h3></div>
+    <div class="card-body">
+      <table class="tbl">
+        <tr><th>Month</th><th style="text-align:right">Revenue</th><th style="text-align:right">Expenses</th><th style="text-align:right">Net</th><th>Status</th></tr>
+        <tr><td>July 2026</td><td class="right">2 Lac</td><td class="right">4.5 Lac</td><td class="right text-danger">-2.5 Lac</td><td><span class="badge badge-warning">Investment Phase</span></td></tr>
+        <tr><td>August 2026</td><td class="right">5.8 Lac</td><td class="right">5.5 Lac</td><td class="right text-success">+0.3 Lac</td><td><span class="badge badge-info">Break-Even</span></td></tr>
+        <tr><td>September 2026</td><td class="right">10.8 Lac</td><td class="right">6.5 Lac</td><td class="right text-success">+4.3 Lac</td><td><span class="badge badge-success">Profitable</span></td></tr>
+        <tr><td>October 2026</td><td class="right">21 Lac</td><td class="right">8 Lac</td><td class="right text-success">+13 Lac</td><td><span class="badge badge-success">Growing Fast</span></td></tr>
+        <tr><td>November 2026</td><td class="right">32 Lac</td><td class="right">10 Lac</td><td class="right text-success">+22 Lac</td><td><span class="badge badge-success">Strong</span></td></tr>
+        <tr><td>December 2026</td><td class="right">46 Lac</td><td class="right">12.5 Lac</td><td class="right text-success">+33.5 Lac</td><td><span class="badge badge-success">Scaling</span></td></tr>
+        <tr style="font-weight:700;background:#f0fdf4"><td>TOTAL 6 Months</td><td class="right">117.6 Lac</td><td class="right">47 Lac</td><td class="right text-success">+70.6 Lac</td><td><span class="badge badge-success">Strong ROI</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- JUNE SETUP -->
+<div id="tab-june" class="tab-panel">
+<div class="section">
+  <h2>June 2026 — Pre-Launch Setup Month</h2>
+  <p class="sub">This month is entirely about building the machine. No clients yet. Every task must be done before July 1.</p>
+  <div class="callout callout-warning">Rule: Do not onboard a single employee until every system in this checklist is complete. An employee without clear systems wastes salary.</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Legal &amp; Finance</h3><span class="badge badge-warning">Raja Hammad leads</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>Register TechCore as private limited company (SECP)</div>
+        <div class="dot-item"><span class="dot"></span>Open business bank account</div>
+        <div class="dot-item"><span class="dot"></span>Get NTN (National Tax Number)</div>
+        <div class="dot-item"><span class="dot"></span>Draft &amp; sign shareholder agreement (75/25 split)</div>
+        <div class="dot-item"><span class="dot"></span>Set up QuickBooks / Wave for accounting</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Office &amp; Infrastructure</h3><span class="badge badge-warning">Both founders</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>Set up Mansehra office: desks, fiber internet, UPS</div>
+        <div class="dot-item"><span class="dot"></span>Buy 4 developer workstations (budget: 6–8 Lac)</div>
+        <div class="dot-item"><span class="dot"></span>Set up Google Workspace (company emails @techcore.pk)</div>
+        <div class="dot-item"><span class="dot"></span>Set up GitHub organization (all repos private)</div>
+        <div class="dot-item"><span class="dot"></span>Install ClickUp for project management (free plan)</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Systems &amp; Processes</h3><span class="badge badge-info">Farhad leads</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>Create client onboarding document + contract template</div>
+        <div class="dot-item"><span class="dot"></span>Build proposal templates (WordPress retainer, ERP, App)</div>
+        <div class="dot-item"><span class="dot"></span>Set up HubSpot CRM (free) — track all leads</div>
+        <div class="dot-item"><span class="dot"></span>Create invoice &amp; payment policy (50% upfront, 50% on delivery)</div>
+        <div class="dot-item"><span class="dot"></span>Write SOP docs for each service (deployment process)</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Sales Pipeline</h3><span class="badge badge-warning">Raja Hammad leads</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>List 30 target local businesses in Mansehra/KPK</div>
+        <div class="dot-item"><span class="dot"></span>Draft local business pitch deck (problem → solution → price → ROI)</div>
+        <div class="dot-item"><span class="dot"></span>Create WhatsApp Business profile for TechCore</div>
+        <div class="dot-item"><span class="dot"></span>Design business cards + digital brochure</div>
+        <div class="dot-item"><span class="dot"></span>Book first 10 in-person meetings for July week 1</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Digital Presence</h3><span class="badge badge-info">Farhad leads</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>Register domain: techcore.pk</div>
+        <div class="dot-item"><span class="dot"></span>Launch TechCore website (clean, services + contact)</div>
+        <div class="dot-item"><span class="dot"></span>Create LinkedIn company page + both founders' profiles</div>
+        <div class="dot-item"><span class="dot"></span>Create Upwork profile (Farhad as individual to start)</div>
+        <div class="dot-item"><span class="dot"></span>Create Fiverr profile — gigs: WordPress, Flutter, AI chatbot</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Product Preparation</h3><span class="badge badge-info">Farhad leads</span></div>
+      <div class="card-body dot-list">
+        <div class="dot-item"><span class="dot"></span>Build reusable WordPress theme + plugin stack for clients</div>
+        <div class="dot-item"><span class="dot"></span>Build inventory module v0.1 (basic CRUD, stock in/out)</div>
+        <div class="dot-item"><span class="dot"></span>Create 3 YouTube channels (finance, tech, motivation niches)</div>
+        <div class="dot-item"><span class="dot"></span>Research top AdMob keywords — plan first 2 Flutter app ideas</div>
+        <div class="dot-item"><span class="dot"></span>Draft ERP Phase 1 scope: inventory + billing features</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TEAM -->
+<div id="tab-team" class="tab-panel">
+<div class="section">
+  <h2>Team Structure — Starting July 1, 2026</h2>
+  <p class="sub">6 employees in Phase 1. Each has a defined role, salary, and Month 1 milestone. Hire in priority order.</p>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Monthly Salary Bill (Jul)</div><div class="stat-value">2.7 Lac</div></div>
+    <div class="stat"><div class="stat-label">Employees from Jul 1</div><div class="stat-value">5 People</div></div>
+    <div class="stat"><div class="stat-label">Joining August 1</div><div class="stat-value">+1 Dev</div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>2× WordPress + Inventory Developer</h3><span class="badge badge-neutral">45,000 PKR/month each</span><span class="badge badge-info">Jul 1</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">WordPress, PHP, MySQL, WooCommerce, basic JavaScript</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">3 client websites live + 1 inventory system deployed</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Build client websites (3–5 sites/month per developer)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Deploy inventory module on client sites</div>
+          <div class="dot-item"><span class="dot-sm"></span>Maintain &amp; update existing client sites (retainer)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Handle client support tickets for web issues</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>1× Flutter Developer</h3><span class="badge badge-neutral">60,000 PKR/month</span><span class="badge badge-info">Jul 1</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">Flutter, Dart, Firebase, REST APIs, Google AdMob</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">1 AdMob app submitted to Google Play Store</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Build 1 AdMob app per month (utility apps)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Assist on ERP mobile interface</div>
+          <div class="dot-item"><span class="dot-sm"></span>Maintain published apps — crash fixes, ratings</div>
+          <div class="dot-item"><span class="dot-sm"></span>Work on client mobile app orders</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>1× Digital Marketer / SEO Specialist</h3><span class="badge badge-neutral">40,000 PKR/month</span><span class="badge badge-info">Jul 1</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">SEO, Google Ads, Facebook Ads, content marketing, analytics</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">All retainer client sites on-page SEO done + TechCore ads live</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Manage SEO for all retainer client websites</div>
+          <div class="dot-item"><span class="dot-sm"></span>Run paid ads for TechCore lead generation</div>
+          <div class="dot-item"><span class="dot-sm"></span>Manage TechCore social media presence</div>
+          <div class="dot-item"><span class="dot-sm"></span>Monthly marketing report for each client</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>1× Content Creator / AI Video Editor</h3><span class="badge badge-neutral">35,000 PKR/month</span><span class="badge badge-info">Jul 1</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">Video editing, AI tools (HeyGen, Pictory, ElevenLabs), YouTube SEO</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">20 videos published across 3 YouTube channels</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>3–5 AI-generated videos/week across all channels</div>
+          <div class="dot-item"><span class="dot-sm"></span>Edit and schedule content for all channels</div>
+          <div class="dot-item"><span class="dot-sm"></span>Optimize thumbnails, titles, descriptions for CTR</div>
+          <div class="dot-item"><span class="dot-sm"></span>Track analytics and adjust content strategy</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>1× Business Development Executive</h3><span class="badge badge-neutral">40,000 PKR + 5% commission</span><span class="badge badge-info">Jul 15</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">Sales, client communication, proposal writing, local market knowledge</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">10 proposals sent, 5 contracts closed</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Cold outreach to businesses (in-person + WhatsApp)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Qualify leads, schedule demos, close contracts</div>
+          <div class="dot-item"><span class="dot-sm"></span>Follow up on all quotes and pending proposals</div>
+          <div class="dot-item"><span class="dot-sm"></span>Update HubSpot CRM daily with all lead statuses</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="team-card">
+    <div class="team-header"><h3>1× Backend Developer (Freelance Contract)</h3><span class="badge badge-neutral">50,000 PKR/month</span><span class="badge badge-warning">Aug 1</span></div>
+    <div style="padding:20px"><div class="grid-2">
+      <div>
+        <p class="ul-label">Required Skills</p>
+        <p style="font-size:13px;margin-bottom:14px">Node.js or Laravel, REST APIs, MySQL, Docker, cloud hosting</p>
+        <p class="ul-label">Month 1 Milestone</p>
+        <p class="text-accent" style="font-size:13px">ERP Phase 1 backend architecture complete</p>
+      </div>
+      <div>
+        <p class="ul-label">Responsibilities</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Build ERP backend (inventory, billing, reports)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Develop APIs for Flutter apps + WordPress</div>
+          <div class="dot-item"><span class="dot-sm"></span>Set up cloud hosting (DigitalOcean / Cloudflare)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Database design for all TechCore products</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Founders' Daily Operating Roles</h3></div>
+    <div class="card-body"><div class="grid-2">
+      <div>
+        <p class="font-semibold" style="margin-bottom:10px">Farhad — CTO &amp; Delivery Lead</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Code review for all developers (daily)</div>
+          <div class="dot-item"><span class="dot-sm"></span>Architecture decisions for all products</div>
+          <div class="dot-item"><span class="dot-sm"></span>Manage Upwork/Fiverr personally (USD revenue)</div>
+          <div class="dot-item"><span class="dot-sm"></span>QA sign-off before every client delivery</div>
+          <div class="dot-item"><span class="dot-sm"></span>Daily 15-min standup with dev team</div>
+        </div>
+      </div>
+      <div>
+        <p class="font-semibold" style="margin-bottom:10px">Raja Hammad — CEO &amp; Sales Lead</p>
+        <div class="dot-list">
+          <div class="dot-item"><span class="dot-sm"></span>Lead all local client sales meetings</div>
+          <div class="dot-item"><span class="dot-sm"></span>Sign all contracts and agreements</div>
+          <div class="dot-item"><span class="dot-sm"></span>Manage finances: payroll, invoices, tax</div>
+          <div class="dot-item"><span class="dot-sm"></span>Build enterprise and government relationships</div>
+          <div class="dot-item"><span class="dot-sm"></span>Weekly team meeting + performance review</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+</div>
+
+<!-- PROJECTS -->
+<div id="tab-projects" class="tab-panel">
+<div class="section">
+  <h2>Projects — Build, Launch &amp; Scale Timeline</h2>
+  <p class="sub">6 active revenue projects. Each has a build timeline, launch date, pricing, and target revenue.</p>
+
+  <div class="project-card">
+    <div class="project-header"><h3>Local Business Retainer Package</h3><span class="badge badge-info">Pillar 1</span><span class="badge badge-success">Launch: July 1</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">WordPress website + inventory management + monthly SEO. Sell to shops, clinics, pharmacies in Mansehra &amp; KPK. Fastest path to recurring monthly revenue (MRR).</p>
+      <div class="grid-3" style="margin-bottom:16px">
+        <div><p class="ul-label">Target Clients</p><p style="font-size:13px">Local shops, clinics, pharmacies, restaurants</p></div>
+        <div><p class="ul-label">Pricing</p><p style="font-size:13px">Setup: 25,000–50,000 PKR<br>Monthly: 8,000–15,000 PKR</p></div>
+        <div><p class="ul-label">Revenue at Month 3</p><p class="text-accent" style="font-size:13px">7–10 Lac/month (25 clients)</p></div>
+      </div>
+      <p class="ul-label">Timeline: Build in June → 5 clients July → 20 clients September → 60+ clients December</p>
+    </div>
+  </div>
+
+  <div class="project-card">
+    <div class="project-header"><h3>Flutter Apps + Google AdMob</h3><span class="badge badge-info">Pillar 2</span><span class="badge badge-success">Launch: July 2026</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">Simple utility apps (calculators, prayer times, Urdu tools) published to Play Store with AdMob ads. Low cost per app, growing passive income month by month.</p>
+      <div class="grid-3">
+        <div><p class="ul-label">Revenue Model</p><p style="font-size:13px">Free apps + AdMob<br>$1–5 RPM</p></div>
+        <div><p class="ul-label">Timeline</p><p style="font-size:13px">First app: July<br>10 apps by: December</p></div>
+        <div><p class="ul-label">Revenue by Dec</p><p class="text-accent" style="font-size:13px">4 Lac/month (passive)</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="project-card">
+    <div class="project-header"><h3>YouTube / TikTok AI Automation Channels</h3><span class="badge badge-info">Pillar 3</span><span class="badge badge-success">Launch: July 2026</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">Faceless channels using ElevenLabs (AI voice), Pictory/HeyGen (AI video), ChatGPT (AI scripts). Niches: Islamic/Quran (Urdu), Finance Tips, Tech News. Cross-post to TikTok.</p>
+      <div class="grid-3">
+        <div><p class="ul-label">Content Volume</p><p style="font-size:13px">3–5 videos/week per channel</p></div>
+        <div><p class="ul-label">Monetization</p><p style="font-size:13px">Month 4–5 (1,000 subs + 4,000 hours)</p></div>
+        <div><p class="ul-label">Revenue by Dec</p><p class="text-accent" style="font-size:13px">3 Lac/month (passive)</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="project-card">
+    <div class="project-header"><h3>ERP / Inventory Management System</h3><span class="badge badge-warning">Pillar 4</span><span class="badge badge-warning">Launch: Oct 2026</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">Enterprise-grade ERP: inventory + billing for multi-warehouse businesses. Target distributors, factories, medical stores in KPK first, then expand nationally.</p>
+      <div class="grid-3" style="margin-bottom:16px">
+        <div><p class="ul-label">Target Clients</p><p style="font-size:13px">Distributors, factories, wholesale shops</p></div>
+        <div><p class="ul-label">Pricing</p><p style="font-size:13px">Setup: 3–10 Lac PKR<br>Annual license: 1–3 Lac/year</p></div>
+        <div><p class="ul-label">Revenue per Client</p><p class="text-accent" style="font-size:13px">3–10 Lac setup + recurring</p></div>
+      </div>
+      <p class="ul-label">Phase 1 Features: Multi-warehouse inventory · Billing &amp; invoicing · Stock reports · Mobile app for staff</p>
+    </div>
+  </div>
+
+  <div class="project-card">
+    <div class="project-header"><h3>AI Chatbot SaaS for Local Businesses</h3><span class="badge badge-info">Pillar 5</span><span class="badge badge-warning">Launch: Oct 2026</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">WhatsApp/website AI chatbot for local shops — auto-replies, order tracking, FAQs. Built on OpenAI API. Sell as monthly SaaS add-on to existing retainer clients. First-mover in KPK.</p>
+      <div class="grid-3">
+        <div><p class="ul-label">Pricing</p><p style="font-size:13px">Setup: 20,000 PKR<br>Monthly: 5,000–10,000 PKR</p></div>
+        <div><p class="ul-label">Build Timeline</p><p style="font-size:13px">Aug–Sep build → Oct launch</p></div>
+        <div><p class="ul-label">Revenue by Dec</p><p class="text-accent" style="font-size:13px">5–15 Lac/month MRR</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="project-card">
+    <div class="project-header"><h3>International Freelancing (Upwork / Fiverr)</h3><span class="badge badge-success">Pillar 6</span><span class="badge badge-success">Launch: July 2026</span></div>
+    <div class="project-body">
+      <p class="text-secondary" style="font-size:13px;margin-bottom:16px">Farhad as lead on Upwork and Fiverr. Focus on Flutter + Firebase + AI automation gigs. Build to Top Rated. Scale to agency. USD income protects against PKR fluctuations.</p>
+      <div class="grid-3">
+        <div><p class="ul-label">Niches</p><p style="font-size:13px">Flutter, Firebase, WordPress, AI automation</p></div>
+        <div><p class="ul-label">Pricing Strategy</p><p style="font-size:13px">Start at $15–25/hr for reviews<br>Scale to $50/hr after 10 reviews</p></div>
+        <div><p class="ul-label">Revenue by Dec</p><p class="text-accent" style="font-size:13px">9 Lac/month ($3,000 USD)</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- REVENUE PLAN -->
+<div id="tab-revenue" class="tab-panel">
+<div class="section">
+  <h2>Month-by-Month Revenue Plan</h2>
+  <p class="sub">July to December 2026. All figures in Lac PKR. Click any month card to expand details.</p>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('jul')">
+      <h3>July 2026 — Launch Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-accent">2 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">4.5 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-danger">-2.5 Lac</span></span>
+      </div>
+      <span class="badge badge-warning">Investment Phase</span>
+    </div>
+    <div id="body-jul" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (5 clients × avg 15k)</td><td class="right">1.5 Lac</td></tr><tr><td>International Freelancing</td><td class="right">0.5 Lac</td></tr><tr><td class="font-bold">Total</td><td class="right font-bold">2.0 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>First 5 local retainer clients signed</div>
+            <div class="dot-item"><span class="dot"></span>5-person team onboarded (July 1)</div>
+            <div class="dot-item"><span class="dot"></span>First Flutter app submitted to Play Store</div>
+            <div class="dot-item"><span class="dot"></span>3 YouTube channels launched with content</div>
+            <div class="dot-item"><span class="dot"></span>Upwork + Fiverr profiles live</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('aug')">
+      <h3>August 2026 — Break-Even Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-accent">5.8 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">5.5 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-success">+0.3 Lac</span></span>
+      </div>
+      <span class="badge badge-info">Near Break-Even</span>
+    </div>
+    <div id="body-aug" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (15 clients)</td><td class="right">4.0 Lac</td></tr><tr><td>International Freelancing</td><td class="right">1.5 Lac</td></tr><tr><td>Flutter Apps (AdMob)</td><td class="right">0.3 Lac</td></tr><tr><td class="font-bold">Total</td><td class="right font-bold">5.8 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>15 local retainer clients active</div>
+            <div class="dot-item"><span class="dot"></span>3 Flutter apps live on Play Store</div>
+            <div class="dot-item"><span class="dot"></span>Backend developer joins (ERP starts)</div>
+            <div class="dot-item"><span class="dot"></span>Upwork: first 5-star reviews</div>
+            <div class="dot-item"><span class="dot"></span>YouTube: 200+ subs per channel</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('sep')">
+      <h3>September 2026 — First Profit Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-accent">10.8 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">6.5 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-success">+4.3 Lac</span></span>
+      </div>
+      <span class="badge badge-success">Profitable</span>
+    </div>
+    <div id="body-sep" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (25+ clients)</td><td class="right">7.5 Lac</td></tr><tr><td>International Freelancing</td><td class="right">2.5 Lac</td></tr><tr><td>Flutter Apps</td><td class="right">0.8 Lac</td></tr><tr><td class="font-bold">Total</td><td class="right font-bold">10.8 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>25+ retainer clients — MRR stabilizing</div>
+            <div class="dot-item"><span class="dot"></span>6 apps live, growing installs daily</div>
+            <div class="dot-item"><span class="dot"></span>ERP MVP demo to first 5 businesses</div>
+            <div class="dot-item"><span class="dot"></span>YouTube: 1 channel hits 1,000 subscribers</div>
+            <div class="dot-item"><span class="dot"></span>First long-term international contract</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('oct')">
+      <h3>October 2026 — High Growth Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-accent">21 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">8 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-success">+13 Lac</span></span>
+      </div>
+      <span class="badge badge-success">Growing Fast</span>
+    </div>
+    <div id="body-oct" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (35 clients)</td><td class="right">12 Lac</td></tr><tr><td>International Freelancing</td><td class="right">4 Lac</td></tr><tr><td>ERP (first client setup)</td><td class="right">3 Lac</td></tr><tr><td>Flutter Apps</td><td class="right">1.5 Lac</td></tr><tr><td>YouTube / TikTok</td><td class="right">0.5 Lac</td></tr><tr><td class="font-bold">Total</td><td class="right font-bold">21 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>35 retainer clients active</div>
+            <div class="dot-item"><span class="dot"></span>First ERP client pays 3–5 Lac setup</div>
+            <div class="dot-item"><span class="dot"></span>YouTube AdSense approved (1 channel)</div>
+            <div class="dot-item"><span class="dot"></span>AI chatbot product officially launched</div>
+            <div class="dot-item"><span class="dot"></span>Upwork agency profile created</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('nov')">
+      <h3>November 2026 — Scaling Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-accent">32 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">10 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-success">+22 Lac</span></span>
+      </div>
+      <span class="badge badge-success">Strong</span>
+    </div>
+    <div id="body-nov" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (50 clients)</td><td class="right">16 Lac</td></tr><tr><td>International Freelancing</td><td class="right">6 Lac</td></tr><tr><td>ERP (2 enterprise clients)</td><td class="right">6 Lac</td></tr><tr><td>Flutter Apps</td><td class="right">2.5 Lac</td></tr><tr><td>YouTube / TikTok</td><td class="right">1.5 Lac</td></tr><tr><td class="font-bold">Total</td><td class="right font-bold">32 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>50 retainer clients — solid MRR base</div>
+            <div class="dot-item"><span class="dot"></span>2 ERP enterprise clients active</div>
+            <div class="dot-item"><span class="dot"></span>3 YouTube channels all monetized</div>
+            <div class="dot-item"><span class="dot"></span>AI chatbot: 10 paying clients</div>
+            <div class="dot-item"><span class="dot"></span>International: $5,000/month consistent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="month-card">
+    <div class="month-header" onclick="toggleMonth('dec')">
+      <h3>December 2026 — Target Month</h3>
+      <div class="month-stats">
+        <span class="mini-stat">Revenue: <span class="mval text-success">46 Lac</span></span>
+        <span class="mini-stat">Expenses: <span class="mval">12.5 Lac</span></span>
+        <span class="mini-stat">Net: <span class="mval text-success">+33.5 Lac</span></span>
+      </div>
+      <span class="badge badge-success">Target Achieved</span>
+    </div>
+    <div id="body-dec" class="month-body">
+      <div class="grid-2">
+        <div>
+          <p class="ul-label">Revenue Breakdown</p>
+          <table class="tbl"><tr><td>Local Retainer (60+ clients)</td><td class="right">20 Lac</td></tr><tr><td>International Freelancing</td><td class="right">9 Lac</td></tr><tr><td>ERP (3–5 enterprise clients)</td><td class="right">10 Lac</td></tr><tr><td>Flutter Apps</td><td class="right">4 Lac</td></tr><tr><td>YouTube / TikTok</td><td class="right">3 Lac</td></tr><tr><td class="font-bold" style="color:var(--success)">Total</td><td class="right font-bold text-success">46 Lac</td></tr></table>
+        </div>
+        <div>
+          <p class="ul-label">Key Milestones</p>
+          <div class="dot-list">
+            <div class="dot-item"><span class="dot"></span>60+ retainer clients — reliable monthly MRR</div>
+            <div class="dot-item"><span class="dot"></span>ERP: 3–5 enterprise clients paying annual license</div>
+            <div class="dot-item"><span class="dot"></span>YouTube + TikTok: steady passive income</div>
+            <div class="dot-item"><span class="dot"></span>AI chatbot: 15 clients (MRR product working)</div>
+            <div class="dot-item"><span class="dot"></span>Upwork Top Rated status achieved</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <div class="card-header"><h3>Expense Breakdown — July vs December 2026 (Lac PKR)</h3></div>
+    <div class="card-body">
+      <table class="tbl">
+        <tr><th>Expense Category</th><th style="text-align:right">July</th><th style="text-align:right">December</th></tr>
+        <tr><td>Salaries (employees)</td><td class="right">2.2</td><td class="right">4.5</td></tr>
+        <tr><td>Office (rent + utilities + internet)</td><td class="right">0.5</td><td class="right">0.8</td></tr>
+        <tr><td>Tools &amp; Software subscriptions</td><td class="right">0.3</td><td class="right">0.5</td></tr>
+        <tr><td>Marketing &amp; Ads</td><td class="right">0.5</td><td class="right">2.0</td></tr>
+        <tr><td>Infrastructure (servers/cloud hosting)</td><td class="right">0.2</td><td class="right">0.7</td></tr>
+        <tr><td>Misc / Emergency buffer</td><td class="right">0.3</td><td class="right">1.0</td></tr>
+        <tr style="font-weight:700;background:var(--bg3)"><td>TOTAL</td><td class="right">4.0 Lac</td><td class="right">9.5 Lac</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- AI OPPORTUNITIES -->
+<div id="tab-ai" class="tab-panel">
+<div class="section">
+  <h2>AI Revenue Opportunities for TechCore</h2>
+  <p class="sub">Wrap existing AI APIs into products your local market doesn't have yet. Be the first mover in KPK.</p>
+  <div class="callout callout-info">You don't need to build a new AI model. Wrap OpenAI + Gemini into local products. First mover in Mansehra = zero competition for 12–18 months.</div>
+
+  <div class="ai-card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <p class="font-semibold" style="flex:1">1. AI Chatbot SaaS for Local Businesses (WhatsApp)</p>
+      <span class="badge badge-neutral">Effort: Medium</span><span class="badge badge-info">Build: 2 months</span>
+    </div>
+    <div class="grid-2">
+      <div><p class="ul-label">Revenue Potential</p><p class="text-accent" style="font-size:13px">5,000–15,000 PKR/month per client</p></div>
+      <div><p class="ul-label">Why This Works in KPK</p><p style="font-size:13px">Every shop owner needs automated WhatsApp replies. Zero competition in Mansehra. Raja Hammad's trust network closes sales in days.</p></div>
+    </div>
+  </div>
+
+  <div class="ai-card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <p class="font-semibold" style="flex:1">2. AI Document Generator (Legal / Financial / Medical)</p>
+      <span class="badge badge-success">Effort: Low</span><span class="badge badge-info">Build: 3–4 weeks</span>
+    </div>
+    <div class="grid-2">
+      <div><p class="ul-label">Revenue Potential</p><p class="text-accent" style="font-size:13px">$50–$200 per document template</p></div>
+      <div><p class="ul-label">Why This Works</p><p style="font-size:13px">Raja Hammad's CA background makes financial document AI extremely credible. Lawyers, clinics, and accountants will pay premium for this.</p></div>
+    </div>
+  </div>
+
+  <div class="ai-card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <p class="font-semibold" style="flex:1">3. AI Inventory Forecasting (Premium ERP Add-On)</p>
+      <span class="badge badge-neutral">Effort: Medium</span><span class="badge badge-info">Integrate: Month 4</span>
+    </div>
+    <div class="grid-2">
+      <div><p class="ul-label">Revenue Potential</p><p class="text-accent" style="font-size:13px">+1–2 Lac/year per ERP client</p></div>
+      <div><p class="ul-label">Why This Works</p><p style="font-size:13px">Predictive stock alerts sell themselves to any distributor. No competitor in KPK offers this. Instant upsell to every ERP client.</p></div>
+    </div>
+  </div>
+
+  <div class="ai-card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <p class="font-semibold" style="flex:1">4. AI Content Writing (Add-On to Retainer Package)</p>
+      <span class="badge badge-success">Effort: Very Low</span><span class="badge badge-success">Launch: July</span>
+    </div>
+    <div class="grid-2">
+      <div><p class="ul-label">Revenue Potential</p><p class="text-accent" style="font-size:13px">15,000–30,000 PKR/month per client</p></div>
+      <div><p class="ul-label">Why This Works</p><p style="font-size:13px">Use GPT-4 + Farhad's review. Every retainer client needs blog and social media content. Zero extra cost. Pure profit upsell.</p></div>
+    </div>
+  </div>
+
+  <div class="ai-card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <p class="font-semibold" style="flex:1">5. AI Automation Gigs on Fiverr (International)</p>
+      <span class="badge badge-success">Effort: Very Low</span><span class="badge badge-success">Start: Immediately</span>
+    </div>
+    <div class="grid-2">
+      <div><p class="ul-label">Revenue Potential</p><p class="text-accent" style="font-size:13px">$50–$500 per gig (USD income)</p></div>
+      <div><p class="ul-label">Why This Works</p><p style="font-size:13px">AI automation is the #1 trending category on Fiverr in 2026. Low competition from Pakistani developers in this specific niche.</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-header"><h3>Recommended AI Tool Stack (What You Need)</h3></div>
+    <div class="card-body">
+      <table class="tbl">
+        <tr><th>Tool</th><th>Use Case for TechCore</th><th>Monthly Cost</th></tr>
+        <tr><td><strong>OpenAI API (GPT-4o)</strong></td><td>Chatbot + document generation + content writing service</td><td>$20–100</td></tr>
+        <tr><td><strong>ElevenLabs</strong></td><td>AI voice for YouTube/TikTok videos</td><td>$5–22</td></tr>
+        <tr><td><strong>Pictory / HeyGen</strong></td><td>AI video creation for YouTube automation channels</td><td>$19–49</td></tr>
+        <tr><td><strong>Twilio / WhatsApp Business API</strong></td><td>Deliver AI chatbot responses to WhatsApp</td><td>Per message</td></tr>
+        <tr><td><strong>Vercel + Supabase</strong></td><td>Host AI chatbot SaaS product backend</td><td>$0–20</td></tr>
+        <tr><td><strong>Make (Integromat)</strong></td><td>No-code automation connecting all AI tools together</td><td>$9</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PRESENTATION DECK -->
+<div id="tab-deck" class="tab-panel">
+<div class="section">
+  <h2>Presentation for Raja Hammad &amp; TechCore Team</h2>
+  <p class="sub">8 slides — use this as your talking guide. Present each section clearly and confidently. Print this page or share the HTML file.</p>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 1</span><h3>TechCore — Who We Are</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text">Company: <strong>TechCore</strong> &nbsp;·&nbsp; Office: Mansehra, KPK &nbsp;·&nbsp; Registered in Pakistan (SECP)</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text">Founders: <strong>Raja Hammad</strong> (CEO, 75%) — Chartered Accountant &amp; Financial Advisor &nbsp;|&nbsp; <strong>Farhad</strong> (CTO, 25%) — Flutter &amp; Firebase Developer, QA &amp; Project Manager</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text">Mission: Build Pakistan's leading technology services company — serving local businesses first, then scaling to international clients.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text">Target: <strong>46 Lac/month revenue by December 2026.</strong> 100 Crore PKR annual revenue within 3 years.</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 2</span><h3>The Opportunity — Why Now?</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text">KPK local businesses — shops, clinics, pharmacies — have <strong>NO digital presence.</strong> Complete untapped market. Zero IT competition in Mansehra.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text">Pakistan IT exports growing <strong>25% year-over-year</strong> — international demand for Pakistani developers is at an all-time high.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>AI revolution in 2026:</strong> first company to bring AI products to Mansehra wins the market for years. That window closes fast.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text">We have: capital (35–50 Lac) + tech skills + financial expertise + a physical office. <strong>We are completely ready to launch.</strong></span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 3</span><h3>Our 6 Revenue Streams</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text"><strong>Local Retainer:</strong> WordPress + Inventory + SEO for local businesses — 8,000–15,000 PKR/month recurring per client</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text"><strong>Flutter Apps + AdMob:</strong> Utility apps on Google Play — passive income, target 10 apps by December</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>YouTube / TikTok AI:</strong> Faceless channels using AI tools — AdSense income from Month 4–5 onward</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text"><strong>ERP System:</strong> Enterprise inventory + billing for distributors — 3–10 Lac setup per client</span></div>
+      <div class="slide-point"><span class="slide-num-circle">5</span><span class="slide-point-text"><strong>AI Chatbot SaaS:</strong> WhatsApp automation for local shops — 5,000–15,000 PKR/month SaaS revenue</span></div>
+      <div class="slide-point"><span class="slide-num-circle">6</span><span class="slide-point-text"><strong>International Freelancing:</strong> Upwork + Fiverr — USD income, $500–5,000 per project</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 4</span><h3>June 2026 — Setup Plan (Before We Hire Anyone)</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text">Register company (SECP), open business bank account, get NTN</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text">Set up Mansehra office: 4 workstations, fiber internet, UPS, Google Workspace, GitHub</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text">Build all systems: ClickUp (task management), HubSpot CRM (leads), client contracts, invoice templates</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text">Farhad builds base WordPress + inventory template — product must be ready before July 1</span></div>
+      <div class="slide-point"><span class="slide-num-circle">5</span><span class="slide-point-text">Raja Hammad: list 30 target businesses + book 10 meetings for July week 1</span></div>
+      <div class="slide-point"><span class="slide-num-circle">6</span><span class="slide-point-text"><strong>Goal: By July 1, team arrives to tasks — not questions. Zero onboarding confusion.</strong></span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 5</span><h3>Team — 6 Employees by August 1, 2026</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text"><strong>2× WordPress Developers</strong> — 45,000/month each · Jul 1 · Build 3–5 client sites/month + inventory management</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text"><strong>1× Flutter Developer</strong> — 60,000/month · Jul 1 · 1 AdMob app/month + client mobile app work</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>1× Digital Marketer / SEO</strong> — 40,000/month · Jul 1 · Client SEO + TechCore ads + social media</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text"><strong>1× AI Video Content Creator</strong> — 35,000/month · Jul 1 · 20+ videos/month across all YouTube channels</span></div>
+      <div class="slide-point"><span class="slide-num-circle">5</span><span class="slide-point-text"><strong>1× Business Dev Executive</strong> — 40,000 + 5% commission · Jul 15 · Target: 10 proposals, 5 closed in Month 1</span></div>
+      <div class="slide-point"><span class="slide-num-circle">6</span><span class="slide-point-text"><strong>1× Backend Developer (Freelance)</strong> — 50,000/month · Aug 1 · Builds ERP and all product APIs</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 6</span><h3>Revenue Projection — July to December 2026</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text"><strong>July:</strong> 2 Lac revenue · 4.5 Lac expenses · -2.5 Lac (expected — funded from capital)</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text"><strong>August:</strong> 5.8 Lac revenue · 5.5 Lac expenses · +0.3 Lac (break-even achieved — Month 2)</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>September:</strong> 10.8 Lac · 6.5 Lac expenses · <strong>+4.3 Lac PROFIT</strong></span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text"><strong>October:</strong> 21 Lac · 8 Lac expenses · <strong>+13 Lac PROFIT</strong></span></div>
+      <div class="slide-point"><span class="slide-num-circle">5</span><span class="slide-point-text"><strong>November:</strong> 32 Lac · 10 Lac expenses · <strong>+22 Lac PROFIT</strong></span></div>
+      <div class="slide-point"><span class="slide-num-circle">6</span><span class="slide-point-text"><strong>December:</strong> 46 Lac · 12.5 Lac expenses · <strong>+33.5 Lac PROFIT · Total 6-month profit: ~71 Lac</strong></span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 7</span><h3>Risks &amp; How We Mitigate Them</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text"><strong>Risk:</strong> Local clients slow to sign → <strong>Solution:</strong> Raja Hammad leads in-person meetings from Day 1. His CA trust + discounted first-month pricing closes fast.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text"><strong>Risk:</strong> YouTube takes months to monetize → <strong>Solution:</strong> Not a primary revenue source. Built in parallel at low cost. No team resources are blocked on it.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>Risk:</strong> Delivery speed &amp; quality → <strong>Solution:</strong> Template-based delivery (2–3 days per client site). Farhad QAs every delivery personally before handoff.</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text"><strong>Risk:</strong> Running out of capital → <strong>Solution:</strong> 35–50 Lac covers 4–5 months at full burn. We break even by Month 2. Capital is entirely safe.</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="slide-header"><span class="slide-num">SLIDE 8</span><h3>What We Decide Today — Action Items</h3></div>
+    <div class="slide-body">
+      <div class="slide-point"><span class="slide-num-circle">1</span><span class="slide-point-text"><strong>Confirm company registration this week</strong> — Raja Hammad files SECP paperwork (he has all CA credentials needed)</span></div>
+      <div class="slide-point"><span class="slide-num-circle">2</span><span class="slide-point-text"><strong>Allocate initial capital</strong> — minimum 20 Lac to start June setup (equipment, tools, first month operating costs)</span></div>
+      <div class="slide-point"><span class="slide-num-circle">3</span><span class="slide-point-text"><strong>Confirm salary budget</strong> and agree to hire all 5 employees on July 1</span></div>
+      <div class="slide-point"><span class="slide-num-circle">4</span><span class="slide-point-text"><strong>Raja Hammad starts the business target list TODAY</strong> — 30 businesses in Mansehra/KPK for July sales pipeline</span></div>
+      <div class="slide-point"><span class="slide-num-circle">5</span><span class="slide-point-text"><strong>Farhad starts WordPress + inventory template THIS WEEK</strong> — must be ready and tested before July 1</span></div>
+      <div class="slide-point"><span class="slide-num-circle">6</span><span class="slide-point-text">Goal: By July 1, 2026 — fully operational, team in place, systems running, first client meetings booked.</span></div>
+    </div>
+  </div>
+
+  <div class="callout callout-success" style="margin-top:24px;font-size:14px;line-height:1.7">
+    <strong>Final message for the room:</strong> TechCore is not a startup trying to figure things out. We have capital, technical skills, financial expertise, a physical office, and a clear plan. This is not a dream — this is a 6-month execution roadmap with a 33.5 Lac/month profit target by December 2026. The only question is: <em>are we starting this June?</em>
+  </div>
+</div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function toggleMonth(id) {
+  var body = document.getElementById('body-' + id);
+  body.classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -29,7 +29,6 @@ class _TransactionHistoryScreenState
   static const _kFeeTypes = <String>{
     "front_end_load_fee",
     "referral_fee",
-    "management_fee",
     "performance_fee",
   };
 
@@ -46,7 +45,8 @@ class _TransactionHistoryScreenState
   }
 
   List<TxnItem> _filter(List<TxnItem> all, int tabIndex) {
-    List<TxnItem> result = all;
+    List<TxnItem> result =
+        all.where((t) => t.type != "management_fee").toList();
 
     final typeFilter = _typeFilters[tabIndex];
     if (typeFilter == "fees") {
@@ -69,12 +69,6 @@ class _TransactionHistoryScreenState
         result = result.where((t) => t.status == _statusFilter).toList();
       }
     }
-
-    result = result
-        .where(
-          (t) => !(t.type == "management_fee" && t.silentFee),
-        )
-        .toList();
 
     return result;
   }
@@ -236,7 +230,11 @@ class TransactionRowItem extends StatelessWidget {
                             Icons.receipt_long_outlined,
                           );
 
-    final typeLabel = localizedTransactionTypeLabel(context, txn.type);
+    final typeLabel = localizedTransactionTypeLabel(
+      context,
+      txn.type,
+      amount: txn.amount,
+    );
     final detailLine = transactionListSubtitle(
       id: txn.id,
       notes: txn.note,
@@ -335,8 +333,6 @@ class TransactionRowItem extends StatelessWidget {
         return Icons.input_rounded;
       case "referral_fee":
         return Icons.handshake_outlined;
-      case "management_fee":
-        return Icons.account_balance_outlined;
       case "performance_fee":
         return Icons.trending_up_rounded;
       default:
