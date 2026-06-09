@@ -740,8 +740,7 @@ class _WalletCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tradingDay = ref.watch(todayTradingDayProvider);
-    final isMarketOpen =
-        tradingDay.isTradingDay && _isDashboardMarketHours();
+    final isMarketOpen = tradingDay.isTradingDay && _isDashboardMarketHours();
     final liveProfit = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
     final moneyMarketPkr = moneyMarketAvailableFromWallet(wallet);
     final totalPortfolioPkr =
@@ -820,7 +819,9 @@ class _WalletCard extends ConsumerWidget {
                 children: [
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.22 : 0.16,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.14),

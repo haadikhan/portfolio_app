@@ -84,8 +84,7 @@ final todayTradingDayProvider = Provider<TradingDayResult>((ref) {
 });
 
 /// Latest EOD snapshot map (`investment_daily_market_close`), most recent by `date`.
-final latestEodSnapshotProvider =
-    StreamProvider<Map<String, dynamic>?>((ref) {
+final latestEodSnapshotProvider = StreamProvider<Map<String, dynamic>?>((ref) {
   return authBoundFirestoreStream<Map<String, dynamic>?>(
     ref,
     whenSignedOut: null,
@@ -114,8 +113,7 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   final basePkr = netPortfolioValueFromWallet(wallet);
 
   // Determine if we are currently within market hours
-  final withinMarketHours =
-      tradingDay.isTradingDay && _isWithinMarketHours();
+  final withinMarketHours = tradingDay.isTradingDay && _isWithinMarketHours();
 
   // After market close (or on non-trading days), use 0.0
   // for live tick percentages.
@@ -129,12 +127,8 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   //
   // During market hours (09:00–16:00 PKT): use live tick
   // so the screen shows real-time movement.
-  final kmi30Pct = withinMarketHours
-      ? (kmi30Tick?.changePercent ?? 0.0)
-      : 0.0;
-  final goldPct = withinMarketHours
-      ? (goldQuote?.changePercent ?? 0.0)
-      : 0.0;
+  final kmi30Pct = withinMarketHours ? (kmi30Tick?.changePercent ?? 0.0) : 0.0;
+  final goldPct = withinMarketHours ? (goldQuote?.changePercent ?? 0.0) : 0.0;
 
   return FiveMarketDailyEngine.calculate(
     basePkr: basePkr,

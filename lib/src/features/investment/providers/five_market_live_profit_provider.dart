@@ -187,8 +187,7 @@ FiveMarketLiveProfitState _buildState({
   required Kmi30IndexTick? kmi30Tick,
   required Map<String, dynamic>? wallet,
 }) {
-  final basePkr =
-      wallet != null ? allocationTotalFromWallet(wallet) : 0.0;
+  final basePkr = wallet != null ? allocationTotalFromWallet(wallet) : 0.0;
   final isTradingDay = tradingDay.isTradingDay;
   final isMarketHours = isTradingDay && _isMarketHours();
   final elapsedSec = elapsedSessionSeconds(isTradingDay: isTradingDay);
@@ -233,8 +232,7 @@ FiveMarketLiveProfitState _buildState({
   final kmi30Pct = kmi30Tick?.changePercent ?? 0.0;
   final stockProfit = _round2(stockAlloc * kmi30Pct / 100);
 
-  final techDaily =
-      techAlloc * rates.techBenchmarkAnnualPercent / 100 / 365;
+  final techDaily = techAlloc * rates.techBenchmarkAnnualPercent / 100 / 365;
   final debtDaily = debtAlloc * rates.debtAnnualPercent / 100 / 365;
   final moneyDaily = moneyAlloc * rates.moneyAnnualPercent / 100 / 365;
 
@@ -281,11 +279,13 @@ FiveMarketLiveProfitState _buildState({
   );
 }
 
-final fiveMarketLiveProfitProvider =
-    StreamProvider<FiveMarketLiveProfitState>((ref) {
+final fiveMarketLiveProfitProvider = StreamProvider<FiveMarketLiveProfitState>((
+  ref,
+) {
   final dailyResult = ref.watch(fiveMarketDailyResultProvider);
   final config =
-      ref.watch(fiveMarketConfigProvider).valueOrNull ?? FiveMarketConfig.defaults;
+      ref.watch(fiveMarketConfigProvider).valueOrNull ??
+      FiveMarketConfig.defaults;
   final tradingDay = ref.watch(todayTradingDayProvider);
   final kmi30Tick = ref.watch(kmi30IndexTickProvider).valueOrNull;
   final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
@@ -321,9 +321,7 @@ final fiveMarketLiveProfitProvider =
   return controller.stream;
 });
 
-bool _useWalletFallback({
-  required List<FiveMarketDailyLedgerDoc> periodDocs,
-}) {
+bool _useWalletFallback({required List<FiveMarketDailyLedgerDoc> periodDocs}) {
   // If no credited ledger docs exist for the period, always use wallet
   // fallback. Today's live data alone is NOT a valid monthly or yearly
   // total — it only represents today's intraday estimate. Monthly/Yearly
@@ -333,10 +331,10 @@ bool _useWalletFallback({
 }
 
 /// Sums credited [five_market_daily] rows for the current PKT month + today's live.
-final fiveMarketMonthlyProfitProvider =
-    Provider<FiveMarketPeriodSummary>((ref) {
-  final history =
-      ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
+final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
+  ref,
+) {
+  final history = ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
   final liveToday = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
   final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
 
@@ -388,9 +386,7 @@ final fiveMarketMonthlyProfitProvider =
 
   // Add today's live estimate ONLY when we already have at least one
   // credited ledger day for this period.
-  if (monthDocs.isNotEmpty &&
-      liveToday != null &&
-      liveToday.isTradingDay) {
+  if (monthDocs.isNotEmpty && liveToday != null && liveToday.isTradingDay) {
     stockTotal += liveToday.stockProfitPkr;
     techTotal += liveToday.techProfitPkr;
     debtTotal += liveToday.debtProfitPkr;
@@ -413,8 +409,7 @@ final fiveMarketMonthlyProfitProvider =
 
 /// Sums credited [five_market_daily] rows for the current PKT year + today's live.
 final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
-  final history =
-      ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
+  final history = ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
   final liveToday = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
   final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
 
@@ -463,9 +458,7 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
 
   // Add today's live estimate ONLY when we already have at least one
   // credited ledger day for this period.
-  if (yearDocs.isNotEmpty &&
-      liveToday != null &&
-      liveToday.isTradingDay) {
+  if (yearDocs.isNotEmpty && liveToday != null && liveToday.isTradingDay) {
     stockTotal += liveToday.stockProfitPkr;
     techTotal += liveToday.techProfitPkr;
     debtTotal += liveToday.debtProfitPkr;

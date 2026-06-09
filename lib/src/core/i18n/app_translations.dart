@@ -494,8 +494,7 @@ const _en = <String, String>{
   "fee_manual_frontend_short":
       "Charged once on every deposit before investment.",
   "fee_manual_mgmt_title": "Management Fee",
-  "fee_manual_mgmt_short":
-      "Annual fee deducted daily from your portfolio.",
+  "fee_manual_mgmt_short": "Annual fee deducted daily from your portfolio.",
   "fee_manual_perf_title": "Performance Fee",
   "fee_manual_perf_short":
       "Charged only on new profits above your personal peak.",
@@ -1033,7 +1032,8 @@ const _en = <String, String>{
   "kmi30_today_pl_short": "Today",
   "kmi30_market_closed_today": "Market closed today",
   "kmi30_off_day_banner_title": "OFF DAY — Markets closed",
-  "kmi30_off_day_banner_sub": "Non-trading day — no index movement or P&L today.",
+  "kmi30_off_day_banner_sub":
+      "Non-trading day — no index movement or P&L today.",
   "kmi30_day_change_off_day": "No day change on off days",
   "kmi30_top_movers_title": "Today's movers (your stock sleeve)",
   "kmi30_top_gainers": "Top gainers",
@@ -1183,8 +1183,7 @@ const _en = <String, String>{
   "mgmt_fee_annual_rate": "Annual Management Fee",
   "mgmt_fee_ytd_total": "Management Fee (YTD)",
   "perf_fee_label": "Performance Fee",
-  "perf_fee_hwm_note":
-      "Charged on profit above your personal High-Water Mark.",
+  "perf_fee_hwm_note": "Charged on profit above your personal High-Water Mark.",
   "perf_fee_hwm_label": "High-Water Mark",
   "fee_version_label": "Fee Engine Version",
   "fee_v2_section_title": "Fee Engine v2 Configuration",
@@ -1194,8 +1193,7 @@ const _en = <String, String>{
       "Your annual fee statement is ready in Reports.",
   "referral_enabled_label": "Enable referral commissions globally",
   "fee_ledger_nav": "Company Fee Ledger",
-  "fee_ledger_subtitle":
-      "Full audit trail of all fee income by type.",
+  "fee_ledger_subtitle": "Full audit trail of all fee income by type.",
   "fee_ledger_total_gross": "Total gross fees",
   "fee_ledger_total_referral": "Total referral paid",
   "fee_ledger_filter_all": "All types",
@@ -2721,12 +2719,10 @@ const _ur = <String, String>{
   "fee_v2_section_title": "فیس انجن v2 ترتیب",
   "referral_v2_section_title": "v2 ریفرل ریکارڈ",
   "year_end_statement_title": "سالانہ انتظامی فیس بیان",
-  "year_end_statement_available":
-      "آپ کا سالانہ فیس بیان رپورٹس میں دستیاب ہے۔",
+  "year_end_statement_available": "آپ کا سالانہ فیس بیان رپورٹس میں دستیاب ہے۔",
   "referral_enabled_label": "ریفرل کمیشن فعال کریں",
   "fee_ledger_nav": "کمپنی فیس لیجر",
-  "fee_ledger_subtitle":
-      "تمام فیس آمدنی کا مکمل آڈٹ ریکارڈ۔",
+  "fee_ledger_subtitle": "تمام فیس آمدنی کا مکمل آڈٹ ریکارڈ۔",
   "fee_ledger_total_gross": "کل مجموعی فیسیں",
   "fee_ledger_total_referral": "کل ریفرل ادا",
   "fee_ledger_filter_all": "تمام اقسام",
@@ -3060,8 +3056,7 @@ const _ur = <String, String>{
   "sleeve_report_col_sleeve_amt": "سلیو رقم\n(PKR)",
   "sleeve_report_col_note": "نوٹ",
   "sleeve_report_total": "کل",
-  "sleeve_report_current_px_note":
-      "† تمام قطاروں کے لیے موجودہ سونے کی قیمت:",
+  "sleeve_report_current_px_note": "† تمام قطاروں کے لیے موجودہ سونے کی قیمت:",
   "sleeve_report_missing_px_note":
       "* 365 دن سے پرانی تاریخوں کی خریداری قیمت دستیاب نہیں (— دکھایا گیا)۔ ان قطاروں کے تولے اور P/L حساب نہیں کیے گئے۔",
   "sleeve_report_non_gold_note":

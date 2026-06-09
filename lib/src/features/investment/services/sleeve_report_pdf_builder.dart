@@ -152,9 +152,9 @@ pw.Widget _buildSleeveLetterheadFooter() {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 _sleeveFooterRow("Contact Number", "021-34010616"),
-                _sleeveFooterRow("Contact on", "Contact@wakalatalistithmar.com"),
-                _sleeveFooterRow("For Information", "info@islamicsaving.com"),
-                _sleeveFooterRow("Visit our website", "www.wakalatalistithmar.com"),
+                _sleeveFooterRow("Contact on", "contact@islamicsavingcenter.com"),
+                _sleeveFooterRow("For Information", "contact@islamicsavingcenter.com"),
+                _sleeveFooterRow("Visit our website", "www.islamicsavingcenter.com"),
               ],
             ),
           ),
@@ -173,7 +173,7 @@ pw.Widget _buildSleeveLetterheadFooter() {
                   style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
                 ),
                 pw.Text(
-                  "@Wakalat_Al_Istithmar",
+                  "@islamicsavingcenter",
                   style: pw.TextStyle(
                     fontSize: 7.5,
                     fontWeight: pw.FontWeight.bold,

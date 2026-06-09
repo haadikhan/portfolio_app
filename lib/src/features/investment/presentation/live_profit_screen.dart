@@ -62,7 +62,10 @@ double _fixedRateDisplayProfit({
   return realizedProfitPkr;
 }
 
-String _fixedRateSubLabel(BuildContext context, FiveMarketLiveProfitState live) {
+String _fixedRateSubLabel(
+  BuildContext context,
+  FiveMarketLiveProfitState live,
+) {
   if (!live.isTradingDay) {
     return context.tr("market_no_accrual_today");
   }
@@ -76,31 +79,30 @@ double _displayDailyTotal(FiveMarketLiveProfitState live, int elapsedSec) {
   if (!live.isTradingDay) return 0;
   if (!live.isMarketHours) return live.totalProfitPkr;
   return double.parse(
-    (
-      live.stockProfitPkr +
-      _fixedRateDisplayProfit(
-        live: live,
-        allocatedPkr: live.techAllocatedPkr,
-        annualPercent: live.techAnnualPercent,
-        realizedProfitPkr: live.techProfitPkr,
-        elapsedSec: elapsedSec,
-      ) +
-      _fixedRateDisplayProfit(
-        live: live,
-        allocatedPkr: live.debtAllocatedPkr,
-        annualPercent: live.debtAnnualPercent,
-        realizedProfitPkr: live.debtProfitPkr,
-        elapsedSec: elapsedSec,
-      ) +
-      _fixedRateDisplayProfit(
-        live: live,
-        allocatedPkr: live.moneyAllocatedPkr,
-        annualPercent: live.moneyAnnualPercent,
-        realizedProfitPkr: live.moneyProfitPkr,
-        elapsedSec: elapsedSec,
-      ) +
-      live.goldProfitPkr
-    ).toStringAsFixed(2),
+    (live.stockProfitPkr +
+            _fixedRateDisplayProfit(
+              live: live,
+              allocatedPkr: live.techAllocatedPkr,
+              annualPercent: live.techAnnualPercent,
+              realizedProfitPkr: live.techProfitPkr,
+              elapsedSec: elapsedSec,
+            ) +
+            _fixedRateDisplayProfit(
+              live: live,
+              allocatedPkr: live.debtAllocatedPkr,
+              annualPercent: live.debtAnnualPercent,
+              realizedProfitPkr: live.debtProfitPkr,
+              elapsedSec: elapsedSec,
+            ) +
+            _fixedRateDisplayProfit(
+              live: live,
+              allocatedPkr: live.moneyAllocatedPkr,
+              annualPercent: live.moneyAnnualPercent,
+              realizedProfitPkr: live.moneyProfitPkr,
+              elapsedSec: elapsedSec,
+            ) +
+            live.goldProfitPkr)
+        .toStringAsFixed(2),
   );
 }
 
@@ -139,7 +141,13 @@ DateTime _nextPktInstantUtc(
   int pktHour,
   int pktMin,
 ) {
-  var target = _pktWallToUtc(nowPkt.year, nowPkt.month, nowPkt.day, pktHour, pktMin);
+  var target = _pktWallToUtc(
+    nowPkt.year,
+    nowPkt.month,
+    nowPkt.day,
+    pktHour,
+    pktMin,
+  );
   if (!target.isAfter(nowUtc)) {
     final nextPkt = nowPkt.add(const Duration(days: 1));
     target = _pktWallToUtc(
@@ -464,8 +472,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
       if (mounted) {
         setState(() {
           final trading = ref.read(todayTradingDayProvider).isTradingDay;
-          final shouldAccrue =
-              trading && isWithinPktMarketHours();
+          final shouldAccrue = trading && isWithinPktMarketHours();
           _elapsedSec = shouldAccrue
               ? elapsedSessionSeconds(isTradingDay: true)
               : 0;
@@ -493,8 +500,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
 
     return liveProfitAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) =>
-          Center(child: Text("${context.tr("error_prefix")} $e")),
+      error: (e, _) => Center(child: Text("${context.tr("error_prefix")} $e")),
       data: (live) {
         final fixedSubLabel = _fixedRateSubLabel(context, live);
         final techDisplay = _fixedRateDisplayProfit(
@@ -538,10 +544,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
               _MarketStatusRow(live: live),
               if (!live.isTradingDay) ...[
                 const SizedBox(height: 12),
-                _ClosedDayBanner(
-                  tradingDay: tradingDay,
-                  scheme: scheme,
-                ),
+                _ClosedDayBanner(tradingDay: tradingDay, scheme: scheme),
               ],
               const SizedBox(height: 14),
               _MarketBreakdownCard(
@@ -660,9 +663,9 @@ class _MonthlyTab extends ConsumerWidget {
             const SizedBox(height: 14),
             Text(
               context.tr("profit_includes_today"),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
             ),
             const SizedBox(height: 16),
             _AllTimeProfitRow(amount: realizedProfit),
@@ -740,18 +743,14 @@ class _LedgerNotReadyCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(
-              Icons.info_outline_rounded,
-              color: scheme.primary,
-              size: 28,
-            ),
+            Icon(Icons.info_outline_rounded, color: scheme.primary, size: 28),
             const SizedBox(height: 8),
             Text(
               context.tr("profit_ledger_not_ready"),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    height: 1.4,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(height: 1.4),
             ),
           ],
         ),
@@ -784,24 +783,24 @@ class _PeriodHeaderCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
               "$tradingDays $tradingDaysSuffix",
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: scheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -811,10 +810,7 @@ class _PeriodHeaderCard extends StatelessWidget {
 }
 
 class _PeriodHeroCard extends StatelessWidget {
-  const _PeriodHeroCard({
-    required this.totalProfitPkr,
-    required this.label,
-  });
+  const _PeriodHeroCard({required this.totalProfitPkr, required this.label});
 
   final double totalProfitPkr;
   final String label;
@@ -940,8 +936,8 @@ class _PeriodMarketTile extends StatelessWidget {
     final profitColor = profitPkr > 0
         ? scheme.primary
         : profitPkr < 0
-            ? scheme.error
-            : scheme.onSurface;
+        ? scheme.error
+        : scheme.onSurface;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -956,15 +952,15 @@ class _PeriodMarketTile extends StatelessWidget {
                   Text(
                     context.tr(labelKey),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subLabel,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -972,9 +968,9 @@ class _PeriodMarketTile extends StatelessWidget {
             Text(
               "${profitPkr >= 0 ? "+" : ""}${_money.format(profitPkr)}",
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: profitColor,
-                  ),
+                fontWeight: FontWeight.w700,
+                color: profitColor,
+              ),
             ),
           ],
         ),
@@ -992,16 +988,33 @@ class _YearlyContributionBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final segments = <({String key, double profit, Color color})>[
-      (key: "five_market_row_stock", profit: summary.stockProfitPkr, color: _kStockColor),
-      (key: "five_market_row_tech", profit: summary.techProfitPkr, color: _kTechColor),
-      (key: "five_market_row_debt", profit: summary.debtProfitPkr, color: _kDebtColor),
-      (key: "five_market_row_money", profit: summary.moneyProfitPkr, color: _kMoneyColor),
-      (key: "five_market_row_gold", profit: summary.goldProfitPkr, color: _kGoldColor),
+      (
+        key: "five_market_row_stock",
+        profit: summary.stockProfitPkr,
+        color: _kStockColor,
+      ),
+      (
+        key: "five_market_row_tech",
+        profit: summary.techProfitPkr,
+        color: _kTechColor,
+      ),
+      (
+        key: "five_market_row_debt",
+        profit: summary.debtProfitPkr,
+        color: _kDebtColor,
+      ),
+      (
+        key: "five_market_row_money",
+        profit: summary.moneyProfitPkr,
+        color: _kMoneyColor,
+      ),
+      (
+        key: "five_market_row_gold",
+        profit: summary.goldProfitPkr,
+        color: _kGoldColor,
+      ),
     ];
-    final absTotal = segments.fold<double>(
-      0,
-      (s, e) => s + e.profit.abs(),
-    );
+    final absTotal = segments.fold<double>(0, (s, e) => s + e.profit.abs());
 
     return Card(
       child: Padding(
@@ -1011,9 +1024,9 @@ class _YearlyContributionBars extends StatelessWidget {
           children: [
             Text(
               context.tr("profit_yearly_contribution_title"),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             for (final seg in segments) ...[
@@ -1035,8 +1048,9 @@ class _YearlyContributionBars extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: absTotal > 0 ? seg.profit.abs() / absTotal : 0,
                         minHeight: 8,
-                        backgroundColor:
-                            scheme.outlineVariant.withValues(alpha: 0.4),
+                        backgroundColor: scheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
                         valueColor: AlwaysStoppedAnimation<Color>(seg.color),
                       ),
                     ),
@@ -1047,8 +1061,8 @@ class _YearlyContributionBars extends StatelessWidget {
                         ? "${(seg.profit.abs() / absTotal * 100).toStringAsFixed(0)}%"
                         : "0%",
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -1159,9 +1173,9 @@ class _AllTimeProfitRow extends StatelessWidget {
           child: Text(
             "${context.tr("profit_all_time_label")}: ${_money.format(amount)}",
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -1282,8 +1296,8 @@ class _MarketStatusRow extends StatelessWidget {
           label: !live.isTradingDay
               ? context.tr("live_profit_market_closed")
               : live.isMarketHours
-                  ? context.tr("live_profit_market_open")
-                  : context.tr("live_profit_after_hours_closed"),
+              ? context.tr("live_profit_market_open")
+              : context.tr("live_profit_after_hours_closed"),
           background: !live.isTradingDay || !live.isMarketHours
               ? scheme.errorContainer
               : scheme.primaryContainer,
@@ -1328,10 +1342,7 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _ClosedDayBanner extends StatelessWidget {
-  const _ClosedDayBanner({
-    required this.tradingDay,
-    required this.scheme,
-  });
+  const _ClosedDayBanner({required this.tradingDay, required this.scheme});
 
   final TradingDayResult tradingDay;
   final ColorScheme scheme;
@@ -1367,9 +1378,9 @@ class _ClosedDayBanner extends StatelessWidget {
                   child: Text(
                     context.tr("five_market_closed_banner_title"),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onErrorContainer,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onErrorContainer,
+                    ),
                   ),
                 ),
               ],
@@ -1377,9 +1388,9 @@ class _ClosedDayBanner extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.tr(subKey),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onErrorContainer,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onErrorContainer),
             ),
           ],
         ),
@@ -1415,8 +1426,8 @@ class _MarketBreakdownCard extends StatelessWidget {
     final profitColor = profitPkr > 0
         ? scheme.primary
         : profitPkr < 0
-            ? scheme.error
-            : scheme.onSurface;
+        ? scheme.error
+        : scheme.onSurface;
     final profitText =
         "${profitPkr >= 0 ? "+" : ""}${_money.format(profitPkr)}";
 
@@ -1430,8 +1441,8 @@ class _MarketBreakdownCard extends StatelessWidget {
       changeColor = pct > 0
           ? scheme.primary
           : pct < 0
-              ? scheme.error
-              : scheme.onSurfaceVariant;
+          ? scheme.error
+          : scheme.onSurfaceVariant;
     }
 
     return Card(
@@ -1448,8 +1459,8 @@ class _MarketBreakdownCard extends StatelessWidget {
                   child: Text(
                     context.tr(labelKey),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 _SliceStatusChip(status: status, scheme: scheme),
@@ -1458,9 +1469,9 @@ class _MarketBreakdownCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               "${context.tr("mkt_gold_allocated_pkr")}: ${_money.format(allocatedPkr)}",
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
             Row(
@@ -1472,18 +1483,18 @@ class _MarketBreakdownCard extends StatelessWidget {
                 Text(
                   profitText,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: profitColor,
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: profitColor,
+                  ),
                 ),
                 if (changeText != null) ...[
                   const SizedBox(width: 8),
                   Text(
                     changeText,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: changeColor,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: changeColor,
+                    ),
                   ),
                 ],
               ],
@@ -1493,16 +1504,16 @@ class _MarketBreakdownCard extends StatelessWidget {
               Text(
                 annualRateLabel!,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
             const SizedBox(height: 4),
             Text(
               subLabel,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -1534,9 +1545,9 @@ class _SliceStatusChip extends StatelessWidget {
       child: Text(
         context.tr(key),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurfaceVariant,
-            ),
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -1553,8 +1564,8 @@ class _TotalProfitCard extends StatelessWidget {
     final color = totalProfitPkr > 0
         ? scheme.primary
         : totalProfitPkr < 0
-            ? scheme.error
-            : scheme.onSurface;
+        ? scheme.error
+        : scheme.onSurface;
     return Card(
       color: scheme.primaryContainer.withValues(alpha: 0.35),
       child: Padding(
@@ -1564,9 +1575,9 @@ class _TotalProfitCard extends StatelessWidget {
           children: [
             Text(
               context.tr("live_profit_total_today"),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             TweenAnimationBuilder<double>(
@@ -1576,9 +1587,9 @@ class _TotalProfitCard extends StatelessWidget {
               builder: (context, value, _) => Text(
                 "${value >= 0 ? "+" : ""}${_moneyLive.format(value)}",
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
               ),
             ),
           ],
