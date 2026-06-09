@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "package:portfolio_app/src/core/market/market_hours.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
@@ -124,41 +125,8 @@ class FiveMarketPeriodSummary {
   );
 }
 
-/// True when current PKT time is within PSX market hours (09:00–16:00).
-bool isWithinPktMarketHours() => _isMarketHours();
-
-/// PKT session elapsed seconds (09:00–16:00) for smooth fixed-rate UI ticks.
-/// Returns 0 on non-trading days so fixed-rate sleeves never accrue off-session.
-int elapsedSessionSeconds({required bool isTradingDay}) {
-  if (!isTradingDay) return 0;
-
-  final nowPkt = DateTime.now().toUtc().add(const Duration(hours: 5));
-  final sessionStart = DateTime.utc(
-    nowPkt.year,
-    nowPkt.month,
-    nowPkt.day,
-    4,
-    0,
-    0,
-  );
-  final sessionEnd = DateTime.utc(
-    nowPkt.year,
-    nowPkt.month,
-    nowPkt.day,
-    11,
-    0,
-    0,
-  );
-  final nowUtc = DateTime.now().toUtc();
-  if (nowUtc.isBefore(sessionStart)) return 0;
-  if (nowUtc.isAfter(sessionEnd)) return 25200;
-  return nowUtc.difference(sessionStart).inSeconds.clamp(0, 25200);
-}
-
-bool _isMarketHours() {
-  final hour = DateTime.now().toUtc().add(const Duration(hours: 5)).hour;
-  return hour >= 9 && hour < 16;
-}
+/// True when current PKT time is within PSX stock market hours.
+bool isWithinPktMarketHours() => isStockMarketOpen();
 
 double _round2(double v) => double.parse(v.toStringAsFixed(2));
 
@@ -189,8 +157,9 @@ FiveMarketLiveProfitState _buildState({
 }) {
   final basePkr = wallet != null ? allocationTotalFromWallet(wallet) : 0.0;
   final isTradingDay = tradingDay.isTradingDay;
-  final isMarketHours = isTradingDay && _isMarketHours();
-  final elapsedSec = elapsedSessionSeconds(isTradingDay: isTradingDay);
+  final isStockOpen = isTradingDay && isStockMarketOpen();
+  final isMarketHours = isStockOpen;
+  final elapsedSec = isTradingDay ? elapsedStockSessionSeconds() : 0;
   final alloc = config.allocations;
   final rates = config.rates;
 
@@ -229,7 +198,7 @@ FiveMarketLiveProfitState _buildState({
     );
   }
 
-  final kmi30Pct = kmi30Tick?.changePercent ?? 0.0;
+  final kmi30Pct = isStockOpen ? (kmi30Tick?.changePercent ?? 0.0) : 0.0;
   final stockProfit = _round2(stockAlloc * kmi30Pct / 100);
 
   final techDaily = techAlloc * rates.techBenchmarkAnnualPercent / 100 / 365;
@@ -247,9 +216,15 @@ FiveMarketLiveProfitState _buildState({
     stockProfit + techProfit + debtProfit + moneyProfit + goldProfit,
   );
 
-  final sliceStatus = isMarketHours
+  final stockStatus = isTradingDay
+      ? (isStockOpen ? MarketSliceStatus.live : MarketSliceStatus.realized)
+      : MarketSliceStatus.nonTradingDay;
+
+  final fixedStatus = stockStatus;
+
+  final goldStatus = isTradingDay
       ? MarketSliceStatus.live
-      : MarketSliceStatus.realized;
+      : MarketSliceStatus.nonTradingDay;
 
   return FiveMarketLiveProfitState(
     basePkr: basePkr,
@@ -271,11 +246,11 @@ FiveMarketLiveProfitState _buildState({
     techAnnualPercent: rates.techBenchmarkAnnualPercent,
     debtAnnualPercent: rates.debtAnnualPercent,
     moneyAnnualPercent: rates.moneyAnnualPercent,
-    stockStatus: sliceStatus,
-    techStatus: sliceStatus,
-    debtStatus: sliceStatus,
-    moneyStatus: sliceStatus,
-    goldStatus: sliceStatus,
+    stockStatus: stockStatus,
+    techStatus: fixedStatus,
+    debtStatus: fixedStatus,
+    moneyStatus: fixedStatus,
+    goldStatus: goldStatus,
   );
 }
 

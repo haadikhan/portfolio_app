@@ -388,8 +388,11 @@ const _en = <String, String>{
   "countdown_live_chip": "LIVE",
   "countdown_pending_chip": "PENDING",
   "countdown_premarket_chip": "PRE-MARKET",
+  "countdown_friday_break_label": "Market paused — Jumu'ah prayer break",
+  "countdown_prayer_chip": "PRAYER BREAK",
+  "countdown_market_resumes": "Market resumes in",
   "live_profit_note_five_market":
-      "Profits update in real time during PSX market hours (09:00–16:00 PKT, Mon–Fri). Fixed-rate markets accrue per second. Stock and Gold update when prices change.",
+      "Profits update in real time. Stock: Mon–Thu 09:00–16:00, Fri 09:00–12:00 & 14:30–16:00 PKT. Gold: 24 hours. Fixed-rate markets accrue per second.",
   "staff_access_required": "Staff access required",
   "staff_role_required":
       "This account does not have admin or CRM access. Sign in with an authorized account.",
@@ -1934,8 +1937,11 @@ const _ur = <String, String>{
   "countdown_live_chip": "لائیو",
   "countdown_pending_chip": "زیر التواء",
   "countdown_premarket_chip": "پری مارکیٹ",
+  "countdown_friday_break_label": "مارکیٹ وقفہ — نماز جمعہ",
+  "countdown_prayer_chip": "نماز وقفہ",
+  "countdown_market_resumes": "مارکیٹ دوبارہ کھلنے میں",
   "live_profit_note_five_market":
-      "منافع PSX اوقات میں ریئل ٹائم اپڈیٹ ہوتا ہے۔",
+      "منافع ریئل ٹائم اپڈیٹ ہوتا ہے۔ اسٹاک: پیر–جمعرات 09:00–16:00، جمعہ 09:00–12:00 اور 14:30–16:00 PKT۔ سونا: 24 گھنٹے۔ مقررہ شرح والے بازار فی سیکنڈ جمع ہوتے ہیں۔",
   "staff_access_required": "اسٹاف کی رسائی درکار ہے",
   "staff_role_required":
       "اس اکاؤنٹ میں ایڈمن یا CRM رسائی نہیں۔ مجاز اکاؤنٹ سے سائن ان کریں۔",

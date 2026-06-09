@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../core/market/market_hours.dart";
 import "../core/i18n/app_translations.dart";
 import "../core/branding/brand_logo.dart";
 import "../core/theme/app_colors.dart";
@@ -28,11 +29,8 @@ String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
   return formattedIfVisible;
 }
 
-/// True when current PKT time is within PSX market hours (09:00–16:00).
-bool _isDashboardMarketHours() {
-  final hour = DateTime.now().toUtc().add(const Duration(hours: 5)).hour;
-  return hour >= 9 && hour < 16;
-}
+/// True when current PKT time is within PSX stock market hours.
+bool _isDashboardMarketHours() => isStockMarketOpen();
 
 /// Last segment of Firebase UID for compact "portfolio number" display.
 String _dashboardPortfolioTail(String uid) {

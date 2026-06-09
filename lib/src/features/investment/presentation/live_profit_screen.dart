@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
 import "../../../core/i18n/app_translations.dart";
+import "../../../core/market/market_hours.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
 import "../../../providers/portfolio_providers.dart";
@@ -110,6 +111,7 @@ double _displayDailyTotal(FiveMarketLiveProfitState live, int elapsedSec) {
 
 enum _CountdownPhase {
   marketOpen,
+  fridayPrayerBreak,
   awaitingCredit,
   preMarketOpen,
   nonTradingDay,
@@ -166,6 +168,7 @@ _CountdownInfo _resolveCountdown(bool isTradingDay) {
   final nowPkt = nowUtc.add(const Duration(hours: 5));
   final h = nowPkt.hour;
   final m = nowPkt.minute;
+  final totalMinutes = h * 60 + m;
 
   if (h == 0 && m < 5) {
     return _CountdownInfo(
@@ -175,7 +178,7 @@ _CountdownInfo _resolveCountdown(bool isTradingDay) {
     );
   }
 
-  if (h < 9) {
+  if (totalMinutes < 540) {
     final target = _nextPktInstantUtc(nowUtc, nowPkt, 9, 0);
     return _CountdownInfo(
       phase: _CountdownPhase.preMarketOpen,
@@ -184,7 +187,18 @@ _CountdownInfo _resolveCountdown(bool isTradingDay) {
     );
   }
 
-  if (h >= 9 && h < 16) {
+  if (nowPkt.weekday == DateTime.friday &&
+      totalMinutes >= 720 &&
+      totalMinutes < 870) {
+    final target = _nextPktInstantUtc(nowUtc, nowPkt, 14, 30);
+    return _CountdownInfo(
+      phase: _CountdownPhase.fridayPrayerBreak,
+      remaining: target.difference(nowUtc),
+      isTradingDay: isTradingDay,
+    );
+  }
+
+  if (isStockMarketOpen()) {
     if (!isTradingDay) {
       return const _CountdownInfo(
         phase: _CountdownPhase.nonTradingDay,
@@ -301,8 +315,64 @@ class _CountdownCard extends StatelessWidget {
       );
     }
 
+    if (info.phase == _CountdownPhase.fridayPrayerBreak) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(Icons.mosque_rounded, color: scheme.primary, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr("countdown_friday_break_label"),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDuration(info.remaining),
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  context.tr("countdown_prayer_chip"),
+                  style: TextStyle(
+                    color: scheme.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final accentColor = switch (info.phase) {
       _CountdownPhase.marketOpen => scheme.primary,
+      _CountdownPhase.fridayPrayerBreak => scheme.primary,
       _CountdownPhase.awaitingCredit => scheme.tertiary,
       _CountdownPhase.preMarketOpen => scheme.onSurfaceVariant,
       _ => scheme.onSurfaceVariant,
@@ -310,6 +380,7 @@ class _CountdownCard extends StatelessWidget {
 
     final icon = switch (info.phase) {
       _CountdownPhase.marketOpen => Icons.trending_up_rounded,
+      _CountdownPhase.fridayPrayerBreak => Icons.mosque_rounded,
       _CountdownPhase.awaitingCredit => Icons.account_balance_wallet_outlined,
       _CountdownPhase.preMarketOpen => Icons.schedule_rounded,
       _ => Icons.schedule_rounded,
@@ -317,6 +388,7 @@ class _CountdownCard extends StatelessWidget {
 
     final labelKey = switch (info.phase) {
       _CountdownPhase.marketOpen => "countdown_market_closes",
+      _CountdownPhase.fridayPrayerBreak => "countdown_market_resumes",
       _CountdownPhase.awaitingCredit => "countdown_profit_credits",
       _CountdownPhase.preMarketOpen => "countdown_market_opens",
       _ => "countdown_market_opens",
@@ -324,6 +396,7 @@ class _CountdownCard extends StatelessWidget {
 
     final chipKey = switch (info.phase) {
       _CountdownPhase.marketOpen => "countdown_live_chip",
+      _CountdownPhase.fridayPrayerBreak => "countdown_prayer_chip",
       _CountdownPhase.awaitingCredit => "countdown_pending_chip",
       _CountdownPhase.preMarketOpen => "countdown_premarket_chip",
       _ => "",
@@ -466,16 +539,14 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
   void initState() {
     super.initState();
     final isTradingDay = ref.read(todayTradingDayProvider).isTradingDay;
-    _elapsedSec = elapsedSessionSeconds(isTradingDay: isTradingDay);
+    _elapsedSec = isTradingDay ? elapsedStockSessionSeconds() : 0;
     _countdownInfo = _resolveCountdown(isTradingDay);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {
           final trading = ref.read(todayTradingDayProvider).isTradingDay;
-          final shouldAccrue = trading && isWithinPktMarketHours();
-          _elapsedSec = shouldAccrue
-              ? elapsedSessionSeconds(isTradingDay: true)
-              : 0;
+          final shouldAccrue = trading && isStockMarketOpen();
+          _elapsedSec = shouldAccrue ? elapsedStockSessionSeconds() : 0;
           _countdownInfo = _resolveCountdown(trading);
         });
       }

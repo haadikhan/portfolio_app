@@ -1,6 +1,7 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:intl/intl.dart";
 
+import "package:portfolio_app/src/core/market/market_hours.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_daily_engine.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
@@ -112,23 +113,18 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
 
   final basePkr = netPortfolioValueFromWallet(wallet);
 
-  // Determine if we are currently within market hours
-  final withinMarketHours = tradingDay.isTradingDay && _isWithinMarketHours();
+  // Stock: PSX hours including Friday prayer break
+  final kmi30Pct = tradingDay.isTradingDay && isStockMarketOpen()
+      ? (kmi30Tick?.changePercent ?? 0.0)
+      : 0.0;
 
-  // After market close (or on non-trading days), use 0.0
-  // for live tick percentages.
-  //
-  // Reason: the day's P&L snapshot is booked by the EOD
-  // Cloud Function (fiveMarketDailyCredit at 00:05 PKT).
-  // Any deposit approved after 4pm must NOT be subjected
-  // to that day's price movement — the investor bought at
-  // today's closing price and their P&L starts fresh from
-  // the next trading day open.
-  //
-  // During market hours (09:00–16:00 PKT): use live tick
-  // so the screen shows real-time movement.
-  final kmi30Pct = withinMarketHours ? (kmi30Tick?.changePercent ?? 0.0) : 0.0;
-  final goldPct = withinMarketHours ? (goldQuote?.changePercent ?? 0.0) : 0.0;
+  // Gold: 24-hour — never zeroed by hour
+  final goldPct = tradingDay.isTradingDay
+      ? (goldQuote?.changePercent ?? 0.0)
+      : 0.0;
+
+  // isIntraday drives stock/tech/debt/money MarketSliceStatus in engine
+  final isIntraday = tradingDay.isTradingDay && isStockMarketOpen();
 
   return FiveMarketDailyEngine.calculate(
     basePkr: basePkr,
@@ -136,7 +132,7 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
     tradingDay: tradingDay,
     kmi30Percent: kmi30Pct,
     goldPercent: goldPct,
-    isIntraday: withinMarketHours,
+    isIntraday: isIntraday,
   );
 });
 
@@ -144,15 +140,4 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
 String _todayPkt() {
   final pktWall = DateTime.now().toUtc().add(const Duration(hours: 5));
   return DateFormat("yyyy-MM-dd").format(pktWall);
-}
-
-/// Returns current hour in PKT (Asia/Karachi, UTC+5).
-int _currentPktHour() {
-  return DateTime.now().toUtc().add(const Duration(hours: 5)).hour;
-}
-
-/// True when current PKT time is within PSX market hours (09:00–16:00).
-bool _isWithinMarketHours() {
-  final hour = _currentPktHour();
-  return hour >= 9 && hour < 16;
 }
