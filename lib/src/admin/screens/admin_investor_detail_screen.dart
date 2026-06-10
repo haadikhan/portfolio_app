@@ -1421,20 +1421,8 @@ class _AgreementPdfActionsState extends State<_AgreementPdfActions> {
     } catch (e, st) {
       debugPrint("[admin_agreement] buildConsentAgreementPdf failed: $e\n$st");
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text("PDF Error (debug)"),
-            content: SingleChildScrollView(
-              child: SelectableText("$e\n\n$st"),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Close"),
-              ),
-            ],
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr("reports_pdf_failed"))),
         );
       }
       return null;
