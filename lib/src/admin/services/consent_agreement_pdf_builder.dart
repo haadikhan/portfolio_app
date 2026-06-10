@@ -226,21 +226,27 @@ This Agreement shall become legally effective upon digital acceptance through th
 
 pw.Widget _proofRow(String label, String value) {
   return pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 8),
+    padding: const pw.EdgeInsets.only(bottom: 6),
     child: pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.SizedBox(
-          width: 130,
+          width: 120,
           child: pw.Text(
             _sanitizePdfText(label),
-            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey700,
+            ),
           ),
         ),
         pw.Expanded(
           child: pw.Text(
             _sanitizePdfText(value),
             style: const pw.TextStyle(fontSize: 10),
+            softWrap: true,
+            overflow: pw.TextOverflow.span,
           ),
         ),
       ],
@@ -255,23 +261,23 @@ Future<Uint8List> buildConsentAgreementPdf(ConsentAgreementPdfInput input) async
   pdf.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(40),
+      margin: const pw.EdgeInsets.all(28),
       build: (_) => [
         pw.Text(
           _sanitizePdfText(_kAgreementTitleLine1),
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(
           _sanitizePdfText(_kAgreementTitleLine2),
-          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 16),
         for (final paragraph in _kAgreementParagraphs) ...[
           pw.Text(
             _sanitizePdfText(paragraph),
-            style: const pw.TextStyle(fontSize: 11, lineSpacing: 4),
+            style: const pw.TextStyle(fontSize: 9, lineSpacing: 2),
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 6),
         ],
         pw.SizedBox(height: 20),
         pw.Divider(color: PdfColors.grey400),
