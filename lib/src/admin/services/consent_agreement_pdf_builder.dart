@@ -3,6 +3,20 @@ import "dart:typed_data";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
 
+String _sanitizePdfText(String text) {
+  return text
+      .replaceAll("\u2014", "-") // em dash → hyphen
+      .replaceAll("\u2013", "-") // en dash → hyphen
+      .replaceAll("\u2022", "*") // bullet → asterisk
+      .replaceAll("\u2713", "[x]") // [x] check mark → [x]
+      .replaceAll("\u2714", "[x]") // [x] heavy check → [x]
+      .replaceAll("\u00e9", "e") // é → e (safety)
+      .replaceAll("\u201c", '"') // left double quote
+      .replaceAll("\u201d", '"') // right double quote
+      .replaceAll("\u2018", "'") // left single quote
+      .replaceAll("\u2019", "'"); // right single quote
+}
+
 /// Inputs for a consent record PDF: agreement text plus acceptance proof.
 class ConsentAgreementPdfInput {
   const ConsentAgreementPdfInput({
@@ -32,13 +46,13 @@ const _kAgreementTitleLine1 = "Investor Participation Agreement";
 const _kAgreementTitleLine2 = "Amanah Multi Asset Portfolio";
 
 const _kAgreementParagraphs = <String>[
-  """ARTICLE 1 — PURPOSE OF THIS AGREEMENT
+  """ARTICLE 1 - PURPOSE OF THIS AGREEMENT
 
 This Agreement governs the Investor's voluntary participation in the Amanah Multi Asset Portfolio and establishes the rights, responsibilities, disclosures, procedures, fees, risks, and operational framework applicable to such participation.
 
 The Investor acknowledges that participation is based upon private contractual arrangements and voluntary consent.
 
-ARTICLE 2 — NATURE OF THE PORTFOLIO
+ARTICLE 2 - NATURE OF THE PORTFOLIO
 
 The Investor acknowledges and agrees that:
 - Amanah Multi Asset Portfolio is a private investment arrangement.
@@ -48,7 +62,7 @@ The Investor acknowledges and agrees that:
 - The Portfolio is operated through private participation arrangements among consenting parties.
 - Participation in the Portfolio is entirely voluntary.
 
-ARTICLE 3 — PORTFOLIO OBJECTIVES
+ARTICLE 3 - PORTFOLIO OBJECTIVES
 
 The Portfolio seeks to achieve:
 - Capital Growth
@@ -59,15 +73,15 @@ The Portfolio seeks to achieve:
 
 The Investor understands that these objectives represent investment goals only and are not guarantees.
 
-ARTICLE 4 — INVESTMENT MARKETS
+ARTICLE 4 - INVESTMENT MARKETS
 
 The Portfolio may provide opportunities in the following asset classes:
-A. Equity Market — Investment in KMI-30 and other approved equity securities.
-B. Asset Market — Digital Gold and gold-backed investment opportunities.
-C. Technology Market — Selected digital assets and technology-related investment opportunities.
-D. Debt Market — Ijara Sukuk, Islamic Certificates, and approved Islamic fixed-income instruments.
-E. Money Market — Cash, Islamic bank deposits, cash equivalents, and liquidity management instruments.""",
-  """ARTICLE 5 — INVESTOR PARTICIPATION MODEL
+A. Equity Market - Investment in KMI-30 and other approved equity securities.
+B. Asset Market - Digital Gold and gold-backed investment opportunities.
+C. Technology Market - Selected digital assets and technology-related investment opportunities.
+D. Debt Market - Ijara Sukuk, Islamic Certificates, and approved Islamic fixed-income instruments.
+E. Money Market - Cash, Islamic bank deposits, cash equivalents, and liquidity management instruments.""",
+  """ARTICLE 5 - INVESTOR PARTICIPATION MODEL
 
 The Investor acknowledges:
 - Investment decisions remain subject to Investor approval.
@@ -75,7 +89,7 @@ The Investor acknowledges:
 - Investor retains the right to approve, reject, or request modifications to proposed allocations.
 - No allocation shall be executed without Investor approval unless separate written discretionary authority has been granted.
 
-ARTICLE 6 — CUSTODY OF FUNDS
+ARTICLE 6 - CUSTODY OF FUNDS
 
 The Investor acknowledges that:
 - ISC acts as custodian and operational facilitator for investor funds.
@@ -84,7 +98,7 @@ The Investor acknowledges that:
 - Custody arrangements do not constitute a guarantee of profits or returns.
 - ISC shall maintain reasonable operational controls designed to safeguard investor funds.
 
-ARTICLE 7 — CAPITAL PRESERVATION DISCLOSURE
+ARTICLE 7 - CAPITAL PRESERVATION DISCLOSURE
 
 The Investor acknowledges:
 - The Portfolio seeks to preserve capital through prudent investment management practices.
@@ -93,7 +107,7 @@ The Investor acknowledges:
 - Portfolio values may fluctuate.
 - Market conditions may impact portfolio performance.
 
-ARTICLE 8 — FEES AND CHARGES
+ARTICLE 8 - FEES AND CHARGES
 
 8.1 Front-End Processing Fee: 2%
 Purpose: Onboarding, Processing, Administration, Capital deployment.
@@ -109,7 +123,7 @@ The fee shall only apply to realized profits according to the Portfolio's perfor
 8.4 Referral Commission: Up to 1% may be paid from Portfolio revenues or front-end fees to approved referral partners. No separate recurring referral charge shall be imposed upon Investors.
 
 8.5 Fee Amendments: Fee changes shall require prior notice through the Platform.""",
-  """ARTICLE 9 — WITHDRAWAL POLICY
+  """ARTICLE 9 - WITHDRAWAL POLICY
 
 The Investor may request withdrawal at any time through the Platform. Withdrawal requests shall be processed subject to asset liquidity, settlement requirements, operational processing, and compliance verification.
 
@@ -119,89 +133,89 @@ Notice Period: Any amount not immediately withdrawable shall become payable upon
 
 The Portfolio Management Team reserves the right to adjust operational withdrawal procedures where necessary for liquidity management.
 
-ARTICLE 10 — INVESTMENT RISKS
+ARTICLE 10 - INVESTMENT RISKS
 
 The Investor acknowledges the existence of:
-- Market Risk — Market prices may rise or fall.
-- Equity Risk — Share prices may fluctuate.
-- Gold Risk — Gold prices may experience volatility.
-- Digital Asset Risk — Digital assets may experience significant price fluctuations.
-- Credit Risk — Issuers of Sukuk or Certificates may experience financial difficulties.
-- Liquidity Risk — Certain assets may require time to liquidate.
-- Regulatory Risk — Changes in laws or regulations may impact investments.
-- Technology Risk — System interruptions may occur.
+- Market Risk - Market prices may rise or fall.
+- Equity Risk - Share prices may fluctuate.
+- Gold Risk - Gold prices may experience volatility.
+- Digital Asset Risk - Digital assets may experience significant price fluctuations.
+- Credit Risk - Issuers of Sukuk or Certificates may experience financial difficulties.
+- Liquidity Risk - Certain assets may require time to liquidate.
+- Regulatory Risk - Changes in laws or regulations may impact investments.
+- Technology Risk - System interruptions may occur.
 
-ARTICLE 11 — NO GUARANTEE
+ARTICLE 11 - NO GUARANTEE
 
 No representation has been made guaranteeing profits, specific returns, portfolio performance, or future appreciation. Participation involves investment risk.
 
-ARTICLE 12 — SHARIAH POSITION
+ARTICLE 12 - SHARIAH POSITION
 
 The Portfolio seeks to follow Shariah-compliant and Shariah-inspired investment principles. Investment screening methodologies may be applied to investment selection. The Investor understands that interpretations of Shariah principles may differ among scholars and institutions.
 
-ARTICLE 13 — AML & SOURCE OF FUNDS DECLARATION
+ARTICLE 13 - AML & SOURCE OF FUNDS DECLARATION
 
 The Investor represents that funds originate from lawful sources, the Investor is the beneficial owner of invested funds, information provided is accurate, and the Investor shall provide documents reasonably requested for verification. The Portfolio Management Team reserves the right to reject, suspend, or terminate participation where AML concerns arise.""",
-  """ARTICLE 14 — PRIVACY AND DATA PROTECTION
+  """ARTICLE 14 - PRIVACY AND DATA PROTECTION
 
 The Investor authorizes the collection, storage, processing, and use of information necessary for account administration, reporting, compliance, and operational management. Information shall be treated confidentially except where disclosure is required by law, regulatory authority, court order, or compliance obligations.
 
-ARTICLE 15 — DIGITAL PLATFORM TERMS
+ARTICLE 15 - DIGITAL PLATFORM TERMS
 
 The Investor understands that the Platform is an information and management portal. Portfolio values displayed may be subject to timing and reporting adjustments. Temporary technical interruptions may occur. The Investor is responsible for safeguarding login credentials.
 
-ARTICLE 16 — LIMITATION OF LIABILITY
+ARTICLE 16 - LIMITATION OF LIABILITY
 
-Neither ISC, Amanah Multi Asset Portfolio, partners, officers, employees, consultants, agents, nor affiliates shall be liable for market losses, investment underperformance, economic conditions, regulatory changes, force majeure events, or third-party failures — except where liability results directly from proven fraud, willful misconduct, or gross negligence.
+Neither ISC, Amanah Multi Asset Portfolio, partners, officers, employees, consultants, agents, nor affiliates shall be liable for market losses, investment underperformance, economic conditions, regulatory changes, force majeure events, or third-party failures - except where liability results directly from proven fraud, willful misconduct, or gross negligence.
 
-ARTICLE 17 — INDEMNITY
+ARTICLE 17 - INDEMNITY
 
 The Investor agrees to indemnify and hold harmless the Portfolio Management Team from losses resulting from false information supplied by the Investor, breach of this Agreement, or unlawful activities conducted by the Investor.
 
-ARTICLE 18 — DISPUTE RESOLUTION
+ARTICLE 18 - DISPUTE RESOLUTION
 
 The Parties shall first attempt amicable resolution of disputes. Where resolution is not achieved, disputes shall be submitted to arbitration in accordance with applicable laws of Pakistan. The seat of arbitration shall be determined by the Portfolio Management Team unless otherwise agreed.
 
-ARTICLE 19 — GOVERNING LAW
+ARTICLE 19 - GOVERNING LAW
 
 This Agreement shall be governed and interpreted in accordance with the laws of the Islamic Republic of Pakistan.
 
-ARTICLE 20 — ELECTRONIC ACCEPTANCE
+ARTICLE 20 - ELECTRONIC ACCEPTANCE
 
 Electronic acceptance through the Platform shall constitute valid and binding consent. Records maintained shall include: Name, Investor ID, Date, Time, Device Information, IP Address, and Agreement Version. Such records shall constitute evidence of acceptance.
 
-ARTICLE 21 — ENTIRE AGREEMENT
+ARTICLE 21 - ENTIRE AGREEMENT
 
 This Agreement, together with Risk Disclosures, Fee Schedule, Withdrawal Policy, Privacy Policy, and Platform Terms constitutes the entire understanding between the Parties.""",
   """INVESTOR RISK ACKNOWLEDGEMENT & LIABILITY CONSENT
 
 I acknowledge and understand that:
-✓ Investments involve risk.
-✓ Portfolio values may fluctuate.
-✓ Profits are not guaranteed.
-✓ Market losses may occur.
-✓ Investment opportunities may perform below expectations.
-✓ Digital asset investments may experience significant volatility.
-✓ Equity investments may decline in value.
-✓ Gold prices may fluctuate.
-✓ Sukuk and certificate investments may be affected by issuer or market conditions.
-✓ Liquidity restrictions may temporarily impact withdrawals.
+[x] Investments involve risk.
+[x] Portfolio values may fluctuate.
+[x] Profits are not guaranteed.
+[x] Market losses may occur.
+[x] Investment opportunities may perform below expectations.
+[x] Digital asset investments may experience significant volatility.
+[x] Equity investments may decline in value.
+[x] Gold prices may fluctuate.
+[x] Sukuk and certificate investments may be affected by issuer or market conditions.
+[x] Liquidity restrictions may temporarily impact withdrawals.
 
 I further acknowledge that the Portfolio Manager, ISC, partners, officers, employees, representatives, and affiliates shall not be responsible for ordinary market losses resulting from investment activities carried out in good faith.
 
-INVESTOR PARTICIPATION AGREEMENT — FINAL CONFIRMATION
+INVESTOR PARTICIPATION AGREEMENT - FINAL CONFIRMATION
 
 By accepting this Agreement, the Investor confirms that:
-✓ I have read and understood this Agreement in full.
-✓ I am participating voluntarily in the Amanah Multi Asset Portfolio.
-✓ I understand the Portfolio is a private investment arrangement and not a publicly offered mutual fund.
-✓ I have independently evaluated the suitability of participation.
-✓ I understand that investment values may fluctuate and that profits are not guaranteed.
-✓ I authorize the Portfolio Management Team to present investment opportunities and allocation recommendations.
-✓ I retain final authority regarding allocation decisions.
-✓ I confirm that all funds invested are legally owned by me and originate from lawful sources.
-✓ I accept all applicable fees, charges, notices, and withdrawal policies disclosed by the Platform.
-✓ I understand that no guarantee of future profits, returns, or performance has been provided.
+[x] I have read and understood this Agreement in full.
+[x] I am participating voluntarily in the Amanah Multi Asset Portfolio.
+[x] I understand the Portfolio is a private investment arrangement and not a publicly offered mutual fund.
+[x] I have independently evaluated the suitability of participation.
+[x] I understand that investment values may fluctuate and that profits are not guaranteed.
+[x] I authorize the Portfolio Management Team to present investment opportunities and allocation recommendations.
+[x] I retain final authority regarding allocation decisions.
+[x] I confirm that all funds invested are legally owned by me and originate from lawful sources.
+[x] I accept all applicable fees, charges, notices, and withdrawal policies disclosed by the Platform.
+[x] I understand that no guarantee of future profits, returns, or performance has been provided.
 
 PRIVATE PORTFOLIO DISCLOSURE STATEMENT
 
@@ -219,12 +233,15 @@ pw.Widget _proofRow(String label, String value) {
         pw.SizedBox(
           width: 130,
           child: pw.Text(
-            label,
+            _sanitizePdfText(label),
             style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
           ),
         ),
         pw.Expanded(
-          child: pw.Text(value, style: const pw.TextStyle(fontSize: 10)),
+          child: pw.Text(
+            _sanitizePdfText(value),
+            style: const pw.TextStyle(fontSize: 10),
+          ),
         ),
       ],
     ),
@@ -241,17 +258,17 @@ Future<Uint8List> buildConsentAgreementPdf(ConsentAgreementPdfInput input) async
       margin: const pw.EdgeInsets.all(40),
       build: (_) => [
         pw.Text(
-          _kAgreementTitleLine1,
+          _sanitizePdfText(_kAgreementTitleLine1),
           style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(
-          _kAgreementTitleLine2,
+          _sanitizePdfText(_kAgreementTitleLine2),
           style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 16),
         for (final paragraph in _kAgreementParagraphs) ...[
           pw.Text(
-            paragraph,
+            _sanitizePdfText(paragraph),
             style: const pw.TextStyle(fontSize: 11, lineSpacing: 4),
           ),
           pw.SizedBox(height: 10),
@@ -260,7 +277,7 @@ Future<Uint8List> buildConsentAgreementPdf(ConsentAgreementPdfInput input) async
         pw.Divider(color: PdfColors.grey400),
         pw.SizedBox(height: 12),
         pw.Text(
-          "Acceptance Record",
+          _sanitizePdfText("Acceptance Record"),
           style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 12),

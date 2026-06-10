@@ -12,6 +12,7 @@ import "package:url_launcher/url_launcher.dart";
 import "../../../core/i18n/app_translations.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_scaffold.dart";
+import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../providers/reports_providers.dart";
 import "../../../providers/transaction_history_providers.dart";
@@ -86,11 +87,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
-  static String _portfolioNumber(String uid) {
-    final t = uid.trim();
-    return t.length >= 8 ? t.substring(t.length - 8).toUpperCase() : t.toUpperCase();
-  }
-
   ReportPdfLabels _labels(BuildContext context) {
     return ReportPdfLabels(
       documentTitle: context.tr("reports_pdf_doc_title"),
@@ -138,7 +134,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final ps = DateTime(range.start.year, range.start.month, range.start.day);
     final pe = DateTime(range.end.year, range.end.month, range.end.day);
     final uid = auth?.uid ?? "";
-    final portfolioNumber = uid.isNotEmpty ? _portfolioNumber(uid) : "";
+    final portfolioNumber = uid.isNotEmpty
+        ? resolvePortfolioNumber(prof?.portfolioNumber, uid)
+        : "";
     final reportType = resolveReportType(filtered);
 
     try {

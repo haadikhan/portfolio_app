@@ -32,13 +32,6 @@ String _dashboardMoneyDisplay(bool hide, String formattedIfVisible) {
 /// True when current PKT time is within PSX stock market hours.
 bool _isDashboardMarketHours() => isStockMarketOpen();
 
-/// Last segment of Firebase UID for compact "portfolio number" display.
-String _dashboardPortfolioTail(String uid) {
-  final t = uid.trim();
-  if (t.length <= 8) return t;
-  return t.substring(t.length - 8);
-}
-
 Color _actionButtonBg(BuildContext context, Color lightTint) {
   if (Theme.of(context).brightness == Brightness.dark) {
     return Color.alphaBlend(
@@ -847,7 +840,7 @@ class _WalletCard extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             "${context.tr("dashboard_portfolio_number_label")}: "
-                            "${_dashboardPortfolioTail(profile.id)}",
+                            "${resolvePortfolioNumber(profile.portfolioNumber, profile.id)}",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

@@ -8,15 +8,10 @@ import "package:portfolio_app/src/features/investment/presentation/market_detail
 import "package:portfolio_app/src/features/investment/presentation/widgets/report_date_filter_sheet.dart";
 import "package:portfolio_app/src/features/investment/providers/sleeve_purchase_report_provider.dart";
 import "package:portfolio_app/src/features/investment/services/sleeve_report_pdf_builder.dart";
+import "package:portfolio_app/src/models/app_user.dart";
 import "package:portfolio_app/src/providers/auth_providers.dart";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/// Last 8 chars of UID, uppercased. Same logic as reports_screen.
-String portfolioNumberFromUid(String uid) {
-  final t = uid.trim();
-  return t.length >= 8 ? t.substring(t.length - 8).toUpperCase() : t.toUpperCase();
-}
 
 /// Builds the full colLabels map from localised strings, sleeve-specific.
 Map<String, String> sleeveReportColLabels(
@@ -103,8 +98,9 @@ Future<void> openSleeveReportDownload({
                   ? prof.name.trim()
                   : (auth?.email ?? "");
           final uid = auth?.uid ?? "";
-          final portfolioNumber =
-              uid.isNotEmpty ? portfolioNumberFromUid(uid) : "";
+          final portfolioNumber = uid.isNotEmpty
+              ? resolvePortfolioNumber(prof?.portfolioNumber, uid)
+              : "";
 
           final currentGoldPrice = sleeve == MarketSleeve.gold
               ? ref.read(goldPricePerTolaProvider)
@@ -180,8 +176,9 @@ Future<void> openCombinedSleeveReportDownload({
                   ? prof.name.trim()
                   : (auth?.email ?? "");
           final uid = auth?.uid ?? "";
-          final portfolioNumber =
-              uid.isNotEmpty ? portfolioNumberFromUid(uid) : "";
+          final portfolioNumber = uid.isNotEmpty
+              ? resolvePortfolioNumber(prof?.portfolioNumber, uid)
+              : "";
 
           final currentGoldPrice = ref.read(goldPricePerTolaProvider);
 

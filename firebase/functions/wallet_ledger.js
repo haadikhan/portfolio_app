@@ -4,6 +4,7 @@
  */
 
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
@@ -132,8 +133,92 @@ async function getBinaryBuffer(req) {
 function txId() {
   const y = new Date().getFullYear();
   const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
-  return `TXN-${y}-${rand}`;
+  return `ISC-${y}-${rand}`;
 }
+
+/**
+ * Assigns the next sequential WAI-ISCMA-XXXXXX portfolio number to users/{userId}.
+ * Idempotent: returns the existing number if already set.
+ */
+async function assignPortfolioNumber(userId) {
+  const counterRef = db().collection("meta").doc("portfolioNumberCounter");
+  const userRef = db().collection("users").doc(userId);
+  return db().runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) {
+      throw new Error(`User ${userId} not found`);
+    }
+    const existing = (userSnap.data()?.portfolioNumber || "").trim();
+    if (existing) return existing;
+
+    const snap = await tx.get(counterRef);
+    const last = snap.exists ? (snap.data().lastAssigned ?? 0) : 0;
+    const next = last + 1;
+    const padded = String(next).padStart(6, "0");
+    const portfolioNumber = `WAI-ISCMA-${padded}`;
+    tx.set(counterRef, { lastAssigned: next }, { merge: true });
+    tx.update(userRef, { portfolioNumber });
+    return portfolioNumber;
+  });
+}
+
+/** Assign portfolio number only when users/{userId}.portfolioNumber is unset. */
+async function maybeAssignPortfolioNumber(userId) {
+  const userRef = db().collection("users").doc(userId);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) return null;
+  const existing = (userSnap.data()?.portfolioNumber || "").trim();
+  if (existing) return existing;
+  return assignPortfolioNumber(userId);
+}
+
+exports.onUserProfileCreatedAssignPortfolioNumber = onDocumentCreated(
+  {
+    document: "users/{userId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const userId = event.params.userId;
+    const data = event.data?.data();
+    if (!data) return;
+    const existing = (data.portfolioNumber || "").trim();
+    if (existing) return;
+    try {
+      await assignPortfolioNumber(userId);
+    } catch (e) {
+      logger.error("assignPortfolioNumber_onCreate_failed", {
+        userId,
+        error: String(e),
+      });
+    }
+  },
+);
+
+exports.backfillPortfolioNumbers = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const usersSnap = await db().collection("users").get();
+    let assigned = 0;
+    let skipped = 0;
+
+    for (const doc of usersSnap.docs) {
+      const existing = (doc.data()?.portfolioNumber || "").trim();
+      if (existing) {
+        skipped++;
+        continue;
+      }
+      await assignPortfolioNumber(doc.id);
+      assigned++;
+    }
+
+    return { assigned, skipped };
+  },
+);
 
 async function getAvailableBalance(userId) {
   const w = await db().collection("wallets").doc(userId).get();

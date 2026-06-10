@@ -1,5 +1,14 @@
 enum KycLifecycleStatus { pending, underReview, approved, rejected }
 
+/// Stored WAI-ISCMA-XXXXXX portfolio number, or UID-tail fallback before backfill.
+String resolvePortfolioNumber(String? stored, String uid) {
+  if (stored != null && stored.isNotEmpty) return stored;
+  final t = uid.trim();
+  return t.length >= 8
+      ? t.substring(t.length - 8).toUpperCase()
+      : t.toUpperCase();
+}
+
 class AppUser {
   const AppUser({
     required this.id,
@@ -8,6 +17,7 @@ class AppUser {
     required this.createdAt,
     this.kycStatus = KycLifecycleStatus.pending,
     this.role,
+    this.portfolioNumber,
   });
 
   final String id;
@@ -21,6 +31,9 @@ class AppUser {
   /// Firestore `users/{id}.role` — e.g. `admin` for staff tools.
   final String? role;
 
+  /// Firestore `users/{id}.portfolioNumber` — e.g. WAI-ISCMA-000001.
+  final String? portfolioNumber;
+
   bool get isAdmin => (role ?? "").toLowerCase() == "admin";
 
   Map<String, dynamic> toMap() {
@@ -30,6 +43,7 @@ class AppUser {
       "createdAt": createdAt.toIso8601String(),
       "kycStatus": kycStatus.name,
       if (role != null) "role": role,
+      if (portfolioNumber != null) "portfolioNumber": portfolioNumber,
     };
   }
 
@@ -47,6 +61,7 @@ class AppUser {
       createdAt: DateTime.tryParse(created?.toString() ?? "") ?? DateTime.now(),
       kycStatus: kyc,
       role: map["role"] as String?,
+      portfolioNumber: (map["portfolioNumber"] as String?)?.trim(),
     );
   }
 }

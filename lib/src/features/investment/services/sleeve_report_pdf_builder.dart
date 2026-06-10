@@ -33,10 +33,7 @@ final _dateFmt = DateFormat("dd MMM yyyy");
 
 String _generateRefNumber(String portfolioNumber) {
   if (portfolioNumber.isEmpty) return "ISC-000000";
-  final suffix = portfolioNumber.length >= 6
-      ? portfolioNumber.substring(portfolioNumber.length - 6).toUpperCase()
-      : portfolioNumber.toUpperCase();
-  return "ISC-$suffix";
+  return portfolioNumber;
 }
 
 String _formatLetterheadDate(DateTime date) {
