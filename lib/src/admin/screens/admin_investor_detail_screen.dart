@@ -1,12 +1,20 @@
+import "dart:typed_data";
+
 import "package:cloud_functions/cloud_functions.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
+import "package:file_saver/file_saver.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/foundation.dart"
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
+import "package:printing/printing.dart";
 
 import "../../core/i18n/app_translations.dart";
+import "../../features/reports/presentation/report_pdf_preview_screen.dart";
+import "../services/consent_agreement_pdf_builder.dart";
 import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
 import "../models/kyc_admin_models.dart";
@@ -1337,6 +1345,16 @@ class _AgreementSection extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    _AgreementPdfActions(
+                      userId: userId,
+                      version: version,
+                      acceptedAtLabel: _formatAcceptedAtPkt(acceptedAt),
+                      appVersion: appVersion,
+                      deviceName: deviceName,
+                      platform: platform,
+                      deviceHash: deviceHash,
+                    ),
                   ],
                 );
               },
@@ -1344,6 +1362,172 @@ class _AgreementSection extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AgreementPdfActions extends StatefulWidget {
+  const _AgreementPdfActions({
+    required this.userId,
+    required this.version,
+    required this.acceptedAtLabel,
+    required this.appVersion,
+    required this.deviceName,
+    required this.platform,
+    required this.deviceHash,
+  });
+
+  final String userId;
+  final String version;
+  final String acceptedAtLabel;
+  final String appVersion;
+  final String deviceName;
+  final String platform;
+  final String deviceHash;
+
+  @override
+  State<_AgreementPdfActions> createState() => _AgreementPdfActionsState();
+}
+
+class _AgreementPdfActionsState extends State<_AgreementPdfActions> {
+  bool _isBusy = false;
+
+  String get _fileName {
+    final suffix = widget.userId.length >= 8
+        ? widget.userId.substring(0, 8)
+        : widget.userId;
+    return "consent-agreement-$suffix.pdf";
+  }
+
+  ConsentAgreementPdfInput _pdfInput(BuildContext context) {
+    return ConsentAgreementPdfInput(
+      documentTitle: context.tr("legal_title"),
+      agreementParagraphs: [
+        for (var i = 1; i <= 5; i++) context.tr("legal_para_$i"),
+      ],
+      userId: widget.userId,
+      agreementVersion: widget.version,
+      acceptedAtLabel: widget.acceptedAtLabel,
+      appVersion: widget.appVersion,
+      deviceName: widget.deviceName,
+      platform: widget.platform,
+      deviceHash: widget.deviceHash,
+    );
+  }
+
+  Future<Uint8List?> _buildPdfBytes(BuildContext context) async {
+    try {
+      return await buildConsentAgreementPdf(_pdfInput(context));
+    } catch (e, st) {
+      debugPrint("[admin_agreement] buildConsentAgreementPdf failed: $e\n$st");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr("reports_pdf_failed"))),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _viewPdf() async {
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      final bytes = await _buildPdfBytes(context);
+      if (bytes == null || !mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (ctx) => ReportPdfPreviewScreen(
+            bytes: bytes,
+            fileName: _fileName,
+            title: "Agreement & Disclosure",
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      final bytes = await _buildPdfBytes(context);
+      if (bytes == null || !mounted) return;
+
+      final fileName = _fileName;
+      final base = fileName.replaceAll(RegExp(r"\.pdf$", caseSensitive: false), "");
+
+      Future<bool> trySharePdf() async {
+        try {
+          await Printing.sharePdf(bytes: bytes, filename: fileName);
+          return true;
+        } catch (e, st) {
+          debugPrint("[admin_agreement] sharePdf failed: $e\n$st");
+          return false;
+        }
+      }
+
+      Future<bool> tryFileSaver() async {
+        try {
+          await FileSaver.instance.saveFile(
+            name: base,
+            bytes: bytes,
+            fileExtension: "pdf",
+            mimeType: MimeType.pdf,
+          );
+          return true;
+        } catch (e, st) {
+          debugPrint("[admin_agreement] FileSaver.saveFile failed: $e\n$st");
+          return false;
+        }
+      }
+
+      final preferShareFirst = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
+      if (preferShareFirst) {
+        if (await trySharePdf()) return;
+        if (await tryFileSaver()) return;
+      } else {
+        if (await tryFileSaver()) return;
+        if (await trySharePdf()) return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr("reports_pdf_failed"))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: _isBusy ? null : _viewPdf,
+          icon: _isBusy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.visibility_outlined),
+          label: const Text("View"),
+        ),
+        FilledButton.icon(
+          onPressed: _isBusy ? null : _downloadPdf,
+          icon: const Icon(Icons.download_outlined),
+          label: const Text("Download"),
+        ),
+      ],
     );
   }
 }

@@ -15,10 +15,12 @@ class ReportPdfPreviewScreen extends StatefulWidget {
     super.key,
     required this.bytes,
     required this.fileName,
+    this.title,
   });
 
   final Uint8List bytes;
   final String fileName;
+  final String? title;
 
   @override
   State<ReportPdfPreviewScreen> createState() => _ReportPdfPreviewScreenState();
@@ -102,7 +104,7 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.tr("reports_view_title")),
+        title: Text(widget.title ?? context.tr("reports_view_title")),
         actions: [
           IconButton(
             tooltip: context.tr("reports_download_action"),
