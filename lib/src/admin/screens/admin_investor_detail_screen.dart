@@ -273,6 +273,8 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
           const SizedBox(height: 20),
           _InvestorKycDetailsCard(asyncKyc: kycAsync),
           const SizedBox(height: 20),
+          _AgreementSection(userId: user.userId),
+          const SizedBox(height: 20),
           Wrap(
             spacing: 16,
             runSpacing: 16,
@@ -1167,6 +1169,181 @@ class _KycInfoTable extends StatelessWidget {
             ],
           ),
       ],
+    );
+  }
+}
+
+class _AgreementSection extends ConsumerWidget {
+  const _AgreementSection({required this.userId});
+
+  final String userId;
+
+  String _formatAcceptedAtPkt(Timestamp? ts) {
+    if (ts == null) return "—";
+    final pkt = ts.toDate().toUtc().add(const Duration(hours: 5));
+    return "${DateFormat("dd MMM yyyy  HH:mm").format(pkt)} PKT";
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+    );
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Agreement & Disclosure", style: titleStyle),
+            const SizedBox(height: 12),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection("consents")
+                  .doc(userId)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 72,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Text("Unable to load agreement data");
+                }
+
+                final data = snapshot.data?.data();
+                final accepted = data?["accepted"] == true;
+
+                if (data == null || !accepted) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Chip(
+                        label: const Text("Not Agreed"),
+                        backgroundColor: Colors.red.shade50,
+                        labelStyle: TextStyle(
+                          color: Colors.red.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "This investor has not yet accepted the risk disclosure.",
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  );
+                }
+
+                final version = data["version"]?.toString() ?? "—";
+                final acceptedAt = data["acceptedAt"] as Timestamp?;
+                final appVersion = data["appVersion"]?.toString() ?? "—";
+                final deviceName = data["deviceName"]?.toString() ?? "—";
+                final platform = data["platform"]?.toString() ?? "—";
+                final deviceHash = data["deviceHash"]?.toString() ?? "—";
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Chip(
+                      label: const Text("Agreed"),
+                      backgroundColor: Colors.green.shade50,
+                      labelStyle: TextStyle(
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    const SizedBox(height: 12),
+                    Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(1.2),
+                        1: FlexColumnWidth(2),
+                      },
+                      children: [
+                        TableRow(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Text(
+                                "Status",
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Chip(
+                                label: const Text("Agreed ✓"),
+                                backgroundColor: Colors.green.shade50,
+                                labelStyle: TextStyle(
+                                  color: Colors.green.shade800,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        ),
+                        for (final e in {
+                          "Agreement Version": version,
+                          "Date & Time": _formatAcceptedAtPkt(acceptedAt),
+                          "App Version": appVersion,
+                          "Device": deviceName,
+                          "Platform": platform,
+                        }.entries)
+                          TableRow(
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: Text(
+                                  e.key,
+                                  style:
+                                      Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: Text(e.value),
+                              ),
+                            ],
+                          ),
+                        TableRow(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Text(
+                                "Device ID",
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: SelectableText(
+                                deviceHash,
+                                style: const TextStyle(
+                                  fontFamily: "monospace",
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

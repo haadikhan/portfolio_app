@@ -227,6 +227,10 @@ class FirestoreService {
   Future<void> persistConsent({
     required String userId,
     required bool accepted,
+    required String appVersion,
+    required String deviceName,
+    required String platform,
+    required String deviceHash,
   }) async {
     if (!accepted) {
       throw Exception("Consent must be accepted.");
@@ -237,6 +241,10 @@ class FirestoreService {
       "accepted": true,
       "acceptedAt": FieldValue.serverTimestamp(),
       "version": kConsentDocumentVersion,
+      "appVersion": appVersion,
+      "deviceName": deviceName,
+      "platform": platform,
+      "deviceHash": deviceHash,
     }, SetOptions(merge: true));
     final eventRef = _users.doc(userId).collection("consent_events").doc();
     batch.set(eventRef, {
@@ -244,6 +252,11 @@ class FirestoreService {
       "version": kConsentDocumentVersion,
       "acceptedAt": FieldValue.serverTimestamp(),
       "source": "in_app_legal",
+      "appVersion": appVersion,
+      "deviceName": deviceName,
+      "platform": platform,
+      "deviceHash": deviceHash,
+      "event": "consent_accepted",
     });
     await batch.commit();
   }

@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../models/app_user.dart";
 import "../models/user_kyc.dart";
 import "../services/auth_service.dart";
+import "../services/device_fingerprint.dart";
 import "../services/firestore_service.dart";
 
 Future<void> _ensureProfileWithDiagnostics(
@@ -211,7 +212,16 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     if (currentUser == null) throw Exception("No active user session.");
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await _firestore.persistConsent(userId: currentUser.uid, accepted: true);
+      final uid = currentUser.uid;
+      final fingerprint = await currentDeviceFingerprint(uid);
+      await _firestore.persistConsent(
+        userId: uid,
+        accepted: true,
+        appVersion: fingerprint.appVersion,
+        deviceName: fingerprint.deviceName,
+        platform: fingerprint.platform,
+        deviceHash: fingerprint.deviceHash,
+      );
     });
   }
 }
