@@ -20,6 +20,10 @@ String _formatTxTs(BuildContext context, dynamic v) {
   return context.tr("em_dash");
 }
 
+bool _isDisplayableId(String id) {
+  return id.startsWith("ISC-") || id.startsWith("TXN-");
+}
+
 Color _stripeForType(String typeRaw, double amount) {
   final t = typeRaw.toLowerCase();
   if (t.contains("deposit")) return AppColors.dashboardDepositFg;
@@ -595,6 +599,18 @@ class _LedgerTransactionCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (_isDisplayableId(doc.id)) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        "ID: ${doc.id}",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.outline,
+                          fontFamily: "monospace",
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),

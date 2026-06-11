@@ -10,6 +10,11 @@ import "../../../core/branding/brand_assets.dart";
 import "../../../core/formatting/transaction_display.dart";
 import "../../investor/data/models/txn_item.dart";
 
+String _pdfTxnId(String id) {
+  if (id.length <= 8) return id;
+  return "...${id.substring(id.length - 8)}";
+}
+
 final _redemptionRed = PdfColor.fromHex("#D14343");
 
 final _brandGreen = PdfColor.fromHex("#0F7A2C");
@@ -271,6 +276,7 @@ class ReportPdfLabels {
     required this.reportTypeMonthly,
     required this.period,
     required this.summary,
+    required this.colTxnId,
     required this.colDate,
     required this.colType,
     required this.colStatus,
@@ -292,6 +298,7 @@ class ReportPdfLabels {
   final String reportTypeMonthly;
   final String period;
   final String summary;
+  final String colTxnId;
   final String colDate;
   final String colType;
   final String colStatus;
@@ -386,20 +393,21 @@ pw.Widget _buildTransactionsLedgerTable({
   required ReportPdfLabels labels,
 }) {
   final headerStyle =
-      pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
-  final cellStyle = pw.TextStyle(fontSize: 9);
-  const cellHeight = 28.0;
+      pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold);
+  const cellStyle = pw.TextStyle(fontSize: 7);
 
   final columnWidths = <int, pw.TableColumnWidth>{
-    0: const pw.FlexColumnWidth(2.5),
-    1: const pw.FlexColumnWidth(2),
-    2: const pw.FlexColumnWidth(1.8),
-    3: const pw.FlexColumnWidth(2.2),
-    4: const pw.FlexColumnWidth(3.5),
+    0: const pw.FixedColumnWidth(75),
+    1: const pw.FixedColumnWidth(70),
+    2: const pw.FixedColumnWidth(70),
+    3: const pw.FixedColumnWidth(55),
+    4: const pw.FixedColumnWidth(55),
+    5: const pw.FlexColumnWidth(),
   };
 
   return pw.TableHelper.fromTextArray(
     headers: [
+      labels.colTxnId,
       labels.colDate,
       labels.colType,
       labels.colStatus,
@@ -409,6 +417,7 @@ pw.Widget _buildTransactionsLedgerTable({
     data: transactions
         .map(
           (t) => [
+            _pdfTxnId(t.id),
             dateTimeFmt.format(t.createdAt),
             displayTransactionType(t.type),
             displayTransactionStatus(t.status),
@@ -420,24 +429,28 @@ pw.Widget _buildTransactionsLedgerTable({
     headerStyle: headerStyle,
     headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
     cellStyle: cellStyle,
-    cellHeight: cellHeight,
+    cellPadding: const pw.EdgeInsets.symmetric(
+      horizontal: 4,
+      vertical: 3,
+    ),
     cellAlignments: const {
       0: pw.Alignment.centerLeft,
       1: pw.Alignment.centerLeft,
       2: pw.Alignment.centerLeft,
-      3: pw.Alignment.centerRight,
-      4: pw.Alignment.centerLeft,
+      3: pw.Alignment.centerLeft,
+      4: pw.Alignment.centerRight,
+      5: pw.Alignment.centerLeft,
     },
     columnWidths: columnWidths,
     border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
     oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
     textStyleBuilder: (index, cell, rowNum) {
-      if (index != 1) return null;
+      if (index != 2) return null;
       final txnIndex = rowNum - 1;
       if (txnIndex < 0 || txnIndex >= transactions.length) return null;
       final ty = transactions[txnIndex].type;
       if (isRedemptionType(ty) || isFeeType(ty)) {
-        return pw.TextStyle(fontSize: 9, color: _redemptionRed);
+        return pw.TextStyle(fontSize: 7, color: _redemptionRed);
       }
       return null;
     },
@@ -492,13 +505,8 @@ Future<Uint8List> buildInvestorReportPdf({
   pdf.addPage(
     pw.MultiPage(
       pageTheme: pw.PageTheme(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.only(
-          left: _pageMarginLeft,
-          right: 30,
-          top: 16,
-          bottom: 16,
-        ),
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(24),
         buildBackground: (_) => _buildPageBackground(logoImage),
       ),
       header: (_) => pw.Column(
@@ -531,68 +539,62 @@ Future<Uint8List> buildInvestorReportPdf({
       ),
       footer: (_) => _buildLetterheadFooter(),
       build: (ctx) => [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Header(
-              level: 0,
-              child: pw.Text(
-                labels.documentTitle,
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            labels.documentTitle,
+            style: pw.TextStyle(
+              fontSize: 18,
+              fontWeight: pw.FontWeight.bold,
             ),
-            pw.SizedBox(height: 12),
-            _reportHeaderTable(
-              labels: labels,
-              accountTitle: accountLabel,
-              portfolioNumber: portfolioNumber,
-              reportType: reportType,
-            ),
-            pw.SizedBox(height: 8),
-            pw.Text(
-              "${labels.period}: ${dateFmt.format(periodStart)} - ${dateFmt.format(periodEndInclusive)}",
-            ),
-            pw.SizedBox(height: 16),
-            pw.Text(
-              labels.summary,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-            pw.Bullet(
-              text: "${labels.totalDeposits}: ${totalDep.toStringAsFixed(2)}",
-            ),
-            pw.Bullet(
-              text:
-                  "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}",
-            ),
-            pw.Bullet(
-              text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}",
-            ),
-            pw.SizedBox(height: 16),
-            pw.Text(
-              labels.transactionsHeading,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 8),
-            if (transactions.isEmpty)
-              pw.Text("-")
-            else
-              _buildTransactionsLedgerTable(
-                transactions: transactions,
-                dateTimeFmt: dateTimeFmt,
-                labels: labels,
-              ),
-            pw.SizedBox(height: 24),
-            pw.Text(
-              labels.footer,
-              style: const pw.TextStyle(
-                fontSize: 9,
-                color: PdfColors.grey700,
-              ),
-            ),
-          ],
+          ),
+        ),
+        pw.SizedBox(height: 12),
+        _reportHeaderTable(
+          labels: labels,
+          accountTitle: accountLabel,
+          portfolioNumber: portfolioNumber,
+          reportType: reportType,
+        ),
+        pw.SizedBox(height: 8),
+        pw.Text(
+          "${labels.period}: ${dateFmt.format(periodStart)} - ${dateFmt.format(periodEndInclusive)}",
+        ),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          labels.summary,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+        ),
+        pw.Bullet(
+          text: "${labels.totalDeposits}: ${totalDep.toStringAsFixed(2)}",
+        ),
+        pw.Bullet(
+          text: "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}",
+        ),
+        pw.Bullet(
+          text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}",
+        ),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          labels.transactionsHeading,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 8),
+        if (transactions.isEmpty)
+          pw.Text("-")
+        else
+          _buildTransactionsLedgerTable(
+            transactions: transactions,
+            dateTimeFmt: dateTimeFmt,
+            labels: labels,
+          ),
+        pw.SizedBox(height: 24),
+        pw.Text(
+          labels.footer,
+          style: const pw.TextStyle(
+            fontSize: 9,
+            color: PdfColors.grey700,
+          ),
         ),
       ],
     ),

@@ -495,6 +495,7 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                     Colors.grey.shade100,
                   ),
                   columns: const [
+                    DataColumn(label: Text("Txn ID")),
                     DataColumn(label: Text("Date")),
                     DataColumn(label: Text("Type")),
                     DataColumn(label: Text("Status")),
@@ -505,6 +506,15 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                     for (final t in tx)
                       DataRow(
                         cells: [
+                          DataCell(
+                            SelectableText(
+                              t.id,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontFamily: "monospace",
+                              ),
+                            ),
+                          ),
                           DataCell(
                             Text(
                               t.createdAt != null

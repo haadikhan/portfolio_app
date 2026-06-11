@@ -98,6 +98,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       reportTypeMonthly: context.tr("report_type_monthly"),
       period: context.tr("reports_period"),
       summary: context.tr("reports_summary"),
+      colTxnId: "Txn ID",
       colDate: context.tr("reports_col_date"),
       colType: context.tr("reports_col_type"),
       colStatus: context.tr("reports_col_status"),

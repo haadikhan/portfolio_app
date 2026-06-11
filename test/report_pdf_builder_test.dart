@@ -49,6 +49,7 @@ void main() {
       reportTypeMonthly: "Monthly Return Report",
       period: "Period",
       summary: "Summary",
+      colTxnId: "Txn ID",
       colDate: "Date & Time",
       colType: "Transaction Type",
       colStatus: "Status",
