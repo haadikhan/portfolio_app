@@ -139,6 +139,7 @@ class _InvestmentPortfolioScreenState
                       _PortfolioValueCard(
                         portfolio: portfolio,
                         sleeveAlignedTotalPkr: sleeveSnap?.totalDisplayPkr,
+                        walletMap: ref.watch(userWalletStreamProvider).valueOrNull,
                       ),
                       const SizedBox(height: 24),
                       _SectionHeader(label: context.tr("performance")),
@@ -429,12 +430,28 @@ class _PortfolioValueCard extends StatelessWidget {
   const _PortfolioValueCard({
     required this.portfolio,
     this.sleeveAlignedTotalPkr,
+    this.walletMap,
   });
   final PortfolioModel portfolio;
   final double? sleeveAlignedTotalPkr;
+  final Map<String, dynamic>? walletMap;
 
   @override
   Widget build(BuildContext context) {
+    // Use sleeve total as primary when stored value
+    // is zero or missing — sleeve values are always
+    // computed live and are accurate
+    final displayValue = (portfolio.currentValue > 0)
+        ? portfolio.currentValue
+        : (sleeveAlignedTotalPkr != null && sleeveAlignedTotalPkr! > 0)
+            ? sleeveAlignedTotalPkr!
+            : 0.0;
+    final walletDeposited =
+        (walletMap?["totalDeposited"] as num?)?.toDouble() ?? 0.0;
+    final displayDeposited = (portfolio.totalDeposited > 0)
+        ? portfolio.totalDeposited
+        : walletDeposited;
+
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -461,7 +478,7 @@ class _PortfolioValueCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            _money.format(portfolio.currentValue),
+            _money.format(displayValue),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -469,22 +486,6 @@ class _PortfolioValueCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          if (sleeveAlignedTotalPkr != null &&
-              sleeveAlignedTotalPkr!.isFinite &&
-              (sleeveAlignedTotalPkr! - portfolio.currentValue).abs() > 1) ...[
-            const SizedBox(height: 8),
-            Text(
-              context.trParams(
-                "portfolio_sleeve_total_footnote",
-                {"amount": _money.format(sleeveAlignedTotalPkr!)},
-              ),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.82),
-                fontSize: 11,
-                height: 1.35,
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
           Container(height: 1, color: Colors.white.withValues(alpha: 0.15)),
           const SizedBox(height: 14),
@@ -500,7 +501,7 @@ class _PortfolioValueCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _money.format(portfolio.totalDeposited),
+                    _money.format(displayDeposited),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,

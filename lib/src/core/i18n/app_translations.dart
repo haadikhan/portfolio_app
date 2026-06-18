@@ -448,8 +448,7 @@ const _en = <String, String>{
       "Assign a CRM member to this investor before adding follow-ups (or sign in as CRM).",
   "legal_title":
       "Investor Participation Agreement — Amanah Multi Asset Portfolio",
-  "legal_para_1":
-      """ARTICLE 1 — PURPOSE OF THIS AGREEMENT
+  "legal_para_1": """ARTICLE 1 — PURPOSE OF THIS AGREEMENT
 
 This Agreement governs the Investor's voluntary participation in the Amanah Multi Asset Portfolio and establishes the rights, responsibilities, disclosures, procedures, fees, risks, and operational framework applicable to such participation.
 
@@ -484,8 +483,7 @@ B. Asset Market — Digital Gold and gold-backed investment opportunities.
 C. Technology Market — Selected digital assets and technology-related investment opportunities.
 D. Debt Market — Ijara Sukuk, Islamic Certificates, and approved Islamic fixed-income instruments.
 E. Money Market — Cash, Islamic bank deposits, cash equivalents, and liquidity management instruments.""",
-  "legal_para_2":
-      """ARTICLE 5 — INVESTOR PARTICIPATION MODEL
+  "legal_para_2": """ARTICLE 5 — INVESTOR PARTICIPATION MODEL
 
 The Investor acknowledges:
 - Investment decisions remain subject to Investor approval.
@@ -527,8 +525,7 @@ The fee shall only apply to realized profits according to the Portfolio's perfor
 8.4 Referral Commission: Up to 1% may be paid from Portfolio revenues or front-end fees to approved referral partners. No separate recurring referral charge shall be imposed upon Investors.
 
 8.5 Fee Amendments: Fee changes shall require prior notice through the Platform.""",
-  "legal_para_3":
-      """ARTICLE 9 — WITHDRAWAL POLICY
+  "legal_para_3": """ARTICLE 9 — WITHDRAWAL POLICY
 
 The Investor may request withdrawal at any time through the Platform. Withdrawal requests shall be processed subject to asset liquidity, settlement requirements, operational processing, and compliance verification.
 
@@ -561,8 +558,7 @@ The Portfolio seeks to follow Shariah-compliant and Shariah-inspired investment 
 ARTICLE 13 — AML & SOURCE OF FUNDS DECLARATION
 
 The Investor represents that funds originate from lawful sources, the Investor is the beneficial owner of invested funds, information provided is accurate, and the Investor shall provide documents reasonably requested for verification. The Portfolio Management Team reserves the right to reject, suspend, or terminate participation where AML concerns arise.""",
-  "legal_para_4":
-      """ARTICLE 14 — PRIVACY AND DATA PROTECTION
+  "legal_para_4": """ARTICLE 14 — PRIVACY AND DATA PROTECTION
 
 The Investor authorizes the collection, storage, processing, and use of information necessary for account administration, reporting, compliance, and operational management. Information shall be treated confidentially except where disclosure is required by law, regulatory authority, court order, or compliance obligations.
 
@@ -593,8 +589,7 @@ Electronic acceptance through the Platform shall constitute valid and binding co
 ARTICLE 21 — ENTIRE AGREEMENT
 
 This Agreement, together with Risk Disclosures, Fee Schedule, Withdrawal Policy, Privacy Policy, and Platform Terms constitutes the entire understanding between the Parties.""",
-  "legal_para_5":
-      """INVESTOR RISK ACKNOWLEDGEMENT & LIABILITY CONSENT
+  "legal_para_5": """INVESTOR RISK ACKNOWLEDGEMENT & LIABILITY CONSENT
 
 I acknowledge and understand that:
 ✓ Investments involve risk.
@@ -772,7 +767,7 @@ This Agreement shall become legally effective upon digital acceptance through th
       "Our mission: to offer a transparent, well-documented way for aligned investors to participate in a professionally managed portfolio.",
   "founder_vision":
       "Vision: build long-term trust through consistency, education, and tools that make performance and activity easy to follow.",
-  "founder_contact_cta": "Reach out",
+  "founder_contact_cta": "Need Assistance",
   "founder_contact_hint": "Email us for questions about the platform.",
   "strategy_intro":
       "The approach below describes how we think about diversification across major sleeves. Allocation is illustrative and may change; it is not a guarantee of outcomes.",
@@ -2322,7 +2317,7 @@ const _ur = <String, String>{
       "ہمارا مشن: ہم آہنگ سرمایہ کاروں کے لیے ایک شفاف، مستند طریقے سے پیشہ ورانہ منظم پورٹ فولیو میں شرکت کی پیشکش کرنا۔",
   "founder_vision":
       "ویژن: مستقل مزاجی، تعلیم اور ایسے ٹولز کے ذریعے طویل مدتی اعتماد بنانا جو کارکردگی کو آسانی سے سمجھنے میں مدد دیں۔",
-  "founder_contact_cta": "رابطہ کریں",
+  "founder_contact_cta": "مدد درکار ہے",
   "founder_contact_hint": "پلیٹ فارم کے بارے میں سوالات کے لیے ای میل کریں۔",
   "strategy_intro":
       "ذیل میں ہم اہم حصوں میں تنوع کے بارے میں سوچتے ہیں۔ تقسیم مثالی ہے اور بدل سکتی ہے؛ یہ نتائج کی ضمانت نہیں۔",

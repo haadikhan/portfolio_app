@@ -20,10 +20,6 @@ String _formatTxTs(BuildContext context, dynamic v) {
   return context.tr("em_dash");
 }
 
-bool _isDisplayableId(String id) {
-  return id.startsWith("ISC-") || id.startsWith("TXN-");
-}
-
 Color _stripeForType(String typeRaw, double amount) {
   final t = typeRaw.toLowerCase();
   if (t.contains("deposit")) return AppColors.dashboardDepositFg;
@@ -45,8 +41,7 @@ class WalletLedgerScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
 
   @override
-  ConsumerState<WalletLedgerScreen> createState() =>
-      _WalletLedgerScreenState();
+  ConsumerState<WalletLedgerScreen> createState() => _WalletLedgerScreenState();
 }
 
 class _WalletLedgerScreenState extends ConsumerState<WalletLedgerScreen>
@@ -110,9 +105,7 @@ class _WalletLedgerScreenState extends ConsumerState<WalletLedgerScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _WalletTab(
-                    onRefresh: _onRefresh,
-                  ),
+                  _WalletTab(onRefresh: _onRefresh),
                   // _TransactionsOrHistoryTab(
                   //   onRefresh: _onRefresh,
                   //   groupByMonth: false,
@@ -165,8 +158,7 @@ class _WalletTab extends ConsumerWidget {
                 return Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color:
-                        scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                    color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: scheme.outlineVariant),
                   ),
@@ -188,10 +180,8 @@ class _WalletTab extends ConsumerWidget {
               }
               final allocationTotalPkr = allocationTotalFromWallet(w);
               final moneyMarketPkr = moneyMarketAvailableFromWallet(w);
-              final avail =
-                  (w["availableBalance"] as num?)?.toDouble() ?? 0;
-              final reserved =
-                  (w["reservedAmount"] as num?)?.toDouble() ?? 0;
+              final avail = (w["availableBalance"] as num?)?.toDouble() ?? 0;
+              final reserved = (w["reservedAmount"] as num?)?.toDouble() ?? 0;
               final td = (w["totalDeposited"] as num?)?.toDouble() ?? 0;
               final tw = (w["totalWithdrawn"] as num?)?.toDouble() ?? 0;
               final tp = (w["totalProfit"] as num?)?.toDouble() ?? 0;
@@ -370,9 +360,7 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
         error: (e, _) => ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-          children: [
-            Text("${context.tr("history_error")} $e"),
-          ],
+          children: [Text("${context.tr("history_error")} $e")],
         ),
         data: (snap) {
           if (snap == null || snap.docs.isEmpty) {
@@ -384,8 +372,7 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color:
-                        scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                    color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: scheme.outlineVariant),
                   ),
@@ -400,20 +387,18 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
           }
 
           final sorted =
-              List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
-            snap.docs,
-          )..sort((a, b) {
-              final ca = a.data()["createdAt"];
-              final cb = b.data()["createdAt"];
-              if (ca is! Timestamp) return 1;
-              if (cb is! Timestamp) return -1;
-              return cb.compareTo(ca);
-            });
+              List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(snap.docs)
+                ..sort((a, b) {
+                  final ca = a.data()["createdAt"];
+                  final cb = b.data()["createdAt"];
+                  if (ca is! Timestamp) return 1;
+                  if (cb is! Timestamp) return -1;
+                  return cb.compareTo(ca);
+                });
 
           final visible = sorted
               .where(
-                (d) =>
-                    (d.data()["type"] ?? "").toString() != "management_fee",
+                (d) => (d.data()["type"] ?? "").toString() != "management_fee",
               )
               .toList();
 
@@ -426,8 +411,7 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color:
-                        scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
+                    color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: scheme.outlineVariant),
                   ),
@@ -462,9 +446,9 @@ class _TransactionsOrHistoryTab extends ConsumerWidget {
                     child: Text(
                       monthLabel,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: scheme.onSurfaceVariant,
-                          ),
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 );
@@ -526,11 +510,7 @@ class _LedgerTransactionCard extends StatelessWidget {
     final amt = (m["amount"] as num?)?.toDouble() ?? 0;
     final stripe = _stripeForType(type, amt);
     final amountText = formatTransactionAmount(type, amt);
-    final amountColor = transactionAmountColor(
-      type,
-      context,
-      amount: amt,
-    );
+    final amountColor = transactionAmountColor(type, context, amount: amt);
 
     return Material(
       color: scheme.surface.withValues(alpha: isDark ? 0.92 : 1),
@@ -555,8 +535,10 @@ class _LedgerTransactionCard extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -599,18 +581,15 @@ class _LedgerTransactionCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (_isDisplayableId(doc.id)) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        "ID: ${doc.id}",
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.outline,
-                          fontFamily: "monospace",
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 4),
+                    SelectableText(
+                      "ID: ${formatTransactionId(doc.id, m["type"] as String? ?? "")}",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Theme.of(context).colorScheme.outline,
+                        fontFamily: "monospace",
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

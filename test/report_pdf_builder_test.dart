@@ -58,6 +58,7 @@ void main() {
       totalDeposits: "Total Deposits (Approved)",
       totalWithdrawals: "Total Redemptions (Disbursed)",
       totalProfit: "Total Profit Credits (Approved)",
+      totalManagementFees: "Total Management Fees (PKR)",
       footer: "Footer",
       transactionsHeading: "Transaction Ledger",
       letterheadPortfolioTitle: "Amanah Multi Asset Portfolio",
@@ -71,6 +72,7 @@ void main() {
       periodEndInclusive: DateTime(2026, 2, 28),
       transactions: txns,
       labels: labels,
+      isYearlyReport: false,
     );
 
     expect(bytes.length, greaterThan(1000));

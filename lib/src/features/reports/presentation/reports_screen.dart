@@ -107,6 +107,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       totalDeposits: context.tr("reports_total_deposits"),
       totalWithdrawals: context.tr("reports_total_withdrawals"),
       totalProfit: context.tr("reports_total_profit"),
+      totalManagementFees: "Total Management Fees (PKR)",
       footer: context.tr("reports_pdf_footer"),
       transactionsHeading: context.tr("reports_pdf_transactions_heading"),
     );
@@ -125,6 +126,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final txs = ref.read(userTransactionItemsProvider).valueOrNull ?? [];
     final filtered = filterTxnsInRange(txs, range.start, range.end);
+
+    // Management fees are only shown in the yearly report.
+    // For monthly and custom periods, hide them.
+    final isYearlyReport = _preset == _PeriodPreset.thisYear;
+    final displayTxns = isYearlyReport
+        ? filtered
+        : filtered
+            .where(
+              (t) => t.type != "management_fee" && !t.silentFee,
+            )
+            .toList();
 
     final prof = ref.read(userProfileProvider).valueOrNull;
     final auth = ref.read(currentUserProvider);
@@ -147,8 +159,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         reportType: reportType,
         periodStart: ps,
         periodEndInclusive: pe,
-        transactions: filtered,
+        transactions: displayTxns,
         labels: _labels(context),
+        isYearlyReport: isYearlyReport,
       );
     } catch (e, st) {
       debugPrint("[reports] buildInvestorReportPdf failed: $e\n$st");

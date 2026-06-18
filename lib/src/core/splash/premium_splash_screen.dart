@@ -125,10 +125,7 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
             children: [
               Positioned.fill(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: size.width * 0.035,
-                    vertical: isTall ? size.height * 0.055 : size.height * 0.04,
-                  ),
+                  padding: const EdgeInsets.all(48),
                   child: Image.asset(
                     kSplashBackgroundAsset,
                     fit: BoxFit.contain,

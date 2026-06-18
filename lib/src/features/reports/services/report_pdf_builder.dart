@@ -10,10 +10,7 @@ import "../../../core/branding/brand_assets.dart";
 import "../../../core/formatting/transaction_display.dart";
 import "../../investor/data/models/txn_item.dart";
 
-String _pdfTxnId(String id) {
-  if (id.length <= 8) return id;
-  return "...${id.substring(id.length - 8)}";
-}
+String _pdfTxnId(String id, String type) => formatTransactionId(id, type);
 
 final _redemptionRed = PdfColor.fromHex("#D14343");
 
@@ -113,7 +110,10 @@ pw.Widget _buildLetterheadHeader(
             ),
           ),
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const pw.EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 10,
+            ),
             color: _brandGreen,
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -154,10 +154,7 @@ pw.Widget _footerRow(String label, String value) {
             style: pw.TextStyle(fontSize: 7.5, color: _footerLabelGrey),
           ),
         ),
-        pw.Text(
-          value,
-          style: pw.TextStyle(fontSize: 7.5, color: _black),
-        ),
+        pw.Text(value, style: pw.TextStyle(fontSize: 7.5, color: _black)),
       ],
     ),
   );
@@ -177,7 +174,10 @@ pw.Widget _buildLetterheadFooter() {
               children: [
                 _footerRow("Contact Number", "021-34010616"),
                 _footerRow("Contact on", "contact@islamicsavingcenter.com"),
-                _footerRow("For Information", "contact@islamicsavingcenter.com"),
+                _footerRow(
+                  "For Information",
+                  "contact@islamicsavingcenter.com",
+                ),
                 _footerRow("Visit our website", "www.islamicsavingcenter.com"),
               ],
             ),
@@ -285,6 +285,7 @@ class ReportPdfLabels {
     required this.totalDeposits,
     required this.totalWithdrawals,
     required this.totalProfit,
+    required this.totalManagementFees,
     required this.footer,
     required this.transactionsHeading,
     required this.letterheadPortfolioTitle,
@@ -307,6 +308,7 @@ class ReportPdfLabels {
   final String totalDeposits;
   final String totalWithdrawals;
   final String totalProfit;
+  final String totalManagementFees;
   final String footer;
   final String transactionsHeading;
   final String letterheadPortfolioTitle;
@@ -324,7 +326,10 @@ pw.Widget _reportHeaderTable({
   final labelStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
   final valueStyle = pw.TextStyle(fontSize: 9);
 
-  pw.Widget headerCell(String text, {pw.Alignment align = pw.Alignment.centerLeft}) {
+  pw.Widget headerCell(
+    String text, {
+    pw.Alignment align = pw.Alignment.centerLeft,
+  }) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: pw.Align(
@@ -392,12 +397,11 @@ pw.Widget _buildTransactionsLedgerTable({
   required DateFormat dateTimeFmt,
   required ReportPdfLabels labels,
 }) {
-  final headerStyle =
-      pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold);
+  final headerStyle = pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold);
   const cellStyle = pw.TextStyle(fontSize: 7);
 
   final columnWidths = <int, pw.TableColumnWidth>{
-    0: const pw.FixedColumnWidth(75),
+    0: const pw.FixedColumnWidth(130),
     1: const pw.FixedColumnWidth(70),
     2: const pw.FixedColumnWidth(70),
     3: const pw.FixedColumnWidth(55),
@@ -417,7 +421,7 @@ pw.Widget _buildTransactionsLedgerTable({
     data: transactions
         .map(
           (t) => [
-            _pdfTxnId(t.id),
+            _pdfTxnId(t.id, t.type),
             dateTimeFmt.format(t.createdAt),
             displayTransactionType(t.type),
             displayTransactionStatus(t.status),
@@ -429,10 +433,7 @@ pw.Widget _buildTransactionsLedgerTable({
     headerStyle: headerStyle,
     headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
     cellStyle: cellStyle,
-    cellPadding: const pw.EdgeInsets.symmetric(
-      horizontal: 4,
-      vertical: 3,
-    ),
+    cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
     cellAlignments: const {
       0: pw.Alignment.centerLeft,
       1: pw.Alignment.centerLeft,
@@ -466,13 +467,13 @@ Future<Uint8List> buildInvestorReportPdf({
   required DateTime periodEndInclusive,
   required List<TxnItem> transactions,
   required ReportPdfLabels labels,
+  required bool isYearlyReport,
 }) async {
   pw.MemoryImage? logoImage;
   try {
-    final logoBytes =
-        (await rootBundle.load(BrandAssets.logoGreenPng))
-            .buffer
-            .asUint8List();
+    final logoBytes = (await rootBundle.load(
+      BrandAssets.logoGreenPng,
+    )).buffer.asUint8List();
     logoImage = pw.MemoryImage(logoBytes);
   } catch (e) {
     debugPrint("[reports] Logo load failed: $e");
@@ -486,17 +487,20 @@ Future<Uint8List> buildInvestorReportPdf({
   double totalDep = 0;
   double totalWdr = 0;
   double totalPr = 0;
+  double totalMgmtFee = 0;
   for (final t in transactions) {
     final st = t.status;
     final ty = t.type;
     if (ty == "deposit" && st == "approved") {
       totalDep += t.amount;
-    } else if (ty == "withdrawal" &&
-        (st == "approved" || st == "completed")) {
+    } else if (ty == "withdrawal" && (st == "approved" || st == "completed")) {
       totalWdr += t.amount;
     } else if ((ty == "profit" || ty == "profit_entry") &&
         (st == "approved" || st == "completed")) {
       totalPr += t.amount;
+    } else if (ty == "management_fee" &&
+        (st == "approved" || st == "completed")) {
+      totalMgmtFee += t.amount.abs();
     }
   }
 
@@ -543,10 +547,7 @@ Future<Uint8List> buildInvestorReportPdf({
           level: 0,
           child: pw.Text(
             labels.documentTitle,
-            style: pw.TextStyle(
-              fontSize: 18,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
           ),
         ),
         pw.SizedBox(height: 12),
@@ -571,9 +572,25 @@ Future<Uint8List> buildInvestorReportPdf({
         pw.Bullet(
           text: "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}",
         ),
-        pw.Bullet(
-          text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}",
-        ),
+        pw.Bullet(text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}"),
+        if (isYearlyReport)
+          pw.Bullet(
+            text:
+                "${labels.totalManagementFees}: "
+                "${totalMgmtFee.toStringAsFixed(2)}",
+          ),
+        if (isYearlyReport)
+          pw.Bullet(
+            text:
+                "Management fees for this period are "
+                "included in this annual report. "
+                "See Fee Statements section for "
+                "a detailed annual fee breakdown.",
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: PdfColors.grey700,
+            ),
+          ),
         pw.SizedBox(height: 16),
         pw.Text(
           labels.transactionsHeading,
@@ -591,10 +608,7 @@ Future<Uint8List> buildInvestorReportPdf({
         pw.SizedBox(height: 24),
         pw.Text(
           labels.footer,
-          style: const pw.TextStyle(
-            fontSize: 9,
-            color: PdfColors.grey700,
-          ),
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
         ),
       ],
     ),

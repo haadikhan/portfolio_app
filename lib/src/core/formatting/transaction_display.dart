@@ -7,7 +7,10 @@ import "package:intl/intl.dart";
 
 import "../i18n/app_translations.dart";
 
-final _txnAmountFormat = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
+final _txnAmountFormat = NumberFormat.currency(
+  symbol: "PKR ",
+  decimalDigits: 2,
+);
 
 const _kFeeTypes = <String>{
   "front_end_load_fee",
@@ -153,9 +156,11 @@ String transactionListSubtitleFromMap({
   final notes = noteSingular != null && noteSingular.isNotEmpty
       ? noteSingular
       : notePlural;
-  final relatedTxId = (data["relatedTxId"] as String?)?.trim() ??
+  final relatedTxId =
+      (data["relatedTxId"] as String?)?.trim() ??
       (data["refId"] as String?)?.trim();
-  final periodKey = (data["periodKey"] as String?)?.trim() ??
+  final periodKey =
+      (data["periodKey"] as String?)?.trim() ??
       (data["datePkt"] as String?)?.trim();
 
   return transactionListSubtitle(
@@ -217,4 +222,58 @@ String _capitalizeWord(String w) {
 String _titleCaseFirstWordOnly(String s) {
   if (s.isEmpty) return s;
   return s[0].toUpperCase() + s.substring(1);
+}
+
+/// Returns a display-friendly transaction ID.
+/// Custom IDs (ISC- / TXN-) are returned as-is.
+/// Firestore auto-IDs (20 chars) are replaced with
+/// a type-based prefix + last 8 chars of the ID.
+String formatTransactionId(String id, String type) {
+  if (id.startsWith("ISC-") || id.startsWith("TXN-")) {
+    return id;
+  }
+
+  final suffix = id.length >= 8
+      ? id.substring(id.length - 8).toUpperCase()
+      : id.toUpperCase();
+
+  final String prefix;
+  switch (type.toLowerCase()) {
+    case "profit":
+    case "profit_entry":
+    case "daily_profit":
+      prefix = "ISC-PRF";
+      break;
+    case "management_fee":
+    case "fee":
+    case "admin_fee":
+      prefix = "ISC-FEE";
+      break;
+    case "front_end_load":
+    case "front_end_fee":
+      prefix = "ISC-FEL";
+      break;
+    case "performance_fee":
+      prefix = "ISC-PFF";
+      break;
+    case "referral":
+    case "referral_fee":
+      prefix = "ISC-REF";
+      break;
+    case "adjustment":
+      prefix = "ISC-ADJ";
+      break;
+    case "deposit":
+      prefix = "ISC-DEP";
+      break;
+    case "withdrawal":
+    case "redemption":
+      prefix = "ISC-WDR";
+      break;
+    default:
+      prefix = "ISC-SYS";
+      break;
+  }
+
+  return "$prefix-$suffix";
 }
