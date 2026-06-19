@@ -113,6 +113,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  void _showPdfDebugDialog(Object e, StackTrace st, {required String source}) {
+    debugPrint("[reports] $source failed: $e\n$st");
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("PDF Error (debug)"),
+        content: SingleChildScrollView(
+          child: SelectableText("$e\n\n$st"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<Uint8List?> _buildPdfBytes() async {
     final range = _resolvedRange();
     if (range.start.isAfter(range.end)) {
@@ -164,12 +184,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         isYearlyReport: isYearlyReport,
       );
     } catch (e, st) {
-      debugPrint("[reports] buildInvestorReportPdf failed: $e\n$st");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr("reports_pdf_failed"))),
-        );
-      }
+      _showPdfDebugDialog(e, st, source: "buildInvestorReportPdf");
       return null;
     }
   }
@@ -182,16 +197,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<void> _viewReport() async {
-    final bytes = await _buildPdfBytes();
-    if (bytes == null || !mounted) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (ctx) => ReportPdfPreviewScreen(
-          bytes: bytes,
-          fileName: _pdfFileName(),
+    try {
+      final bytes = await _buildPdfBytes();
+      if (bytes == null || !mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (ctx) => ReportPdfPreviewScreen(
+            bytes: bytes,
+            fileName: _pdfFileName(),
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e, st) {
+      _showPdfDebugDialog(e, st, source: "_viewReport");
+    }
   }
 
   Future<void> _downloadReport() async {
@@ -247,6 +266,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           SnackBar(content: Text(context.tr("reports_pdf_failed"))),
         );
       }
+    } catch (e, st) {
+      _showPdfDebugDialog(e, st, source: "_downloadReport");
     } finally {
       if (mounted) {
         setState(() => _isDownloading = false);

@@ -70,7 +70,8 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
         }
       }
 
-      final preferShareFirst = !kIsWeb &&
+      final preferShareFirst =
+          !kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
               defaultTargetPlatform == TargetPlatform.iOS);
       if (preferShareFirst) {

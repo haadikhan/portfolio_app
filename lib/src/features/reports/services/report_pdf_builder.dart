@@ -378,6 +378,16 @@ pw.Widget _reportHeaderTable({
   );
 }
 
+String _pdfTypeCell(TxnItem t) {
+  final isProfitType =
+      t.type.toLowerCase() == "profit" ||
+      t.type.toLowerCase() == "profit_entry";
+  if (isProfitType) {
+    return t.amount < 0 ? "Loss Debited" : "Profit Credited";
+  }
+  return displayTransactionType(t.type);
+}
+
 String _pdfNoteCell(TxnItem t) {
   final noteRaw = t.note?.trim();
   var displayNote = displayTransactionNote(
@@ -387,6 +397,19 @@ String _pdfNoteCell(TxnItem t) {
   if (displayNote == "\u2014") {
     displayNote = "-";
   }
+
+  // Prefix profit/loss transactions with a clear
+  // credited/debited label in the note column.
+  final isProfitType =
+      t.type.toLowerCase() == "profit" ||
+      t.type.toLowerCase() == "profit_entry";
+  if (isProfitType) {
+    final prefix = t.amount < 0 ? "Loss Debited" : "Profit Credited";
+    displayNote = (displayNote == "-" || displayNote.isEmpty)
+        ? prefix
+        : "$prefix - $displayNote";
+  }
+
   return displayNote.length > 50
       ? "${displayNote.substring(0, 47)}..."
       : displayNote;
@@ -423,7 +446,7 @@ pw.Widget _buildTransactionsLedgerTable({
           (t) => [
             _pdfTxnId(t.id, t.type),
             dateTimeFmt.format(t.createdAt),
-            displayTransactionType(t.type),
+            _pdfTypeCell(t),
             displayTransactionStatus(t.status),
             t.amount.toStringAsFixed(2),
             _pdfNoteCell(t),
