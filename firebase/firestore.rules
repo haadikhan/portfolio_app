@@ -136,7 +136,10 @@ service cloud.firestore {
       allow update: if isOwner(userId) && ownerUserUpdateAllowed();
       allow update: if isOwner(userId) && ownerFcmTokensUpdateAllowed();
       // Staff (admin or CRM assigned to this user) — approve/reject KYC updates `kycStatus` on users/{uid}.
-      allow update: if crmManagesInvestor(userId);
+      // portfolioNumber / legacyPortfolioNumber are server-assigned only (Cloud Functions Admin SDK).
+      allow update: if crmManagesInvestor(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(["portfolioNumber", "legacyPortfolioNumber"]);
       allow delete: if false;
 
       match /notifications/{notificationId} {

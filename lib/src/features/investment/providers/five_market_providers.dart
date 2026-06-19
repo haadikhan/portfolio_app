@@ -99,6 +99,33 @@ final latestEodSnapshotProvider = StreamProvider<Map<String, dynamic>?>((ref) {
   );
 });
 
+/// KMI30 day change from [snapshot] when it is today's PKT EOD row.
+/// Field path: `kmi30.changePercent` (see `docs/five_market_schema.md`).
+double? _kmi30ChangePercentFromTodaysEod(
+  Map<String, dynamic>? snapshot,
+  String todayPkt,
+) {
+  if (snapshot == null) return null;
+  if (snapshot["date"] != todayPkt) return null;
+  if (snapshot["tradingDay"] != true) return null;
+  final kmi = snapshot["kmi30"];
+  if (kmi is! Map) return null;
+  if (kmi["error"] != null) return null;
+  final pct = kmi["changePercent"];
+  if (pct is num && pct.isFinite) return pct.toDouble();
+  return null;
+}
+
+/// Stock change % when PSX is closed but today is still a trading day.
+/// Prefers today's EOD snapshot; otherwise keeps the last live tick value.
+double _resolveStockPercentWhenClosed({
+  required double? eodChangePercent,
+  required double? liveTickChangePercent,
+}) {
+  if (eodChangePercent != null) return eodChangePercent;
+  return liveTickChangePercent ?? 0.0;
+}
+
 /// Five-market daily result for today (live inputs: KMI30 index + gold quote).
 final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   final config = ref.watch(fiveMarketConfigProvider).valueOrNull;
@@ -106,17 +133,26 @@ final fiveMarketDailyResultProvider = Provider<FiveMarketDailyResult?>((ref) {
   final kmi30Tick = ref.watch(kmi30IndexTickProvider).valueOrNull;
   final goldQuote = ref.watch(goldPriceStreamProvider).valueOrNull;
   final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
+  final eodSnapshot = ref.watch(latestEodSnapshotProvider).valueOrNull;
 
   if (config == null || wallet == null) {
     return null;
   }
 
   final basePkr = netPortfolioValueFromWallet(wallet);
+  final todayPkt = _todayPkt();
+  final eodStockPct = _kmi30ChangePercentFromTodaysEod(eodSnapshot, todayPkt);
+  final liveTickPct = kmi30Tick?.changePercent;
 
-  // Stock: PSX hours including Friday prayer break
-  final kmi30Pct = tradingDay.isTradingDay && isStockMarketOpen()
-      ? (kmi30Tick?.changePercent ?? 0.0)
-      : 0.0;
+  // Stock: live tick while PSX open; after close / prayer break use EOD or last tick
+  final kmi30Pct = !tradingDay.isTradingDay
+      ? 0.0
+      : isStockMarketOpen()
+      ? (liveTickPct ?? 0.0)
+      : _resolveStockPercentWhenClosed(
+          eodChangePercent: eodStockPct,
+          liveTickChangePercent: liveTickPct,
+        );
 
   // Gold: 24-hour — never zeroed by hour
   final goldPct = tradingDay.isTradingDay

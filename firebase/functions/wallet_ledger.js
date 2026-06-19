@@ -137,29 +137,34 @@ function txId() {
 }
 
 /**
- * Assigns the next sequential WAI-ISCMA-XXXXXX portfolio number to users/{userId}.
- * Idempotent: returns the existing number if already set.
+ * Assigns a random AMAPISCPK-XXXXXXXXX portfolio number to users/{userId}.
+ * Uniqueness enforced via query + retry (up to 10 attempts).
  */
 async function assignPortfolioNumber(userId) {
-  const counterRef = db().collection("meta").doc("portfolioNumberCounter");
-  const userRef = db().collection("users").doc(userId);
-  return db().runTransaction(async (tx) => {
-    const userSnap = await tx.get(userRef);
-    if (!userSnap.exists) {
-      throw new Error(`User ${userId} not found`);
-    }
-    const existing = (userSnap.data()?.portfolioNumber || "").trim();
-    if (existing) return existing;
+  const usersRef = db().collection("users");
+  const maxAttempts = 10;
 
-    const snap = await tx.get(counterRef);
-    const last = snap.exists ? (snap.data().lastAssigned ?? 0) : 0;
-    const next = last + 1;
-    const padded = String(next).padStart(6, "0");
-    const portfolioNumber = `WAI-ISCMA-${padded}`;
-    tx.set(counterRef, { lastAssigned: next }, { merge: true });
-    tx.update(userRef, { portfolioNumber });
-    return portfolioNumber;
-  });
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomNum = Math.floor(
+      100000000 + Math.random() * 900000000,
+    );
+    const portfolioNumber = `AMAPISCPK-${randomNum}`;
+
+    const existing = await usersRef
+      .where("portfolioNumber", "==", portfolioNumber)
+      .limit(1)
+      .get();
+
+    if (existing.empty) {
+      await usersRef.doc(userId).update({ portfolioNumber });
+      return portfolioNumber;
+    }
+  }
+
+  throw new Error(
+    "Failed to generate unique portfolio number after " +
+      maxAttempts + " attempts",
+  );
 }
 
 /** Assign portfolio number only when users/{userId}.portfolioNumber is unset. */
@@ -217,6 +222,50 @@ exports.backfillPortfolioNumbers = onCall(
     }
 
     return { assigned, skipped };
+  },
+);
+
+exports.migratePortfolioNumbersToAmapiscpk = onCall(
+  { region: "us-central1", timeoutSeconds: 540 },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    }
+    await assertAdmin(request.auth.uid);
+
+    const usersRef = db().collection("users");
+    const snap = await usersRef.get();
+
+    let migrated = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const doc of snap.docs) {
+      try {
+        const data = doc.data();
+        if (data.portfolioNumber &&
+            data.portfolioNumber.startsWith("AMAPISCPK-")) {
+          skipped++;
+          continue;
+        }
+
+        const legacyNumber = data.portfolioNumber || null;
+
+        if (legacyNumber) {
+          await usersRef.doc(doc.id).update({
+            legacyPortfolioNumber: legacyNumber,
+          });
+        }
+
+        await assignPortfolioNumber(doc.id);
+        migrated++;
+      } catch (e) {
+        logger.error(`Failed to migrate user ${doc.id}:`, e);
+        failed++;
+      }
+    }
+
+    return { migrated, skipped, failed, total: snap.size };
   },
 );
 

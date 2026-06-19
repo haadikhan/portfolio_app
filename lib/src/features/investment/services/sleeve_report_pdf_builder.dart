@@ -32,7 +32,7 @@ final _dateFmt = DateFormat("dd MMM yyyy");
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 String _generateRefNumber(String portfolioNumber) {
-  if (portfolioNumber.isEmpty) return "ISC-000000";
+  if (portfolioNumber.isEmpty) return "AMAPISCPK-000000000";
   return portfolioNumber;
 }
 
