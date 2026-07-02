@@ -205,6 +205,9 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         paymentProof: paymentProof,
       );
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 
   Future<void> acceptConsent() async {

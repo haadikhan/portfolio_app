@@ -121,7 +121,7 @@ class _TechRateHeroCard extends StatelessWidget {
                   Expanded(
                     child: _RateBox(
                       title: context.tr("mkt_tech_benchmark"),
-                      rateText: "${benchmarkRate.toStringAsFixed(0)}% p.a.",
+                      rateText: "${benchmarkRate.toStringAsFixed(0)}%",
                       rateColor: _indigo,
                       subLabel: context.tr("mkt_tech_floor_label"),
                       scheme: scheme,
@@ -131,7 +131,7 @@ class _TechRateHeroCard extends StatelessWidget {
                   Expanded(
                     child: _RateBox(
                       title: context.tr("mkt_tech_target"),
-                      rateText: "${targetRate.toStringAsFixed(0)}% p.a.",
+                      rateText: "${targetRate.toStringAsFixed(0)}%",
                       rateColor: _cyanAccent,
                       subLabel: context.tr("mkt_tech_goal_label"),
                       scheme: scheme,
@@ -231,7 +231,7 @@ class _TechHoldingsCard extends StatelessWidget {
     final String changeText;
     final Color? changeColor;
     if (annual != null) {
-      changeText = "${annual.toStringAsFixed(1)}% p.a. (accrued rate)";
+      changeText = "${annual.toStringAsFixed(1)}% (accrued rate)";
       changeColor = scheme.onSurfaceVariant;
     } else {
       changeText = change >= 0

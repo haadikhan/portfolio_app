@@ -53,7 +53,7 @@ class _GoldMarketDetailScreenState
     final dailyResult = ref.watch(fiveMarketDailyResultProvider);
     final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
     final config = ref.watch(fiveMarketConfigProvider).valueOrNull;
-    final allocationBase = allocationTotalFromWallet(wallet);
+    final allocationBase = investorAllocationBaseFromWallet(wallet);
     final slice = dailyResult?.gold;
     final isPriceLoading =
         quote == null && (live.isLoading || initial.isLoading);

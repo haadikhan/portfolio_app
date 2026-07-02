@@ -44,10 +44,8 @@ class FiveMarketDailyScreen extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.download_outlined),
           tooltip: context.tr("five_market_download_report"),
-          onPressed: () => openCombinedSleeveReportDownload(
-            context: context,
-            ref: ref,
-          ),
+          onPressed: () =>
+              openCombinedSleeveReportDownload(context: context, ref: ref),
         ),
       ],
       body: RefreshIndicator(
@@ -126,15 +124,12 @@ class FiveMarketDailyScreen extends ConsumerWidget {
     Map<String, dynamic>? wallet,
     SleeveBalanceSnapshot? sleeveSnap,
   ) {
-    final base = allocationTotalFromWallet(wallet);
+    final base = investorAllocationBaseFromWallet(wallet);
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: _ClosedDayBanner(
-            tradingDay: tradingDay,
-            scheme: scheme,
-          ),
+          child: _ClosedDayBanner(tradingDay: tradingDay, scheme: scheme),
         ),
       ),
       if (base <= 0)
@@ -154,8 +149,8 @@ class FiveMarketDailyScreen extends ConsumerWidget {
                 child: Text(
                   context.tr("five_market_zero_base_message"),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -184,7 +179,9 @@ class FiveMarketDailyScreen extends ConsumerWidget {
       slivers.add(
         SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: Text(context.tr("five_market_loading_breakdown"))),
+          child: Center(
+            child: Text(context.tr("five_market_loading_breakdown")),
+          ),
         ),
       );
       return slivers;
@@ -197,9 +194,9 @@ class FiveMarketDailyScreen extends ConsumerWidget {
           child: Text(
             context.tr("five_market_breakdown_title"),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurface,
-                ),
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
           ),
         ),
       ),
@@ -282,10 +279,7 @@ class FiveMarketDailyScreen extends ConsumerWidget {
 }
 
 class _ClosedDayBanner extends StatelessWidget {
-  const _ClosedDayBanner({
-    required this.tradingDay,
-    required this.scheme,
-  });
+  const _ClosedDayBanner({required this.tradingDay, required this.scheme});
 
   final TradingDayResult tradingDay;
   final ColorScheme scheme;
@@ -321,9 +315,9 @@ class _ClosedDayBanner extends StatelessWidget {
                   child: Text(
                     context.tr("five_market_closed_banner_title"),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onErrorContainer,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onErrorContainer,
+                    ),
                   ),
                 ),
               ],
@@ -331,9 +325,9 @@ class _ClosedDayBanner extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.tr(subKey),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -343,10 +337,7 @@ class _ClosedDayBanner extends StatelessWidget {
 }
 
 class _EodFootnote extends StatelessWidget {
-  const _EodFootnote({
-    required this.async,
-    required this.scheme,
-  });
+  const _EodFootnote({required this.async, required this.scheme});
 
   final AsyncValue<Map<String, dynamic>?> async;
   final ColorScheme scheme;
@@ -361,8 +352,8 @@ class _EodFootnote extends StatelessWidget {
         return Text(
           context.trParams("five_market_eod_footnote", {"date": date}),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.85),
-              ),
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.85),
+          ),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -371,7 +362,7 @@ class _EodFootnote extends StatelessWidget {
   }
 }
 
-class _Kmi30HeroCard extends StatelessWidget {
+class _Kmi30HeroCard extends ConsumerWidget {
   const _Kmi30HeroCard({
     required this.indexTick,
     required this.klinesAsync,
@@ -385,14 +376,13 @@ class _Kmi30HeroCard extends StatelessWidget {
   final VoidCallback onChartRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTradingDay = ref.watch(todayTradingDayProvider).isTradingDay;
     return Card(
       color: scheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: scheme.outline.withValues(alpha: 0.18),
-        ),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.18)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -401,9 +391,9 @@ class _Kmi30HeroCard extends StatelessWidget {
           children: [
             Text(
               context.tr("five_market_kmi30_section_title"),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             indexTick.when(
@@ -412,18 +402,19 @@ class _Kmi30HeroCard extends StatelessWidget {
                   return Text(
                     context.tr("five_market_index_unavailable"),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                    ),
                   );
                 }
-                final pct = tick.changePercent;
+                final pct = isTradingDay ? tick.changePercent : 0.0;
+                final changeAbs = isTradingDay ? tick.changeAbsolute : 0.0;
                 final pctColor = pct > 0
                     ? scheme.primary
                     : pct < 0
-                        ? scheme.error
-                        : scheme.onSurfaceVariant;
+                    ? scheme.error
+                    : scheme.onSurfaceVariant;
                 final ptsStr =
-                    "${tick.changeAbsolute >= 0 ? "+" : ""}${_indexFmt.format(tick.changeAbsolute)}";
+                    "${changeAbs >= 0 ? "+" : ""}${_indexFmt.format(changeAbs)}";
                 final dash = context.tr("five_market_kmi30_value_dash");
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -431,15 +422,14 @@ class _Kmi30HeroCard extends StatelessWidget {
                     Text(
                       context.tr("five_market_kmi30_last_label"),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _indexFmt.format(tick.currentValue),
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -449,14 +439,16 @@ class _Kmi30HeroCard extends StatelessWidget {
                       children: [
                         Text(
                           ptsStr,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 color: pctColor,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
                         Text(
                           "${pct >= 0 ? "+" : ""}${pct.toStringAsFixed(2)}%",
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 color: pctColor,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -468,8 +460,8 @@ class _Kmi30HeroCard extends StatelessWidget {
                       Text(
                         context.tr("five_market_kmi30_change_fallback_note"),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 12),
@@ -510,9 +502,9 @@ class _Kmi30HeroCard extends StatelessWidget {
               loading: () => const LinearProgressIndicator(minHeight: 3),
               error: (_, __) => Text(
                 context.tr("five_market_index_unavailable"),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ),
             const SizedBox(height: 12),
@@ -525,8 +517,8 @@ class _Kmi30HeroCard extends StatelessWidget {
                       child: Text(
                         context.tr("market_no_data"),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     );
                   }
@@ -578,9 +570,9 @@ class _Kmi30StatRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           Expanded(
@@ -589,9 +581,9 @@ class _Kmi30StatRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
+              ),
             ),
           ),
         ],
@@ -615,6 +607,7 @@ class _MarketSliceTile extends StatelessWidget {
   final MarketSleeve marketSleeve;
   final MarketSliceResult slice;
   final ColorScheme scheme;
+
   /// Full sleeve row from [marketSleeveBalancesProvider] when loaded.
   final SleeveBalanceEntry? sleeveEntry;
   final bool todayCreditedToWallet;
@@ -648,8 +641,8 @@ class _MarketSliceTile extends StatelessWidget {
     final profitColor = profit > 0
         ? scheme.primary
         : profit < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final statusKey = switch (slice.status) {
       MarketSliceStatus.live => "five_market_status_live",
       MarketSliceStatus.realized => "five_market_status_realized",
@@ -663,9 +656,7 @@ class _MarketSliceTile extends StatelessWidget {
         color: scheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: scheme.outline.withValues(alpha: 0.12),
-          ),
+          side: BorderSide(color: scheme.outline.withValues(alpha: 0.12)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -678,15 +669,15 @@ class _MarketSliceTile extends StatelessWidget {
                     Text(
                       label,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _sliceSubtitle(context),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: _sliceSubtitleColor(),
-                          ),
+                        color: _sliceSubtitleColor(),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     if (marketSleeve == MarketSleeve.money &&
@@ -697,9 +688,9 @@ class _MarketSliceTile extends StatelessWidget {
                           {"amount": _money.format(sleeveEntry!.basePkr)},
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -708,34 +699,32 @@ class _MarketSliceTile extends StatelessWidget {
                           {"amount": _money.format(slice.allocatedPkr)},
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: 11,
-                              height: 1.25,
-                              fontStyle: FontStyle.italic,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                          height: 1.25,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ] else ...[
                       Text(
-                        context.trParams(
-                          "five_market_allocated_label",
-                          {"amount": _money.format(slice.allocatedPkr)},
-                        ),
+                        context.trParams("five_market_allocated_label", {
+                          "amount": _money.format(slice.allocatedPkr),
+                        }),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                     if (displayPkr != null && displayPkr.isFinite) ...[
                       const SizedBox(height: 2),
                       Text(
-                        context.trParams(
-                          "five_market_sleeve_value_label",
-                          {"amount": _money.format(displayPkr)},
-                        ),
+                        context.trParams("five_market_sleeve_value_label", {
+                          "amount": _money.format(displayPkr),
+                        }),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                     if (todayCreditedToWallet) ...[
@@ -743,18 +732,18 @@ class _MarketSliceTile extends StatelessWidget {
                       Text(
                         context.tr("five_market_credited_to_wallet_status"),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ] else if (slice.status == MarketSliceStatus.realized) ...[
                       const SizedBox(height: 2),
                       Text(
                         context.tr("five_market_pending_overnight_credit"),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ],
@@ -766,9 +755,9 @@ class _MarketSliceTile extends StatelessWidget {
                   Text(
                     "${profit >= 0 ? "+" : ""}${_money.format(profit)}",
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: profitColor,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: profitColor,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Container(
@@ -783,9 +772,9 @@ class _MarketSliceTile extends StatelessWidget {
                     child: Text(
                       context.tr(statusKey),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -820,8 +809,8 @@ class _TotalProfitCard extends StatelessWidget {
     final c = total > 0
         ? scheme.primary
         : total < 0
-            ? scheme.error
-            : scheme.onSurfaceVariant;
+        ? scheme.error
+        : scheme.onSurfaceVariant;
     final pt = portfolioTotalPkr;
     return Card(
       elevation: 0,
@@ -841,16 +830,16 @@ class _TotalProfitCard extends StatelessWidget {
                   child: Text(
                     context.tr("five_market_total_label"),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 Text(
                   "${total >= 0 ? "+" : ""}${_money.format(total)}",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: c,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: c,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -862,17 +851,17 @@ class _TotalProfitCard extends StatelessWidget {
                     child: Text(
                       context.tr("five_market_portfolio_total_incl_pending"),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: scheme.onSurface,
-                          ),
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface,
+                      ),
                     ),
                   ),
                   Text(
                     _money.format(pt),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.onSurface,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface,
+                    ),
                   ),
                 ],
               ),

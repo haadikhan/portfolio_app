@@ -465,7 +465,7 @@ class LiveProfitScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final walletAsync = ref.watch(userWalletStreamProvider);
     final baseAmount = walletAsync.valueOrNull != null
-        ? allocationTotalFromWallet(walletAsync.valueOrNull)
+        ? investorAllocationBaseFromWallet(walletAsync.valueOrNull)
         : 0.0;
 
     if (walletAsync.isLoading) {
@@ -565,7 +565,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
     final liveProfitAsync = ref.watch(fiveMarketLiveProfitProvider);
     final tradingDay = ref.watch(todayTradingDayProvider);
     final wallet = widget.wallet;
-    final baseAmount = allocationTotalFromWallet(wallet);
+    final baseAmount = investorAllocationBaseFromWallet(wallet);
     final realizedProfit = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0;
     final scheme = Theme.of(context).colorScheme;
 
@@ -714,8 +714,9 @@ class _MonthlyTab extends ConsumerWidget {
           _PeriodHeaderCard(
             title: context.tr("profit_period_month_to_date"),
             subtitle: monthLabel,
-            tradingDays: summary.tradingDays,
+            tradingDays: summary.calendarTradingDays,
             tradingDaysSuffix: context.tr("profit_trading_days"),
+            creditedDays: summary.creditedLedgerDays,
           ),
           const SizedBox(height: 16),
           _PeriodHeroCard(
@@ -723,7 +724,9 @@ class _MonthlyTab extends ConsumerWidget {
             label: context.tr("profit_net_pl"),
           ),
           const SizedBox(height: 16),
-          if (!summary.isFromLedger)
+          if (summary.isLoadingHistory)
+            const Center(child: CircularProgressIndicator())
+          else if (!summary.isFromLedger)
             const _LedgerNotReadyCard()
           else ...[
             _PeriodMarketList(
@@ -771,8 +774,9 @@ class _YearlyTab extends ConsumerWidget {
           _PeriodHeaderCard(
             title: context.tr("profit_period_year_to_date"),
             subtitle: yearLabel,
-            tradingDays: summary.tradingDays,
+            tradingDays: summary.calendarTradingDays,
             tradingDaysSuffix: context.tr("profit_trading_days_year"),
+            creditedDays: summary.creditedLedgerDays,
           ),
           const SizedBox(height: 16),
           _PeriodHeroCard(
@@ -780,7 +784,9 @@ class _YearlyTab extends ConsumerWidget {
             label: context.tr("profit_net_pl"),
           ),
           const SizedBox(height: 16),
-          if (!summary.isFromLedger)
+          if (summary.isLoadingHistory)
+            const Center(child: CircularProgressIndicator())
+          else if (!summary.isFromLedger)
             const _LedgerNotReadyCard()
           else ...[
             _PeriodMarketList(
@@ -836,12 +842,14 @@ class _PeriodHeaderCard extends StatelessWidget {
     required this.subtitle,
     required this.tradingDays,
     required this.tradingDaysSuffix,
+    this.creditedDays,
   });
 
   final String title;
   final String subtitle;
   final int tradingDays;
   final String tradingDaysSuffix;
+  final int? creditedDays;
 
   @override
   Widget build(BuildContext context) {
@@ -873,6 +881,15 @@ class _PeriodHeaderCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            if (creditedDays != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                "$creditedDays ${context.tr("profit_verified_days_suffix")}",
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
       ),

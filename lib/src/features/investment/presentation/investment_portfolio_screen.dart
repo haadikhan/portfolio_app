@@ -311,7 +311,7 @@ class _PortfolioMarketTabsPanel extends StatelessWidget {
 }
 
 double _readAvailableBalance(Map<String, dynamic>? wallet) {
-  return allocationTotalFromWallet(wallet);
+  return investorAllocationBaseFromWallet(wallet);
 }
 
 class _PerformanceFeeCard extends ConsumerWidget {

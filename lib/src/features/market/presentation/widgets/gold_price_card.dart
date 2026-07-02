@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "../../../../core/i18n/app_translations.dart";
 import "../../data/gold_units.dart";
 import "../../providers/kmi30_index_provider.dart";
@@ -13,10 +14,13 @@ class GoldPriceCard extends ConsumerWidget {
   const GoldPriceCard({super.key});
 
   static final NumberFormat _usdFmt = NumberFormat("#,##0.00", "en_US");
-  static final NumberFormat _pkrFmt =
-      NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
-  static final NumberFormat _idxFmt =
-      NumberFormat.decimalPatternDigits(decimalDigits: 2);
+  static final NumberFormat _pkrFmt = NumberFormat.currency(
+    symbol: "PKR ",
+    decimalDigits: 0,
+  );
+  static final NumberFormat _idxFmt = NumberFormat.decimalPatternDigits(
+    decimalDigits: 2,
+  );
   static final DateFormat _timeFmt = DateFormat.Hm();
 
   @override
@@ -25,7 +29,8 @@ class GoldPriceCard extends ConsumerWidget {
     final initial = ref.watch(goldPriceInitialProvider);
     final fallback = ref.watch(goldPriceLastKnownProvider);
     final quote = live.valueOrNull ?? initial.valueOrNull ?? fallback;
-    final isGoldLoading = quote == null && (live.isLoading || initial.isLoading);
+    final isGoldLoading =
+        quote == null && (live.isLoading || initial.isLoading);
 
     final kmi30Async = ref.watch(kmi30IndexTickProvider);
     final kmi30 = kmi30Async.valueOrNull;
@@ -71,10 +76,11 @@ class GoldPriceCard extends ConsumerWidget {
                   timeFmt: _timeFmt,
                   usdValue: quote?.xauUsd,
                   timestamp: quote?.timestamp,
-                  hasError: quote == null &&
-                      (live.hasError || initial.hasError),
-                  onRefresh: () =>
-                      ref.read(goldPriceRefreshCounterProvider.notifier).refresh(),
+                  hasError:
+                      quote == null && (live.hasError || initial.hasError),
+                  onRefresh: () => ref
+                      .read(goldPriceRefreshCounterProvider.notifier)
+                      .refresh(),
                   onTap: () => context.push("/market/gold"),
                 ),
               ),
@@ -238,7 +244,7 @@ class _GoldHalf extends StatelessWidget {
 
 // ── KMI-30 panel ───────────────────────────────────────────────────────────
 
-class _Kmi30Half extends StatelessWidget {
+class _Kmi30Half extends ConsumerWidget {
   const _Kmi30Half({
     required this.tick,
     required this.isLoading,
@@ -252,7 +258,8 @@ class _Kmi30Half extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTradingDay = ref.watch(todayTradingDayProvider).isTradingDay;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
@@ -261,13 +268,13 @@ class _Kmi30Half extends StatelessWidget {
     String changeStr;
 
     if (tick != null) {
-      final pct = (tick.changePercent as double);
-      final abs = (tick.changeAbsolute as double);
+      final pct = isTradingDay ? (tick.changePercent as double) : 0.0;
+      final abs = isTradingDay ? (tick.changeAbsolute as double) : 0.0;
       changeColor = pct > 0
           ? Colors.green.shade600
           : pct < 0
-              ? Colors.red.shade600
-              : scheme.onSurfaceVariant;
+          ? Colors.red.shade600
+          : scheme.onSurfaceVariant;
       indexStr = idxFmt.format(tick.currentValue as double);
       final sign = abs >= 0 ? "+" : "";
       final pctSign = pct >= 0 ? "+" : "";

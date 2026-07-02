@@ -42,6 +42,7 @@ import "../features/security/presentation/trusted_devices_screen.dart";
 import "../features/fee_manual/presentation/fee_manual_screen.dart";
 import "../features/transparency/presentation/transparency_hub_screen.dart";
 import "../features/update/data/app_update_providers.dart";
+import "../features/update/presentation/app_updates_screen.dart";
 import "../features/update/presentation/force_update_screen.dart";
 import "../features/update/presentation/update_notice_host.dart";
 import "../screens/auth_gate_screen.dart";
@@ -176,6 +177,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           path: "/transparency",
           builder: (_, __) =>
               const ConsentGateScreen(child: TransparencyHubScreen()),
+        ),
+        GoRoute(
+          path: "/app-updates",
+          builder: (_, __) => const AppUpdatesScreen(),
         ),
         GoRoute(
           path: "/fee-manual",

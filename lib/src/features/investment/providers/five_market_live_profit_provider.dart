@@ -4,12 +4,49 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "package:portfolio_app/src/core/market/market_hours.dart";
 import "package:portfolio_app/src/features/investment/data/allocation_money_market.dart";
+import "package:portfolio_app/src/features/investment/domain/five_market_daily_engine.dart";
 import "package:portfolio_app/src/features/investment/domain/five_market_models.dart";
 import "package:portfolio_app/src/features/investment/providers/five_market_providers.dart";
 import "package:portfolio_app/src/features/investment/providers/market_sleeve_balance_provider.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_index_tick.dart";
 import "package:portfolio_app/src/features/market/providers/kmi30_index_provider.dart";
 import "package:portfolio_app/src/providers/wallet_providers.dart";
+
+/// Counts actual calendar trading days (Mon-Fri minus PK holidays) that have
+/// ELAPSED so far within [periodStart, periodEndInclusive] inclusive, using
+/// the same [FiveMarketDailyEngine.resolveTradingDay] logic as the daily engine.
+/// [periodEndInclusive] is clamped to "yesterday" since today is never counted
+/// as elapsed until after EOD credit.
+int countElapsedCalendarTradingDays({
+  required DateTime periodStart,
+  required DateTime periodEndInclusive,
+  required List<PkHoliday> holidays,
+}) {
+  var count = 0;
+  var cursor = DateTime(
+    periodStart.year,
+    periodStart.month,
+    periodStart.day,
+  );
+  final end = DateTime(
+    periodEndInclusive.year,
+    periodEndInclusive.month,
+    periodEndInclusive.day,
+  );
+  while (!cursor.isAfter(end)) {
+    final datePkt =
+        "${cursor.year.toString().padLeft(4, '0')}-"
+        "${cursor.month.toString().padLeft(2, '0')}-"
+        "${cursor.day.toString().padLeft(2, '0')}";
+    final result = FiveMarketDailyEngine.resolveTradingDay(
+      datePkt: datePkt,
+      holidays: holidays,
+    );
+    if (result.isTradingDay) count++;
+    cursor = cursor.add(const Duration(days: 1));
+  }
+  return count;
+}
 
 /// Combines [fiveMarketDailyResultProvider] with periodic refresh for live UI.
 class FiveMarketLiveProfitState {
@@ -82,9 +119,11 @@ class FiveMarketPeriodSummary {
     required this.debtProfitPkr,
     required this.moneyProfitPkr,
     required this.goldProfitPkr,
-    required this.tradingDays,
+    required this.calendarTradingDays,
+    required this.creditedLedgerDays,
     this.isFromLedger = true,
     this.walletFallbackPkr = 0,
+    this.isLoadingHistory = false,
   });
 
   final String label;
@@ -93,13 +132,24 @@ class FiveMarketPeriodSummary {
   final double debtProfitPkr;
   final double moneyProfitPkr;
   final double goldProfitPkr;
-  final int tradingDays;
+
+  /// Primary count: weekdays minus PK holidays elapsed in the period.
+  final int calendarTradingDays;
+
+  /// Secondary count: credited [five_market_daily] docs in the period.
+  final int creditedLedgerDays;
+
+  /// Backward-compatible alias for [calendarTradingDays].
+  int get tradingDays => calendarTradingDays;
 
   /// `true` when summed from [five_market_daily]; `false` = wallet fallback.
   final bool isFromLedger;
 
   /// Used when [isFromLedger] is `false` (no ledger rows for the period).
   final double walletFallbackPkr;
+
+  /// True while history/holiday streams are still loading on first fetch.
+  final bool isLoadingHistory;
 
   double get totalProfitPkr =>
       stockProfitPkr +
@@ -119,9 +169,11 @@ class FiveMarketPeriodSummary {
     debtProfitPkr: 0,
     moneyProfitPkr: 0,
     goldProfitPkr: 0,
-    tradingDays: 0,
+    calendarTradingDays: 0,
+    creditedLedgerDays: 0,
     isFromLedger: true,
     walletFallbackPkr: 0,
+    isLoadingHistory: false,
   );
 }
 
@@ -155,7 +207,8 @@ FiveMarketLiveProfitState _buildState({
   required Kmi30IndexTick? kmi30Tick,
   required Map<String, dynamic>? wallet,
 }) {
-  final basePkr = wallet != null ? allocationTotalFromWallet(wallet) : 0.0;
+  final basePkr =
+      wallet != null ? investorAllocationBaseFromWallet(wallet) : 0.0;
   final isTradingDay = tradingDay.isTradingDay;
   final isStockOpen = isTradingDay && isStockMarketOpen();
   final isMarketHours = isStockOpen;
@@ -185,7 +238,7 @@ FiveMarketLiveProfitState _buildState({
       debtAllocatedPkr: _round2(debtAlloc),
       moneyAllocatedPkr: _round2(moneyAlloc),
       goldAllocatedPkr: _round2(goldAlloc),
-      kmi30ChangePercent: kmi30Tick?.changePercent ?? 0,
+      kmi30ChangePercent: 0,
       goldChangePercent: dailyResult?.gold.changePercent ?? 0,
       techAnnualPercent: rates.techBenchmarkAnnualPercent,
       debtAnnualPercent: rates.debtAnnualPercent,
@@ -309,14 +362,27 @@ bool _useWalletFallback({required List<FiveMarketDailyLedgerDoc> periodDocs}) {
 final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
   ref,
 ) {
-  final history = ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
+  final historyAsync = ref.watch(fiveMarketDailyHistoryProvider);
+  final holidaysAsync = ref.watch(pkHolidaysProvider);
+  final stillLoading = historyAsync.isLoading || holidaysAsync.isLoading;
+
+  final history = historyAsync.valueOrNull ?? [];
+  final holidays = holidaysAsync.valueOrNull ?? const <PkHoliday>[];
   final liveToday = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
-  final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
 
   final nowPkt = DateTime.now().toUtc().add(const Duration(hours: 5));
   final currentMonth = nowPkt.month;
   final currentYear = nowPkt.year;
   final todayStr = _pktDateString(nowPkt);
+
+  final periodStart = DateTime(currentYear, currentMonth, 1);
+  final yesterday = DateTime(nowPkt.year, nowPkt.month, nowPkt.day)
+      .subtract(const Duration(days: 1));
+  final calendarDays = countElapsedCalendarTradingDays(
+    periodStart: periodStart,
+    periodEndInclusive: yesterday,
+    holidays: holidays,
+  );
 
   final monthDocs = history.where((doc) {
     if (doc.documentId == todayStr) return false;
@@ -327,8 +393,9 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
         doc.raw["creditedToWallet"] == true;
   }).toList();
 
-  if (_useWalletFallback(periodDocs: monthDocs)) {
-    final walletTotal = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0.0;
+  final creditedDays = monthDocs.length;
+
+  if (stillLoading) {
     return FiveMarketPeriodSummary(
       label: "This Month",
       stockProfitPkr: 0,
@@ -336,9 +403,31 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
       debtProfitPkr: 0,
       moneyProfitPkr: 0,
       goldProfitPkr: 0,
-      tradingDays: 0,
+      calendarTradingDays: calendarDays,
+      creditedLedgerDays: creditedDays,
+      isFromLedger: true,
+      walletFallbackPkr: 0,
+      isLoadingHistory: true,
+    );
+  }
+
+  if (_useWalletFallback(periodDocs: monthDocs)) {
+    // No credited ledger docs for this month yet.
+    // Show PKR 0 — user has earned nothing this
+    // month so far. Do NOT use all-time wallet
+    // totalProfit as it includes prior months and
+    // is misleading as a "This Month" figure.
+    return FiveMarketPeriodSummary(
+      label: "This Month",
+      stockProfitPkr: 0,
+      techProfitPkr: 0,
+      debtProfitPkr: 0,
+      moneyProfitPkr: 0,
+      goldProfitPkr: 0,
+      calendarTradingDays: calendarDays,
+      creditedLedgerDays: creditedDays,
       isFromLedger: false,
-      walletFallbackPkr: _r(walletTotal),
+      walletFallbackPkr: 0,
     );
   }
 
@@ -347,7 +436,6 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
   var debtTotal = 0.0;
   var moneyTotal = 0.0;
   var goldTotal = 0.0;
-  var tradingDays = 0;
 
   for (final doc in monthDocs) {
     final markets = doc.raw["markets"] as Map? ?? {};
@@ -356,7 +444,6 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
     debtTotal += _marketProfit(markets, "debt");
     moneyTotal += _marketProfit(markets, "money");
     goldTotal += _marketProfit(markets, "gold");
-    tradingDays++;
   }
 
   // Add today's live estimate ONLY when we already have at least one
@@ -376,7 +463,8 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
     debtProfitPkr: _r(debtTotal),
     moneyProfitPkr: _r(moneyTotal),
     goldProfitPkr: _r(goldTotal),
-    tradingDays: tradingDays,
+    calendarTradingDays: calendarDays,
+    creditedLedgerDays: creditedDays,
     isFromLedger: true,
     walletFallbackPkr: 0,
   );
@@ -384,7 +472,12 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
 
 /// Sums credited [five_market_daily] rows for the current PKT year + today's live.
 final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
-  final history = ref.watch(fiveMarketDailyHistoryProvider).valueOrNull ?? [];
+  final historyAsync = ref.watch(fiveMarketDailyHistoryProvider);
+  final holidaysAsync = ref.watch(pkHolidaysProvider);
+  final stillLoading = historyAsync.isLoading || holidaysAsync.isLoading;
+
+  final history = historyAsync.valueOrNull ?? [];
+  final holidays = holidaysAsync.valueOrNull ?? const <PkHoliday>[];
   final liveToday = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
   final wallet = ref.watch(userWalletStreamProvider).valueOrNull;
 
@@ -392,12 +485,39 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
   final currentYear = nowPkt.year;
   final todayStr = _pktDateString(nowPkt);
 
+  final periodStart = DateTime(currentYear, 1, 1);
+  final yesterday = DateTime(nowPkt.year, nowPkt.month, nowPkt.day)
+      .subtract(const Duration(days: 1));
+  final calendarDays = countElapsedCalendarTradingDays(
+    periodStart: periodStart,
+    periodEndInclusive: yesterday,
+    holidays: holidays,
+  );
+
   final yearDocs = history.where((doc) {
     if (doc.documentId == todayStr) return false;
     final dt = DateTime.tryParse(doc.documentId);
     if (dt == null) return false;
     return dt.year == currentYear && doc.raw["creditedToWallet"] == true;
   }).toList();
+
+  final creditedDays = yearDocs.length;
+
+  if (stillLoading) {
+    return FiveMarketPeriodSummary(
+      label: "This Year",
+      stockProfitPkr: 0,
+      techProfitPkr: 0,
+      debtProfitPkr: 0,
+      moneyProfitPkr: 0,
+      goldProfitPkr: 0,
+      calendarTradingDays: calendarDays,
+      creditedLedgerDays: creditedDays,
+      isFromLedger: true,
+      walletFallbackPkr: 0,
+      isLoadingHistory: true,
+    );
+  }
 
   if (_useWalletFallback(periodDocs: yearDocs)) {
     final walletTotal = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0.0;
@@ -408,7 +528,8 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
       debtProfitPkr: 0,
       moneyProfitPkr: 0,
       goldProfitPkr: 0,
-      tradingDays: 0,
+      calendarTradingDays: calendarDays,
+      creditedLedgerDays: creditedDays,
       isFromLedger: false,
       walletFallbackPkr: _r(walletTotal),
     );
@@ -419,7 +540,6 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
   var debtTotal = 0.0;
   var moneyTotal = 0.0;
   var goldTotal = 0.0;
-  var tradingDays = 0;
 
   for (final doc in yearDocs) {
     final markets = doc.raw["markets"] as Map? ?? {};
@@ -428,7 +548,6 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
     debtTotal += _marketProfit(markets, "debt");
     moneyTotal += _marketProfit(markets, "money");
     goldTotal += _marketProfit(markets, "gold");
-    tradingDays++;
   }
 
   // Add today's live estimate ONLY when we already have at least one
@@ -448,7 +567,8 @@ final fiveMarketYearlyProfitProvider = Provider<FiveMarketPeriodSummary>((ref) {
     debtProfitPkr: _r(debtTotal),
     moneyProfitPkr: _r(moneyTotal),
     goldProfitPkr: _r(goldTotal),
-    tradingDays: tradingDays,
+    calendarTradingDays: calendarDays,
+    creditedLedgerDays: creditedDays,
     isFromLedger: true,
     walletFallbackPkr: 0,
   );

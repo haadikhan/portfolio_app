@@ -81,7 +81,7 @@ class StockMarketDetailScreen extends ConsumerWidget {
   }
 }
 
-class _Kmi30LiveIndexCard extends StatelessWidget {
+class _Kmi30LiveIndexCard extends ConsumerWidget {
   const _Kmi30LiveIndexCard({
     required this.scheme,
     required this.indexTick,
@@ -93,7 +93,8 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
   final AsyncValue<List<Kmi30Bar>> klinesAsync;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTradingDay = ref.watch(todayTradingDayProvider).isTradingDay;
     final theme = Theme.of(context);
 
     return _GlassCard(
@@ -124,14 +125,15 @@ class _Kmi30LiveIndexCard extends StatelessWidget {
                     ),
                   );
                 }
-                final pct = tick.changePercent;
+                final pct = isTradingDay ? tick.changePercent : 0.0;
+                final changeAbs = isTradingDay ? tick.changeAbsolute : 0.0;
                 final changeColor = pct > 0
                     ? scheme.primary
                     : pct < 0
                     ? scheme.error
                     : scheme.onSurfaceVariant;
                 final ptsStr =
-                    "${tick.changeAbsolute >= 0 ? "+" : ""}${_indexFmt.format(tick.changeAbsolute)}";
+                    "${changeAbs >= 0 ? "+" : ""}${_indexFmt.format(changeAbs)}";
                 final pctStr =
                     "${pct >= 0 ? "+" : ""}${pct.toStringAsFixed(2)}%";
 

@@ -139,3 +139,10 @@ double netPortfolioValueFromWallet(Map<String, dynamic>? wallet) {
   final net = gross - fees;
   return net > 0 ? net : 0;
 }
+
+/// Canonical allocation base for all investor-facing "Allocated PKR"
+/// displays. Wraps netPortfolioValueFromWallet for consistency with
+/// dashboard, sleeve balances, and backend fee engine.
+double investorAllocationBaseFromWallet(Map<String, dynamic>? wallet) {
+  return netPortfolioValueFromWallet(wallet);
+}

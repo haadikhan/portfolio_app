@@ -485,6 +485,14 @@ class _AppDrawer extends ConsumerWidget {
                       context.push("/notifications");
                     },
                   ),
+                  _DrawerItem(
+                    icon: Icons.system_update_alt_rounded,
+                    label: context.tr("drawer_app_updates"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push("/app-updates");
+                    },
+                  ),
                   if (showUpdateItem)
                     _DrawerItem(
                       icon: Icons.system_update_alt_rounded,

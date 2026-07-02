@@ -83,7 +83,25 @@ service cloud.firestore {
           "kycStatus",
           "phone",
           "role",
-          "fcmTokens"
+          "fcmTokens",
+          "portfolioNumber",
+          "legacyPortfolioNumber",
+          "feeVersion",
+          "feeVersionUpdatedAt",
+          "feeVersionUpdatedBy",
+          "performanceHwm",
+          "agreedToTerms",
+          "agreementDate",
+          "mpinHash",
+          "mpinSalt",
+          "mpinEnabled",
+          "mpinFailedAttempts",
+          "mpinLockedUntil",
+          "mpinUpdatedAt",
+          "deleted",
+          "deletedAt",
+          "deletedBy",
+          "deleteReason"
         ])
         && (
           (!("email" in resource.data) && request.resource.data.email is string)

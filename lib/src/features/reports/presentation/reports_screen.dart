@@ -50,12 +50,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       case _PeriodPreset.thisMonth:
         return DateTimeRange(
           start: DateTime(now.year, now.month, 1),
-          end: DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999),
+          end: DateTime(now.year, now.month, now.day, 23, 59, 59, 999),
         );
       case _PeriodPreset.thisYear:
         return DateTimeRange(
           start: DateTime(now.year, 1, 1),
-          end: DateTime(now.year, 12, 31, 23, 59, 59, 999),
+          end: DateTime(now.year, now.month, now.day, 23, 59, 59, 999),
         );
       case _PeriodPreset.custom:
         final s = _customStart ?? DateTime(now.year, now.month, 1);
