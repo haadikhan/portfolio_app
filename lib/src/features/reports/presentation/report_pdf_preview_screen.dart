@@ -34,6 +34,10 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   String? _loadError;
   final PageController _pageController = PageController();
   final Map<int, TransformationController> _zoomControllers = {};
+  double _currentScale = 1.0;
+  static const double _zoomStep = 0.5;
+  static const double _minScale = 1.0;
+  static const double _maxScale = 5.0;
 
   String get _baseName {
     final n = widget.fileName.trim();
@@ -75,14 +79,43 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   }
 
   TransformationController _controllerFor(int index) {
-    return _zoomControllers.putIfAbsent(
-      index,
-      () => TransformationController(),
-    );
+    return _zoomControllers.putIfAbsent(index, () {
+      final controller = TransformationController();
+      controller.addListener(() {
+        final scale = controller.value.getMaxScaleOnAxis();
+        if (mounted && (scale - _currentScale).abs() > 0.01) {
+          setState(() => _currentScale = scale);
+        }
+      });
+      return controller;
+    });
+  }
+
+  void _zoomIn() {
+    final controller = _zoomControllers[_currentPage];
+    if (controller == null) return;
+    final current = controller.value.getMaxScaleOnAxis();
+    final next = (current + _zoomStep).clamp(_minScale, _maxScale);
+    final matrix = Matrix4.identity()..scaleByDouble(next, next, next, 1.0);
+    controller.value = matrix;
+  }
+
+  void _zoomOut() {
+    final controller = _zoomControllers[_currentPage];
+    if (controller == null) return;
+    final current = controller.value.getMaxScaleOnAxis();
+    final next = (current - _zoomStep).clamp(_minScale, _maxScale);
+    if (next <= _minScale) {
+      controller.value = Matrix4.identity();
+    } else {
+      final matrix = Matrix4.identity()..scaleByDouble(next, next, next, 1.0);
+      controller.value = matrix;
+    }
   }
 
   void _resetZoom(int index) {
     _zoomControllers[index]?.value = Matrix4.identity();
+    if (mounted) setState(() => _currentScale = 1.0);
   }
 
   @override
@@ -165,11 +198,6 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
         title: Text(widget.title ?? context.tr("reports_view_title")),
         actions: [
           IconButton(
-            tooltip: "Reset zoom",
-            icon: const Icon(Icons.zoom_out_map),
-            onPressed: () => _resetZoom(_currentPage),
-          ),
-          IconButton(
             tooltip: context.tr("reports_download_action"),
             onPressed: _isDownloading ? null : _download,
             icon: _isDownloading
@@ -207,8 +235,16 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                   controller: _pageController,
                   itemCount: _pages!.length,
                   onPageChanged: (index) {
-                    setState(() => _currentPage = index);
+                    setState(() {
+                      _currentPage = index;
+                      _currentScale = _zoomControllers[index]
+                              ?.value.getMaxScaleOnAxis() ??
+                          1.0;
+                    });
                   },
+                  physics: _currentScale > 1.05
+                      ? const NeverScrollableScrollPhysics()
+                      : const PageScrollPhysics(),
                   itemBuilder: (context, index) {
                     final raster = _pages![index];
                     return FutureBuilder<Uint8List>(
@@ -221,12 +257,24 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                         }
                         return InteractiveViewer(
                           transformationController: _controllerFor(index),
-                          minScale: 1.0,
-                          maxScale: 5.0,
+                          minScale: _minScale,
+                          maxScale: _maxScale,
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          onInteractionEnd: (details) {
+                            final scale = _controllerFor(index)
+                                .value
+                                .getMaxScaleOnAxis();
+                            if (scale < 1.05) {
+                              _resetZoom(index);
+                            }
+                          },
                           child: Center(
                             child: Image.memory(
                               snapshot.data!,
                               fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                              gaplessPlayback: true,
                             ),
                           ),
                         );
@@ -236,7 +284,7 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                 ),
                 if (_pages!.length > 1)
                   Positioned(
-                    top: 12,
+                    top: 16,
                     left: 0,
                     right: 0,
                     child: Center(
@@ -291,6 +339,78 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                       ),
                     ),
                   ),
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.remove,
+                              color: Colors.white,
+                            ),
+                            tooltip: "Zoom out",
+                            onPressed: _currentScale > _minScale
+                                ? _zoomOut
+                                : null,
+                          ),
+                          Container(
+                            width: 56,
+                            alignment: Alignment.center,
+                            child: Text(
+                              "${(_currentScale * 100).round()}%",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                            ),
+                            tooltip: "Zoom in",
+                            onPressed: _currentScale < _maxScale
+                                ? _zoomIn
+                                : null,
+                          ),
+                          Container(
+                            width: 1,
+                            height: 24,
+                            color: Colors.white24,
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.zoom_out_map,
+                              color: Colors.white,
+                            ),
+                            tooltip: "Reset zoom",
+                            onPressed: _currentScale > _minScale
+                                ? () => _resetZoom(_currentPage)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
     );
