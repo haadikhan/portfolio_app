@@ -35,8 +35,9 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   final PageController _pageController = PageController();
   final Map<int, TransformationController> _zoomControllers = {};
   double _currentScale = 1.0;
+  double _fitWidthScale = 1.0;
   static const double _zoomStep = 0.5;
-  static const double _minScale = 1.0;
+  static const double _minScale = 0.5;
   static const double _maxScale = 5.0;
 
   String get _baseName {
@@ -58,7 +59,7 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
       final pages = <PdfRaster>[];
       await for (final page in Printing.raster(
         widget.bytes,
-        dpi: 150,
+        dpi: 220,
       )) {
         pages.add(page);
       }
@@ -76,6 +77,23 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
         });
       }
     }
+  }
+
+  Matrix4 _fitWidthMatrix(BuildContext context, int pageIndex) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final page = _pages![pageIndex];
+    final imageWidth = page.width.toDouble();
+
+    final scaleX = screenWidth / imageWidth;
+
+    final scale = scaleX;
+
+    if (scale <= 1.0) {
+      return Matrix4.identity();
+    }
+
+    return Matrix4.identity()..scaleByDouble(scale, scale, scale, 1.0);
   }
 
   TransformationController _controllerFor(int index) {
@@ -114,8 +132,15 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   }
 
   void _resetZoom(int index) {
-    _zoomControllers[index]?.value = Matrix4.identity();
-    if (mounted) setState(() => _currentScale = 1.0);
+    if (!mounted || _pages == null) return;
+    final fitMatrix = _fitWidthMatrix(context, index);
+    _zoomControllers[index]?.value = fitMatrix;
+    if (mounted) {
+      setState(() {
+        _currentScale = fitMatrix.getMaxScaleOnAxis();
+        _fitWidthScale = _currentScale;
+      });
+    }
   }
 
   @override
@@ -240,9 +265,11 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                       _currentScale = _zoomControllers[index]
                               ?.value.getMaxScaleOnAxis() ??
                           1.0;
+                      _fitWidthScale =
+                          _fitWidthMatrix(context, index).getMaxScaleOnAxis();
                     });
                   },
-                  physics: _currentScale > 1.05
+                  physics: _currentScale > (_fitWidthScale + 0.05)
                       ? const NeverScrollableScrollPhysics()
                       : const PageScrollPhysics(),
                   itemBuilder: (context, index) {
@@ -255,6 +282,25 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                             child: CircularProgressIndicator(),
                           );
                         }
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final controller = _zoomControllers[index];
+                          if (controller != null &&
+                              controller.value == Matrix4.identity() &&
+                              _pages != null) {
+                            final fitMatrix =
+                                _fitWidthMatrix(context, index);
+                            if (fitMatrix != Matrix4.identity()) {
+                              controller.value = fitMatrix;
+                              final fitScale = fitMatrix.getMaxScaleOnAxis();
+                              if (mounted && index == _currentPage) {
+                                setState(() {
+                                  _currentScale = fitScale;
+                                  _fitWidthScale = fitScale;
+                                });
+                              }
+                            }
+                          }
+                        });
                         return InteractiveViewer(
                           transformationController: _controllerFor(index),
                           minScale: _minScale,
@@ -265,7 +311,7 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                             final scale = _controllerFor(index)
                                 .value
                                 .getMaxScaleOnAxis();
-                            if (scale < 1.05) {
+                            if (scale < 0.55) {
                               _resetZoom(index);
                             }
                           },
