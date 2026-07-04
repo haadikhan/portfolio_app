@@ -4,12 +4,12 @@ import "package:cloud_functions/cloud_functions.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:file_saver/file_saver.dart";
 import "package:firebase_auth/firebase_auth.dart";
-import "package:flutter/foundation.dart"
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
+import "package:open_filex/open_filex.dart";
 import "package:printing/printing.dart";
 
 import "../../core/i18n/app_translations.dart";
@@ -1469,40 +1469,56 @@ class _AgreementPdfActionsState extends State<_AgreementPdfActions> {
       final fileName = _fileName;
       final base = fileName.replaceAll(RegExp(r"\.pdf$", caseSensitive: false), "");
 
-      Future<bool> trySharePdf() async {
+      if (!kIsWeb) {
         try {
-          await Printing.sharePdf(bytes: bytes, filename: fileName);
-          return true;
-        } catch (e, st) {
-          debugPrint("[admin_agreement] sharePdf failed: $e\n$st");
-          return false;
-        }
-      }
-
-      Future<bool> tryFileSaver() async {
-        try {
-          await FileSaver.instance.saveFile(
+          final savedPath = await FileSaver.instance.saveFile(
             name: base,
             bytes: bytes,
             fileExtension: "pdf",
             mimeType: MimeType.pdf,
           );
-          return true;
+
+          if (savedPath.isNotEmpty) {
+            final result = await OpenFilex.open(savedPath);
+
+            if (result.type == ResultType.done) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Report saved and opened"),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+              return;
+            }
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Saved to: $savedPath\n"
+                    "Open with a PDF viewer.",
+                  ),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
         } catch (e, st) {
-          debugPrint("[admin_agreement] FileSaver.saveFile failed: $e\n$st");
-          return false;
+          debugPrint("[admin_agreement] saveFile+open failed: $e\n$st");
         }
       }
 
-      final preferShareFirst = !kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.android ||
-              defaultTargetPlatform == TargetPlatform.iOS);
-      if (preferShareFirst) {
-        if (await trySharePdf()) return;
-        if (await tryFileSaver()) return;
-      } else {
-        if (await tryFileSaver()) return;
-        if (await trySharePdf()) return;
+      try {
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: fileName,
+        );
+        return;
+      } catch (e, st) {
+        debugPrint("[admin_agreement] sharePdf fallback failed: $e\n$st");
       }
 
       if (mounted) {
