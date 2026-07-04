@@ -10,6 +10,7 @@ import "package:portfolio_app/src/features/investment/providers/five_market_prov
 import "package:portfolio_app/src/features/investment/providers/market_sleeve_balance_provider.dart";
 import "package:portfolio_app/src/features/market/data/models/kmi30_index_tick.dart";
 import "package:portfolio_app/src/features/market/providers/kmi30_index_provider.dart";
+import "package:portfolio_app/src/providers/transaction_history_providers.dart";
 import "package:portfolio_app/src/providers/wallet_providers.dart";
 
 /// Counts actual calendar trading days (Mon-Fri minus PK holidays) that have
@@ -369,6 +370,7 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
   final history = historyAsync.valueOrNull ?? [];
   final holidays = holidaysAsync.valueOrNull ?? const <PkHoliday>[];
   final liveToday = ref.watch(fiveMarketLiveProfitProvider).valueOrNull;
+  final txnsAsync = ref.watch(userTransactionItemsProvider);
 
   final nowPkt = DateTime.now().toUtc().add(const Duration(hours: 5));
   final currentMonth = nowPkt.month;
@@ -413,10 +415,28 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
 
   if (_useWalletFallback(periodDocs: monthDocs)) {
     // No credited ledger docs for this month yet.
-    // Show PKR 0 — user has earned nothing this
-    // month so far. Do NOT use all-time wallet
-    // totalProfit as it includes prior months and
-    // is misleading as a "This Month" figure.
+    // Fall back to summing approved profit_entry transactions for the current
+    // PKT month from the transaction history — same source as the reports
+    // screen. This ensures the monthly tab shows the correct total even when
+    // the five_market_daily sub-collection docs are missing or not yet flagged
+    // creditedToWallet.
+    final txns = txnsAsync.valueOrNull ?? [];
+    double txnMonthTotal = 0.0;
+    for (final t in txns) {
+      if (t.status != "approved" && t.status != "completed") continue;
+      final type = t.type.toLowerCase();
+      if (type != "profit" && type != "profit_entry") continue;
+      // Convert to PKT to compare month/year correctly.
+      final tPkt = t.createdAt.toUtc().add(const Duration(hours: 5));
+      if (tPkt.year != currentYear || tPkt.month != currentMonth) continue;
+      // Exclude today — consistent with how monthDocs excludes todayStr.
+      if (tPkt.year == nowPkt.year &&
+          tPkt.month == nowPkt.month &&
+          tPkt.day == nowPkt.day) {
+        continue;
+      }
+      txnMonthTotal += t.amount;
+    }
     return FiveMarketPeriodSummary(
       label: "This Month",
       stockProfitPkr: 0,
@@ -427,7 +447,7 @@ final fiveMarketMonthlyProfitProvider = Provider<FiveMarketPeriodSummary>((
       calendarTradingDays: calendarDays,
       creditedLedgerDays: creditedDays,
       isFromLedger: false,
-      walletFallbackPkr: 0,
+      walletFallbackPkr: _r(txnMonthTotal),
     );
   }
 
