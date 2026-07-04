@@ -147,6 +147,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
 
     final txs = ref.read(userTransactionItemsProvider).valueOrNull ?? [];
+
+    final periodStartDate = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
+
+    double openingBalance = 0.0;
+    for (final t in txs) {
+      if (t.status != "approved" && t.status != "completed") continue;
+      if (!t.createdAt.isBefore(periodStartDate)) continue;
+
+      final type = t.type.toLowerCase();
+      if (type == "deposit") {
+        openingBalance += t.amount.abs();
+      } else if (type == "profit" || type == "profit_entry") {
+        openingBalance += t.amount;
+      } else if (type == "adjustment" && t.amount >= 0) {
+        openingBalance += t.amount;
+      } else if (type == "withdrawal") {
+        openingBalance -= t.amount.abs();
+      } else if (type == "adjustment" && t.amount < 0) {
+        openingBalance -= t.amount.abs();
+      }
+    }
+
     final filtered = filterTxnsInRange(txs, range.start, range.end);
 
     // Management fees are only shown in the yearly report.
@@ -184,6 +210,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         transactions: displayTxns,
         labels: _labels(context),
         isYearlyReport: isYearlyReport,
+        openingBalance: openingBalance,
       );
     } catch (e, st) {
       _showPdfDebugDialog(e, st, source: "buildInvestorReportPdf");

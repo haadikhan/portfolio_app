@@ -75,6 +75,7 @@ void main() {
       transactions: txns,
       labels: labels,
       isYearlyReport: false,
+      openingBalance: 0.0,
     );
 
     expect(bytes.length, greaterThan(1000));

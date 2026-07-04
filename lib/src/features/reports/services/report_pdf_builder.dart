@@ -532,6 +532,18 @@ pw.Widget _buildTransactionsLedgerTable({
   };
 
   final data = <List<String>>[];
+
+  data.add([
+    "",
+    "",
+    "Opening Portfolio Balance Brought Forward",
+    "",
+    openingBalance < 0 ? _pdfAmountFmt.format(openingBalance.abs()) : "",
+    openingBalance >= 0 ? _pdfAmountFmt.format(openingBalance) : "",
+    _pdfAmountFmt.format(openingBalance),
+    "",
+  ]);
+
   for (var i = 0; i < transactions.length; i++) {
     final t = transactions[i];
     data.add([
@@ -576,8 +588,11 @@ pw.Widget _buildTransactionsLedgerTable({
     border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
     oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
     textStyleBuilder: (index, cell, rowNum) {
+      if (rowNum == 1) {
+        return pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold);
+      }
       if (index != 2) return null;
-      final txnIndex = rowNum - 1;
+      final txnIndex = rowNum - 2;
       if (txnIndex < 0 || txnIndex >= transactions.length) return null;
       final ty = transactions[txnIndex].type;
       if (isRedemptionType(ty) || isFeeType(ty)) {
@@ -598,6 +613,7 @@ Future<Uint8List> buildInvestorReportPdf({
   required List<TxnItem> transactions,
   required ReportPdfLabels labels,
   required bool isYearlyReport,
+  required double openingBalance,
 }) async {
   pw.MemoryImage? logoImage;
   try {
@@ -761,7 +777,7 @@ Future<Uint8List> buildInvestorReportPdf({
             transactions: transactions,
             dateTimeFmt: dateTimeFmt,
             labels: labels,
-            openingBalance: 0.0,
+            openingBalance: openingBalance,
           ),
         pw.SizedBox(height: 24),
         pw.Text(
@@ -806,7 +822,10 @@ Future<Uint8List> buildInvestorReportPdf({
               "Amount (PKR)",
             ],
             data: [
-              ["Opening Portfolio Balance", _pdfAmountFmt.format(0.0)],
+              [
+                "Opening Portfolio Balance Brought Forward",
+                _pdfAmountFmt.format(openingBalance),
+              ],
               [
                 "Total Capital Deposits Received",
                 _pdfAmountFmt.format(totalDep),
@@ -836,7 +855,8 @@ Future<Uint8List> buildInvestorReportPdf({
               [
                 "Closing Portfolio Value",
                 _pdfAmountFmt.format(
-                  totalDep -
+                  openingBalance +
+                      totalDep -
                       totalWdr.abs() +
                       totalPr -
                       totalMgmtFee -
