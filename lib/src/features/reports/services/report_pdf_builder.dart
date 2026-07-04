@@ -18,6 +18,7 @@ final _brandGreen = PdfColor.fromHex("#0F7A2C");
 const _white = PdfColors.white;
 const _black = PdfColors.black;
 final _footerLabelGrey = PdfColor.fromInt(0xFF555555);
+final _pdfAmountFmt = NumberFormat("#,##0.00", "en_US");
 
 /// Accent bar is drawn in [buildBackground], which is anchored at [margin.left].
 /// Use a negative left offset to place the bar on the physical page edge.
@@ -448,7 +449,7 @@ pw.Widget _buildTransactionsLedgerTable({
             dateTimeFmt.format(t.createdAt),
             _pdfTypeCell(t),
             displayTransactionStatus(t.status),
-            t.amount.toStringAsFixed(2),
+            _pdfAmountFmt.format(t.amount),
             _pdfNoteCell(t),
           ],
         )
@@ -590,17 +591,17 @@ Future<Uint8List> buildInvestorReportPdf({
           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
         ),
         pw.Bullet(
-          text: "${labels.totalDeposits}: ${totalDep.toStringAsFixed(2)}",
+          text: "${labels.totalDeposits}: ${_pdfAmountFmt.format(totalDep)}",
         ),
         pw.Bullet(
-          text: "${labels.totalWithdrawals}: ${totalWdr.toStringAsFixed(2)}",
+          text: "${labels.totalWithdrawals}: ${_pdfAmountFmt.format(totalWdr)}",
         ),
-        pw.Bullet(text: "${labels.totalProfit}: ${totalPr.toStringAsFixed(2)}"),
+        pw.Bullet(text: "${labels.totalProfit}: ${_pdfAmountFmt.format(totalPr)}"),
         if (isYearlyReport)
           pw.Bullet(
             text:
                 "${labels.totalManagementFees}: "
-                "${totalMgmtFee.toStringAsFixed(2)}",
+                "${_pdfAmountFmt.format(totalMgmtFee)}",
           ),
         if (isYearlyReport)
           pw.Bullet(
