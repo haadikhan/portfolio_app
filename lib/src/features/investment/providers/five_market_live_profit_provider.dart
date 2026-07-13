@@ -252,7 +252,9 @@ FiveMarketLiveProfitState _buildState({
     );
   }
 
-  final kmi30Pct = isStockOpen ? (kmi30Tick?.changePercent ?? 0.0) : 0.0;
+  final kmi30Pct = isStockOpen
+      ? (kmi30Tick?.changePercent ?? 0.0)
+      : (dailyResult?.stock.changePercent ?? 0.0);
   final stockProfit = _round2(stockAlloc * kmi30Pct / 100);
 
   final techDaily = techAlloc * rates.techBenchmarkAnnualPercent / 100 / 365;
