@@ -8,7 +8,8 @@ import "package:printing/printing.dart";
 
 import "../../../core/i18n/app_translations.dart";
 
-/// Full-screen PDF preview with explicit **Download** and **Print** in the app bar.
+/// Full-screen PDF preview — one page per screen, vertical continuous scroll,
+/// zoom fills the viewport, +/- buttons scale around the viewport center.
 class ReportPdfPreviewScreen extends StatefulWidget {
   const ReportPdfPreviewScreen({
     super.key,
@@ -32,13 +33,18 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   int _currentPage = 0;
   bool _isLoadingPages = true;
   String? _loadError;
-  final PageController _pageController = PageController();
+
+  final ScrollController _scrollController = ScrollController();
   final Map<int, TransformationController> _zoomControllers = {};
+
   double _currentScale = 1.0;
-  double _fitWidthScale = 1.0;
-  static const double _zoomStep = 0.5;
-  static const double _minScale = 0.5;
+
+  /// Actual body size populated by [LayoutBuilder]; used for zoom-around-center.
+  Size _viewportSize = Size.zero;
+
+  static const double _minScale = 1.0;
   static const double _maxScale = 5.0;
+  static const double _zoomStep = 0.5;
 
   String get _baseName {
     final n = widget.fileName.trim();
@@ -52,15 +58,28 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   void initState() {
     super.initState();
     _loadPages();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final pages = _pages;
+    if (pages == null || !mounted || _viewportSize.height <= 0) return;
+    final page = (_scrollController.offset / _viewportSize.height)
+        .round()
+        .clamp(0, pages.length - 1);
+    if (_currentPage != page) {
+      setState(() {
+        _currentPage = page;
+        _currentScale =
+            _zoomControllers[page]?.value.getMaxScaleOnAxis() ?? 1.0;
+      });
+    }
   }
 
   Future<void> _loadPages() async {
     try {
       final pages = <PdfRaster>[];
-      await for (final page in Printing.raster(
-        widget.bytes,
-        dpi: 220,
-      )) {
+      await for (final page in Printing.raster(widget.bytes, dpi: 220)) {
         pages.add(page);
       }
       if (mounted) {
@@ -79,29 +98,14 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
     }
   }
 
-  Matrix4 _fitWidthMatrix(BuildContext context, int pageIndex) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    final page = _pages![pageIndex];
-    final imageWidth = page.width.toDouble();
-
-    final scaleX = screenWidth / imageWidth;
-
-    final scale = scaleX;
-
-    if (scale <= 1.0) {
-      return Matrix4.identity();
-    }
-
-    return Matrix4.identity()..scaleByDouble(scale, scale, scale, 1.0);
-  }
-
   TransformationController _controllerFor(int index) {
     return _zoomControllers.putIfAbsent(index, () {
       final controller = TransformationController();
       controller.addListener(() {
         final scale = controller.value.getMaxScaleOnAxis();
-        if (mounted && (scale - _currentScale).abs() > 0.01) {
+        if (mounted &&
+            index == _currentPage &&
+            (scale - _currentScale).abs() > 0.01) {
           setState(() => _currentScale = scale);
         }
       });
@@ -109,43 +113,57 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
     });
   }
 
+  /// Applies [newScale] to [controller] while keeping the viewport center
+  /// fixed (i.e. the image zooms inward/outward from the center of the screen).
+  void _scaleAroundCenter(TransformationController controller, double newScale) {
+    final w = _viewportSize.width;
+    final h = _viewportSize.height;
+    if (w <= 0 || h <= 0) return;
+
+    final currentScale = controller.value.getMaxScaleOnAxis();
+    final currentTx = controller.value.entry(0, 3);
+    final currentTy = controller.value.entry(1, 3);
+
+    // Convert viewport center to child-space focal point.
+    final focalX = (w / 2 - currentTx) / currentScale;
+    final focalY = (h / 2 - currentTy) / currentScale;
+
+    // New translation so focal point stays at viewport center.
+    final newTx = w / 2 - focalX * newScale;
+    final newTy = h / 2 - focalY * newScale;
+
+    controller.value = Matrix4.identity()
+      ..translate(newTx, newTy)
+      ..scale(newScale, newScale);
+  }
+
   void _zoomIn() {
-    final controller = _zoomControllers[_currentPage];
-    if (controller == null) return;
+    final controller = _controllerFor(_currentPage);
     final current = controller.value.getMaxScaleOnAxis();
     final next = (current + _zoomStep).clamp(_minScale, _maxScale);
-    final matrix = Matrix4.identity()..scaleByDouble(next, next, next, 1.0);
-    controller.value = matrix;
+    _scaleAroundCenter(controller, next);
   }
 
   void _zoomOut() {
-    final controller = _zoomControllers[_currentPage];
-    if (controller == null) return;
+    final controller = _controllerFor(_currentPage);
     final current = controller.value.getMaxScaleOnAxis();
     final next = (current - _zoomStep).clamp(_minScale, _maxScale);
     if (next <= _minScale) {
       controller.value = Matrix4.identity();
+      if (mounted) setState(() => _currentScale = 1.0);
     } else {
-      final matrix = Matrix4.identity()..scaleByDouble(next, next, next, 1.0);
-      controller.value = matrix;
+      _scaleAroundCenter(controller, next);
     }
   }
 
-  void _resetZoom(int index) {
-    if (!mounted || _pages == null) return;
-    final fitMatrix = _fitWidthMatrix(context, index);
-    _zoomControllers[index]?.value = fitMatrix;
-    if (mounted) {
-      setState(() {
-        _currentScale = fitMatrix.getMaxScaleOnAxis();
-        _fitWidthScale = _currentScale;
-      });
-    }
+  void _resetZoom() {
+    _zoomControllers[_currentPage]?.value = Matrix4.identity();
+    if (mounted) setState(() => _currentScale = 1.0);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.dispose();
     for (final c in _zoomControllers.values) {
       c.dispose();
     }
@@ -198,22 +216,15 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
             return;
           }
         } catch (e, st) {
-          debugPrint(
-            "[report_preview] saveFile+open failed: $e\n$st",
-          );
+          debugPrint("[report_preview] saveFile+open failed: $e\n$st");
         }
       }
 
       try {
-        await Printing.sharePdf(
-          bytes: bytes,
-          filename: fileName,
-        );
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
         return;
       } catch (e, st) {
-        debugPrint(
-          "[report_preview] sharePdf fallback failed: $e\n$st",
-        );
+        debugPrint("[report_preview] sharePdf fallback failed: $e\n$st");
       }
 
       if (mounted) {
@@ -273,169 +284,89 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
             )
           : (_pages == null || _pages!.isEmpty)
           ? const Center(child: Text("No pages to display"))
-          : Stack(
-              children: [
-                PageView.builder(
-                  controller: _pageController,
-                  itemCount: _pages!.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                      _currentScale = _zoomControllers[index]
-                              ?.value.getMaxScaleOnAxis() ??
-                          1.0;
-                      _fitWidthScale =
-                          _fitWidthMatrix(context, index).getMaxScaleOnAxis();
-                    });
-                  },
-                  physics: _currentScale > (_fitWidthScale + 0.05)
-                      ? const NeverScrollableScrollPhysics()
-                      : const PageScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final raster = _pages![index];
-                    return FutureBuilder<Uint8List>(
-                      future: raster.toPng(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          final controller = _zoomControllers[index];
-                          if (controller != null &&
-                              controller.value == Matrix4.identity() &&
-                              _pages != null) {
-                            final fitMatrix =
-                                _fitWidthMatrix(context, index);
-                            if (fitMatrix != Matrix4.identity()) {
-                              controller.value = fitMatrix;
-                              final fitScale = fitMatrix.getMaxScaleOnAxis();
-                              if (mounted && index == _currentPage) {
-                                setState(() {
-                                  _currentScale = fitScale;
-                                  _fitWidthScale = fitScale;
-                                });
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                // Capture the real body size every build.
+                _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+                final vw = _viewportSize.width;
+                final vh = _viewportSize.height;
+
+                return Stack(
+                  children: [
+                    ListView.builder(
+                      controller: _scrollController,
+                      // Lock outer scroll when zoomed in so the user can pan.
+                      physics: _currentScale > 1.05
+                          ? const NeverScrollableScrollPhysics()
+                          : const ClampingScrollPhysics(),
+                      itemCount: _pages!.length,
+                      itemBuilder: (context, index) {
+                        final raster = _pages![index];
+                        // Each page occupies exactly one viewport-height slot.
+                        return SizedBox(
+                          width: vw,
+                          height: vh,
+                          child: FutureBuilder<Uint8List>(
+                            future: raster.toPng(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
                               }
-                            }
-                          }
-                        });
-                        return InteractiveViewer(
-                          transformationController: _controllerFor(index),
-                          minScale: _minScale,
-                          maxScale: _maxScale,
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          onInteractionEnd: (details) {
-                            final scale = _controllerFor(index)
-                                .value
-                                .getMaxScaleOnAxis();
-                            if (scale < 0.55) {
-                              _resetZoom(index);
-                            }
-                          },
-                          child: Center(
-                            child: Image.memory(
-                              snapshot.data!,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.high,
-                              gaplessPlayback: true,
-                            ),
+                              return InteractiveViewer(
+                                transformationController:
+                                    _controllerFor(index),
+                                minScale: _minScale,
+                                maxScale: _maxScale,
+                                panEnabled: true,
+                                scaleEnabled: true,
+                                onInteractionEnd: (_) {
+                                  final scale = _controllerFor(index)
+                                      .value
+                                      .getMaxScaleOnAxis();
+                                  if (scale < _minScale + 0.05) {
+                                    _zoomControllers[index]?.value =
+                                        Matrix4.identity();
+                                  }
+                                },
+                                // Child matches the viewport so BoxFit.contain
+                                // fills the maximum available screen space.
+                                child: SizedBox(
+                                  width: vw,
+                                  height: vh,
+                                  child: Image.memory(
+                                    snapshot.data!,
+                                    fit: BoxFit.contain,
+                                    filterQuality: FilterQuality.high,
+                                    gaplessPlayback: true,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
-                    );
-                  },
-                ),
-                if (_pages!.length > 1)
-                  Positioned(
-                    top: 16,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "Page ${_currentPage + 1} of ${_pages!.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
                     ),
-                  ),
-                if (_pages!.length > 1 && _currentPage > 0)
-                  Positioned(
-                    left: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _NavButton(
-                        icon: Icons.chevron_left,
-                        onTap: () => _pageController.previousPage(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                        ),
-                      ),
-                    ),
-                  ),
-                if (_pages!.length > 1 &&
-                    _currentPage < _pages!.length - 1)
-                  Positioned(
-                    right: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _NavButton(
-                        icon: Icons.chevron_right,
-                        onTap: () => _pageController.nextPage(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                        ),
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  bottom: 16,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.remove,
-                              color: Colors.white,
+
+                    // ── Page counter ────────────────────────────────────
+                    if (_pages!.length > 1)
+                      Positioned(
+                        top: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
                             ),
-                            tooltip: "Zoom out",
-                            onPressed: _currentScale > _minScale
-                                ? _zoomOut
-                                : null,
-                          ),
-                          Container(
-                            width: 56,
-                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             child: Text(
-                              "${(_currentScale * 100).round()}%",
+                              "Page ${_currentPage + 1} of ${_pages!.length}",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -443,64 +374,86 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                               ),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.add,
-                              color: Colors.white,
-                            ),
-                            tooltip: "Zoom in",
-                            onPressed: _currentScale < _maxScale
-                                ? _zoomIn
-                                : null,
+                        ),
+                      ),
+
+                    // ── Zoom bar ─────────────────────────────────────────
+                    Positioned(
+                      bottom: 16,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(32),
                           ),
-                          Container(
-                            width: 1,
-                            height: 24,
-                            color: Colors.white24,
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                            ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.zoom_out_map,
-                              color: Colors.white,
-                            ),
-                            tooltip: "Reset zoom",
-                            onPressed: _currentScale > _minScale
-                                ? () => _resetZoom(_currentPage)
-                                : null,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove,
+                                  color: Colors.white,
+                                ),
+                                tooltip: "Zoom out",
+                                onPressed: _currentScale > _minScale
+                                    ? _zoomOut
+                                    : null,
+                              ),
+                              Container(
+                                width: 56,
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "${(_currentScale * 100).round()}%",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                ),
+                                tooltip: "Zoom in",
+                                onPressed: _currentScale < _maxScale
+                                    ? _zoomIn
+                                    : null,
+                              ),
+                              Container(
+                                width: 1,
+                                height: 24,
+                                color: Colors.white24,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.zoom_out_map,
+                                  color: Colors.white,
+                                ),
+                                tooltip: "Reset zoom",
+                                onPressed: _currentScale > _minScale
+                                    ? _resetZoom
+                                    : null,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
-    );
-  }
-}
-
-class _NavButton extends StatelessWidget {
-  const _NavButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black45,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(icon, color: Colors.white, size: 28),
-        ),
-      ),
     );
   }
 }
