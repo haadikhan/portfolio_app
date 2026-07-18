@@ -12,7 +12,7 @@ All build variants (debug, release, profile) use the **debug keystore** at this 
 
 ## Steps
 
-1. Open https://console.firebase.google.com/project/portfolio-e97b1/settings/general/android:com.example.portfolio_app
+1. Open https://console.firebase.google.com/project/portfolio-e97b1/settings/general/android:com.isc.wai
 2. Scroll down to **SHA certificate fingerprints**.
 3. Click **Add fingerprint**.
 4. Paste the **SHA-1** value above and save.
@@ -26,7 +26,7 @@ All build variants (debug, release, profile) use the **debug keystore** at this 
 
 Firebase Phone Auth uses Google Play Integrity to verify that the SMS code request
 comes from a legitimate, unmodified build of your app. Play Integrity checks:
-  - Package name: `com.example.portfolio_app`  ✓ (already correct)
+  - Package name: `com.isc.wai`  ✓ (registered in Firebase)
   - Signing certificate SHA: NOT YET REGISTERED  ← causes "Invalid app info in play_integrity_token"
 
 Once the SHA is registered, Firebase knows the signing identity is authorised and

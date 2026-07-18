@@ -434,20 +434,20 @@ class SecuritySettingsSection extends ConsumerWidget {
                               await completeEnrollment(credential);
                             case OtpFailed():
                               kickSendCooldown();
-                              if (kDebugMode) {
-                                debugPrint(
-                                  "[OTP] send failed code=${res.code} "
-                                  "message=${res.message} "
-                                  "isAttestation=${res.isAttestationError}",
-                                );
+                              debugPrint(
+                                "[OTP] send failed code=${res.code} "
+                                "message=${res.message} "
+                                "isAttestation=${res.isAttestationError}",
+                              );
+                              final String msg;
+                              if (res.isAttestationError) {
+                                msg =
+                                    "${context.tr("otp_app_not_authorized")}\n[${res.code}]";
+                              } else {
+                                msg = res.message.trim().isNotEmpty
+                                    ? res.message
+                                    : context.tr("otp_send_failed_try_again");
                               }
-                              final msg = res.isAttestationError
-                                  ? context.tr("otp_app_not_authorized")
-                                  : (res.message.trim().isNotEmpty
-                                      ? res.message
-                                      : context.tr(
-                                          "otp_send_failed_try_again",
-                                        ));
                               setState(() => err = msg);
                           }
                           if (ctx.mounted) setState(() => sending = false);

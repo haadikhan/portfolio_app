@@ -4,7 +4,7 @@ Goal: eliminate `app-not-authorized` / `17028 Invalid app info in play_integrity
 
 ## Prerequisites
 
-- Firebase project: `portfolio-e97b1` (sender ID `500864820062`), Android package `com.example.portfolio_app`.
+- Firebase project: `portfolio-e97b1` (sender ID `500864820062`), Android package `com.isc.wai`.
 - Access: [Firebase Console](https://console.firebase.google.com/) and [Google Cloud Console](https://console.cloud.google.com/) for the same project.
 
 ---
@@ -42,7 +42,7 @@ Firebase Phone Auth on Android can require **reCAPTCHA Enterprise** linkage. If 
 
 Play Integrity and some Auth flows validate the app by **package name + SHA**.
 
-1. Firebase Console → **Project settings** → **Your apps** → Android app `com.example.portfolio_app`.
+1. Firebase Console → **Project settings** → **Your apps** → Android app `com.isc.wai`.
 2. Under **SHA certificate fingerprints**, add:
    - **Debug keystore** SHA-1 + SHA-256 (for `flutter run`).
    - **Release / upload / Play App Signing** SHA-1 + SHA-256 for every keystore you distribute with.
@@ -62,7 +62,7 @@ Copy **Variant: debug** → `SHA1` and `SHA256` into Firebase. If you use a cust
 
 #### Step 3a — captured on this repo (DELL dev machine, `app` module)
 
-> **Register these in Firebase** → Project settings → Your apps → Android `com.example.portfolio_app` → SHA certificate fingerprints.
+> **Register these in Firebase** → Project settings → Your apps → Android `com.isc.wai` → SHA certificate fingerprints.
 
 | Fingerprint | Value |
 |-------------|--------|
@@ -120,7 +120,7 @@ flutterfire configure
 | 1 Bootstrap | Agent | ✅ | `flutter analyze` on bootstrap files — **No issues found** |
 | 2 reCAPTCHA Enterprise / Phone in console | You | ☐ | GCP + Firebase Auth Phone; see Step 2 |
 | 3 SHAs in Firebase | You | ☐ | Use table under Step 3a; confirm fingerprints appear in Firebase Console |
-| 4 google-services sync | Agent | ✅ | Repo `google-services.json` matches `portfolio-e97b1` / `com.example.portfolio_app`; re-download after console changes |
+| 4 google-services sync | Agent | ✅ | `google-services.json` and Android `firebase_options.dart` use Firebase app `1:500864820062:android:99e71d49636126fef8e5cf` |
 | 5 Device QA | You | ☐ | `flutter clean`, reinstall app, retry Send code |
 
 ### Agent-run commands (audit trail)

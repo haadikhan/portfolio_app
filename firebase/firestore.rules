@@ -135,6 +135,12 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmTokens"]);
     }
 
+    // Owner-only: write security sub-map (passwordChangedAt, verifiedPhone, verifiedPhoneAt).
+    // Scoped to the "security" key only — no other top-level field can change via this path.
+    function ownerSecurityUpdateAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["security"]);
+    }
+
     // Investor `kyc/{uid}` submit/resubmit (merge write). Approved docs stay admin-only.
     function investorKycOwnerWriteOk() {
       return request.resource.data.status == "underReview"
@@ -153,6 +159,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) && ownerFcmTokensCreateOnly();
       allow update: if isOwner(userId) && ownerUserUpdateAllowed();
       allow update: if isOwner(userId) && ownerFcmTokensUpdateAllowed();
+      allow update: if isOwner(userId) && ownerSecurityUpdateAllowed();
       // Staff (admin or CRM assigned to this user) — approve/reject KYC updates `kycStatus` on users/{uid}.
       // portfolioNumber / legacyPortfolioNumber are server-assigned only (Cloud Functions Admin SDK).
       allow update: if crmManagesInvestor(userId)

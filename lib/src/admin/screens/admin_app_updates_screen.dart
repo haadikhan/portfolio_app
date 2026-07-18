@@ -10,7 +10,7 @@ import "../../core/i18n/app_translations.dart";
 const int _kMaxApkBytes = 200 * 1024 * 1024;
 const String _kExpectedInvestorPackage = String.fromEnvironment(
   "INVESTOR_ANDROID_PACKAGE",
-  defaultValue: "com.example.portfolio_app",
+  defaultValue: "com.isc.wai",
 );
 
 class _ParsedApkMetadata {
