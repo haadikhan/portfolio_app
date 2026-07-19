@@ -61,11 +61,11 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 // initialLocation to "/" (AuthGate), which caused the infinite loading
 // spinner while the app was already on /investor.
 final _routerProvider = Provider<GoRouter>((ref) {
-  final appUpdateGate = ref.watch(stableAppUpdateGateProvider);
   final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: "/",
     redirect: (_, state) {
+      final appUpdateGate = ref.read(stableAppUpdateGateProvider);
       final blocked = appUpdateGate.valueOrNull?.isBlocked == true;
       final atForceUpdate = state.matchedLocation == "/force-update";
       if (blocked && !atForceUpdate) return "/force-update";
@@ -314,6 +314,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
         GoRoute(path: "/crm", builder: (_, __) => const CrmDashboardScreen()),
       ],
     );
+  ref.listen(stableAppUpdateGateProvider, (_, __) => router.refresh());
+  ref.onDispose(router.dispose);
   return router;
 });
 

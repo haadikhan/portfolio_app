@@ -1,4 +1,3 @@
-import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -8,6 +7,7 @@ import "../features/security/data/security_providers.dart";
 import "../providers/auth_providers.dart";
 import "../providers/biometric_providers.dart";
 import "../services/biometric_service.dart";
+import "login_screen.dart";
 
 class AuthGateScreen extends ConsumerStatefulWidget {
   const AuthGateScreen({super.key});
@@ -27,15 +27,12 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
     try {
       final user = ref.read(currentUserProvider);
       if (user == null) {
-        // Only redirect to login if auth stream has settled (not loading).
-        final authState = ref.read(authStateProvider);
-        if (authState is AsyncData<User?>) {
-          if (mounted) context.go("/login");
-        }
         return;
       }
 
-      final security = await ref.read(userSecurityProvider.future);
+      final security = await ref
+          .read(userSecurityProvider.future)
+          .timeout(const Duration(seconds: 10), onTimeout: () => null);
       final verifiedPhone = security?.verifiedPhone?.trim() ?? "";
       if (verifiedPhone.isNotEmpty) {
         // FutureProvider caches trusted=false; after markDeviceTrusted the cache
@@ -127,6 +124,16 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
           context.go("/investor");
           return;
       }
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          "[AuthGate] Routing dependency failed; returning to login. "
+          "error=$error\n$stackTrace",
+        );
+      }
+      // Never bypass biometric/device-trust checks when their dependencies
+      // fail. Return to an interactive screen instead of spinning forever.
+      if (mounted) context.go("/login");
     } finally {
       _isRouting = false;
     }
@@ -155,23 +162,19 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen> {
       data: (user) {
         if (user == null) {
           _otpInProgress = false;
+          // Do not leave signed-out users behind a routing spinner. Rendering
+          // the login screen here also survives a transient router refresh.
+          return const LoginScreen();
         }
         if (!_routingScheduled) {
           _routingScheduled = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _routingScheduled = false;
             if (!context.mounted) return;
-            if (user == null) {
-              if (kDebugMode) {
-                debugPrint("[BIOMETRIC][AuthGate] user=null -> /login");
-              }
-              context.go("/login");
-            } else {
-              if (kDebugMode) {
-                debugPrint("[BIOMETRIC][AuthGate] user=${user.uid} -> routing");
-              }
-              _routeAuthenticatedUser();
+            if (kDebugMode) {
+              debugPrint("[BIOMETRIC][AuthGate] user=${user.uid} -> routing");
             }
+            _routeAuthenticatedUser();
           });
         }
         return const Scaffold(body: Center(child: CircularProgressIndicator()));

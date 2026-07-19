@@ -62,6 +62,52 @@ class _SubmitChangeRequestScreenState
     super.dispose();
   }
 
+  FormFieldValidator<String> _validatorFor(String key) {
+    switch (key) {
+      case "phone":
+        return (v) {
+          final val = v?.trim() ?? "";
+          if (val.isEmpty) return "Required";
+          if (!RegExp(r'^03\d{9}$').hasMatch(val)) {
+            return "Enter a valid Pakistani mobile number (03XXXXXXXXX)";
+          }
+          return null;
+        };
+      case "nomineeCnic":
+        return (v) {
+          final val = v?.trim() ?? "";
+          if (val.isEmpty) return "Required";
+          if (!RegExp(r'^\d{13}$').hasMatch(val)) {
+            return "Enter exactly 13 digits";
+          }
+          return null;
+        };
+      case "accountNumber":
+        return (v) {
+          final val = v?.trim().toUpperCase() ?? "";
+          if (val.isEmpty) return null;
+          if (val.startsWith("PK") && val.length != 24) {
+            return "Pakistani IBAN must be exactly 24 characters";
+          }
+          return null;
+        };
+      case "accountTitle":
+        return (v) {
+          final val = v?.trim() ?? "";
+          if (val.isEmpty) return null;
+          if (val.length < 3) {
+            return "Account title must be at least 3 characters";
+          }
+          return null;
+        };
+      default:
+        return (v) {
+          if (v == null || v.trim().isEmpty) return " ";
+          return null;
+        };
+    }
+  }
+
   Future<void> _onSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     for (final e in widget.editableLabels) {
@@ -191,10 +237,7 @@ class _SubmitChangeRequestScreenState
                     labelText: field.label,
                     border: const OutlineInputBorder(),
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return " ";
-                    return null;
-                  },
+                  validator: _validatorFor(field.key),
                 ),
               ),
             const SizedBox(height: 24),

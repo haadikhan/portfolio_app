@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -144,11 +146,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final u = credential.user;
       if (u != null) {
         await _firestore.waitUntilUserDocAccessible(u);
-        try {
-          await _auth.sendInvestorLoginAlert();
-        } catch (_) {
-          // Login must succeed even if optional login-alert email fails.
-        }
+        // This notification is optional and must never keep the login button
+        // spinning when Functions or the network is unavailable.
+        unawaited(() async {
+          try {
+            await _auth.sendInvestorLoginAlert();
+          } catch (_) {}
+        }());
       }
     });
   }

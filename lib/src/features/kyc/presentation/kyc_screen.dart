@@ -3,6 +3,7 @@ import "dart:io";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
@@ -15,6 +16,86 @@ import "../../../core/widgets/app_scaffold.dart";
 import "../../../models/app_user.dart";
 import "../../../providers/auth_providers.dart";
 import "../../../models/user_kyc.dart";
+
+// ─── Field validators ────────────────────────────────────────────────────────
+
+String? _validateCnic(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "CNIC number is required";
+  if (!RegExp(r'^\d{13}$').hasMatch(v)) {
+    return "Enter exactly 13 digits (numbers only, no dashes)";
+  }
+  return null;
+}
+
+// ignore: unused_element
+String? _validatePhone(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "Mobile number is required";
+  if (!RegExp(r'^03\d{9}$').hasMatch(v)) {
+    return "Enter a valid Pakistani mobile number (03XX-XXXXXXX)";
+  }
+  return null;
+}
+
+String? _validateAddress(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "Address is required";
+  if (v.length < 10) {
+    return "Please enter your full residential address (minimum 10 characters)";
+  }
+  return null;
+}
+
+String? _validateNomineeName(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "Successor full name is required";
+  if (v.length < 3) return "Name must be at least 3 characters";
+  return null;
+}
+
+String? _validateNomineeCnic(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "Successor CNIC / ID is required";
+  if (!RegExp(r'^\d{13}$').hasMatch(v)) {
+    return "Enter exactly 13 digits (numbers only, no dashes)";
+  }
+  return null;
+}
+
+String? _validateNomineeRelation(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return "Relation with successor is required";
+  if (v.length < 3) {
+    return "Please specify the relation (e.g. Spouse, Son, Daughter)";
+  }
+  return null;
+}
+
+String? _validateIban(String? value) {
+  final v = value?.trim().toUpperCase() ?? "";
+  if (v.isEmpty) return null;
+  if (v.startsWith("PK")) {
+    if (v.length != 24) {
+      return "Pakistani IBAN must be exactly 24 characters "
+          "(e.g. PK36SCBL0000001123456702)";
+    }
+    return null;
+  }
+  if (!RegExp(r'^\d{10,}$').hasMatch(v)) {
+    return "Enter a valid IBAN (PK + 22 chars) or account number (minimum 10 digits)";
+  }
+  return null;
+}
+
+String? _validateAccountTitle(String? value) {
+  final v = value?.trim() ?? "";
+  if (v.isEmpty) return null;
+  if (v.length < 3) return "Account title must be at least 3 characters";
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum _PaymentProofType { salaried, foreigner, businessOwner, inheritance }
 
@@ -218,7 +299,14 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   }
 
   Future<void> _submit(String uid) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      Scrollable.ensureVisible(
+        _formKey.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
     final proofError = _validatePaymentProof();
     if (proofError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(proofError)));
@@ -379,14 +467,16 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   controller: _cnic,
                   enabled: !locked,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(13),
+                  ],
                   decoration: InputDecoration(
                     labelText: context.tr("cnic_number"),
                     hintText: context.tr("cnic_hint"),
                     prefixIcon: const Icon(Icons.credit_card_outlined),
                   ),
-                  validator: (v) => (v == null || v.trim().length < 8)
-                      ? context.tr("cnic_invalid")
-                      : null,
+                  validator: _validateCnic,
                 ),
                 const SizedBox(height: 10),
                 IntlPhoneField(
@@ -420,9 +510,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     hintText: context.tr("kyc_address_hint"),
                     prefixIcon: const Icon(Icons.home_outlined),
                   ),
-                  validator: (v) => (v == null || v.trim().length < 5)
-                      ? context.tr("kyc_address_required")
-                      : null,
+                  validator: _validateAddress,
                 ),
 
                 // ── Bank details ────────────────────────────────────────
@@ -484,6 +572,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     hintText: context.tr("kyc_iban_or_account_number_hint"),
                     prefixIcon: const Icon(Icons.numbers_outlined),
                   ),
+                  validator: _validateIban,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -493,6 +582,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     labelText: context.tr("kyc_account_title_optional"),
                     prefixIcon: const Icon(Icons.person_outline),
                   ),
+                  validator: _validateAccountTitle,
                 ),
 
                 // ── Successor person (nominee) ──────────────────────────
@@ -510,21 +600,22 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     labelText: context.tr("kyc_successor_name"),
                     prefixIcon: const Icon(Icons.person_outline),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? context.tr("kyc_successor_name_required")
-                      : null,
+                  validator: _validateNomineeName,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _nomineeCnic,
                   enabled: !locked,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(13),
+                  ],
                   decoration: InputDecoration(
                     labelText: context.tr("kyc_successor_cnic"),
                     prefixIcon: const Icon(Icons.badge_outlined),
                   ),
-                  validator: (v) => (v == null || v.trim().length < 5)
-                      ? context.tr("kyc_successor_cnic_required")
-                      : null,
+                  validator: _validateNomineeCnic,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -534,9 +625,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     labelText: context.tr("kyc_successor_relation"),
                     prefixIcon: const Icon(Icons.family_restroom_outlined),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? context.tr("kyc_successor_relation_required")
-                      : null,
+                  validator: _validateNomineeRelation,
                 ),
 
                 // ── Document images ─────────────────────────────────────

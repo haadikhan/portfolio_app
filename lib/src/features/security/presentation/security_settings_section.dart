@@ -56,16 +56,12 @@ class SecuritySettingsSection extends ConsumerWidget {
     WidgetRef ref,
     UserSecurityState? security,
   ) async {
-    final currentSecurity = ref.read(userSecurityProvider).valueOrNull ?? security;
+    final currentSecurity =
+        ref.read(userSecurityProvider).valueOrNull ?? security;
     if (currentSecurity?.hasVerifiedPhone == true) {
       await _changePhoneWithMpin(context, ref, currentSecurity);
     } else {
-      await _showPhoneVerifyFlow(
-        context,
-        ref,
-        security,
-        isPhoneChange: false,
-      );
+      await _showPhoneVerifyFlow(context, ref, security, isPhoneChange: false);
     }
   }
 
@@ -101,9 +97,9 @@ class SecuritySettingsSection extends ConsumerWidget {
     }
     if (mpinStatus.isLockedNow) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr("mpin_locked_short"))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.tr("mpin_locked_short"))));
       return;
     }
     if (!context.mounted) return;
@@ -124,10 +120,8 @@ class SecuritySettingsSection extends ConsumerWidget {
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => MpinPromptDialog(
-        titleOverride: title,
-        subtitleOverride: subtitle,
-      ),
+      builder: (_) =>
+          MpinPromptDialog(titleOverride: title, subtitleOverride: subtitle),
     );
   }
 
@@ -150,8 +144,10 @@ class SecuritySettingsSection extends ConsumerWidget {
     String? err;
     bool sending = false;
     bool verifying = false;
+
     /// True after [OtpCodeSent] or [OtpAutoFilled] (SMS flow started).
     bool pastSendPhase = false;
+
     /// Seconds before "Send code" can be tapped again (reduces SMS abuse bursts).
     int sendCooldownSec = 0;
     int sendCooldownGen = 0;
@@ -180,9 +176,7 @@ class SecuritySettingsSection extends ConsumerWidget {
             final gen = ++otpExpiryGen;
             setState(() => otpExpirySec = 180);
             () async {
-              while (ctx.mounted &&
-                  otpExpirySec > 0 &&
-                  otpExpiryGen == gen) {
+              while (ctx.mounted && otpExpirySec > 0 && otpExpiryGen == gen) {
                 await Future<void>.delayed(const Duration(seconds: 1));
                 if (!ctx.mounted || otpExpiryGen != gen) return;
                 setState(() => otpExpirySec -= 1);
@@ -200,7 +194,9 @@ class SecuritySettingsSection extends ConsumerWidget {
           final otpExpired =
               pastSendPhase && verificationId == null && otpExpirySec <= 0;
 
-          Future<void> completeEnrollment(PhoneAuthCredential credential) async {
+          Future<void> completeEnrollment(
+            PhoneAuthCredential credential,
+          ) async {
             setState(() {
               verifying = true;
               err = null;
@@ -215,10 +211,7 @@ class SecuritySettingsSection extends ConsumerWidget {
               await otp.withTransientPhoneLink(credential, () async {
                 if (isPhoneChange) {
                   await functions.httpsCallable("changeVerifiedPhone").call(
-                    <String, dynamic>{
-                      ...payload,
-                      "mpin": mpinForChange,
-                    },
+                    <String, dynamic>{...payload, "mpin": mpinForChange},
                   );
                 } else {
                   await functions
@@ -259,9 +252,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                 );
               }
               if (ctx.mounted) {
-                setState(
-                  () => err = trFirebasePhoneCallableError(ctx, e),
-                );
+                setState(() => err = trFirebasePhoneCallableError(ctx, e));
               }
             } catch (e) {
               if (kDebugMode) {
@@ -275,7 +266,62 @@ class SecuritySettingsSection extends ConsumerWidget {
             }
           }
 
+          Future<void> requestCode() async {
+            final p = phoneCtrl.text.trim();
+            if (p.length < 11) {
+              setState(() => err = context.tr("otp_enroll_invalid_phone"));
+              return;
+            }
+            setState(() {
+              sending = true;
+              err = null;
+            });
+            final res = await otp.sendCode(
+              phoneE164: p,
+              resendToken: resendToken,
+            );
+            if (!ctx.mounted) return;
+            switch (res) {
+              case OtpCodeSent():
+                kickSendCooldown();
+                kickOtpExpiry();
+                otpCtrl.clear();
+                setState(() {
+                  verificationId = res.verificationId;
+                  resendToken = res.resendToken;
+                  pastSendPhase = true;
+                  err = null;
+                });
+              case OtpAutoFilled(:final credential):
+                setState(() => pastSendPhase = true);
+                await completeEnrollment(credential);
+              case OtpFailed():
+                kickSendCooldown();
+                debugPrint(
+                  "[OTP] send failed code=${res.code} "
+                  "message=${res.message} "
+                  "isAttestation=${res.isAttestationError}",
+                );
+                final String msg;
+                if (res.isAttestationError) {
+                  msg =
+                      "${context.tr("otp_app_not_authorized")}\n[${res.code}]";
+                } else {
+                  msg = res.message.trim().isNotEmpty
+                      ? res.message
+                      : context.tr("otp_send_failed_try_again");
+                }
+                setState(() => err = msg);
+            }
+            if (ctx.mounted) setState(() => sending = false);
+          }
+
           return AlertDialog(
+            scrollable: true,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
             title: Text(
               isPhoneChange
                   ? context.tr("otp_change_phone")
@@ -293,8 +339,9 @@ class SecuritySettingsSection extends ConsumerWidget {
                 ],
                 IntlPhoneField(
                   initialCountryCode: "PK",
-                  initialValue:
-                      _securityNationalDigitsForIntlField(phoneCtrl.text),
+                  initialValue: _securityNationalDigitsForIntlField(
+                    phoneCtrl.text,
+                  ),
                   enabled: !pastSendPhase && !sending && !verifying,
                   decoration: InputDecoration(
                     labelText: context.tr("otp_enroll_phone_label"),
@@ -370,7 +417,7 @@ class SecuritySettingsSection extends ConsumerWidget {
                     ),
                   TextField(
                     controller: otpCtrl,
-                    enabled: otpExpirySec > 0 && !verifying,
+                    enabled: otpExpirySec > 0 && !sending && !verifying,
                     autofillHints: const [AutofillHints.oneTimeCode],
                     decoration: InputDecoration(
                       labelText: context.tr("otp_label"),
@@ -382,6 +429,19 @@ class SecuritySettingsSection extends ConsumerWidget {
                       LengthLimitingTextInputFormatter(6),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: (sending || verifying || sendCooldownSec > 0)
+                        ? null
+                        : requestCode,
+                    child: Text(
+                      sendCooldownSec > 0
+                          ? context
+                                .tr("otp_challenge_resend_in")
+                                .replaceAll("%s", "$sendCooldownSec")
+                          : context.tr("otp_challenge_resend"),
+                    ),
+                  ),
                 ],
                 if (err != null && !otpExpired) ...[
                   const SizedBox(height: 8),
@@ -391,67 +451,16 @@ class SecuritySettingsSection extends ConsumerWidget {
             ),
             actions: [
               TextButton(
-                onPressed:
-                    (sending || verifying) ? null : () => Navigator.pop(ctx),
+                onPressed: (sending || verifying)
+                    ? null
+                    : () => Navigator.pop(ctx),
                 child: Text(context.tr("cancel")),
               ),
               if (!pastSendPhase)
                 FilledButton(
                   onPressed: (sending || sendCooldownSec > 0)
                       ? null
-                      : () async {
-                          final p = phoneCtrl.text.trim();
-                          if (p.length < 11) {
-                            setState(
-                              () => err = context.tr("otp_enroll_invalid_phone"),
-                            );
-                            return;
-                          }
-                          setState(() {
-                            sending = true;
-                            err = null;
-                          });
-                          final res = await otp.sendCode(
-                            phoneE164: p,
-                            resendToken: resendToken,
-                          );
-                          if (!ctx.mounted) return;
-                          switch (res) {
-                            case OtpCodeSent():
-                              kickSendCooldown();
-                              kickOtpExpiry();
-                              otpCtrl.clear();
-                              setState(() {
-                                verificationId = res.verificationId;
-                                resendToken = res.resendToken;
-                                pastSendPhase = true;
-                                err = null;
-                              });
-                            case OtpAutoFilled(:final credential):
-                              setState(() {
-                                pastSendPhase = true;
-                              });
-                              await completeEnrollment(credential);
-                            case OtpFailed():
-                              kickSendCooldown();
-                              debugPrint(
-                                "[OTP] send failed code=${res.code} "
-                                "message=${res.message} "
-                                "isAttestation=${res.isAttestationError}",
-                              );
-                              final String msg;
-                              if (res.isAttestationError) {
-                                msg =
-                                    "${context.tr("otp_app_not_authorized")}\n[${res.code}]";
-                              } else {
-                                msg = res.message.trim().isNotEmpty
-                                    ? res.message
-                                    : context.tr("otp_send_failed_try_again");
-                              }
-                              setState(() => err = msg);
-                          }
-                          if (ctx.mounted) setState(() => sending = false);
-                        },
+                      : requestCode,
                   child: sending
                       ? const SizedBox(
                           width: 22,
@@ -461,20 +470,22 @@ class SecuritySettingsSection extends ConsumerWidget {
                       : Text(
                           sendCooldownSec > 0
                               ? context
-                                  .tr("otp_enroll_send_cooldown")
-                                  .replaceAll("%s", "$sendCooldownSec")
+                                    .tr("otp_enroll_send_cooldown")
+                                    .replaceAll("%s", "$sendCooldownSec")
                               : context.tr("otp_enroll_send_code"),
                         ),
                 )
               else if (verificationId != null && otpExpirySec > 0)
                 FilledButton(
-                  onPressed: verifying
+                  onPressed: (sending || verifying)
                       ? null
                       : () async {
                           final code = otpCtrl.text.trim();
                           if (code.length != 6) {
                             setState(
-                              () => err = context.tr("otp_challenge_invalid_code"),
+                              () => err = context.tr(
+                                "otp_challenge_invalid_code",
+                              ),
                             );
                             return;
                           }
@@ -557,10 +568,10 @@ class SecuritySettingsSection extends ConsumerWidget {
                     Text(
                       context.tr("otp_setup_hint"),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.55),
-                          ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.55),
+                      ),
                     ),
                   ],
                 ],
