@@ -240,4 +240,24 @@ class WalletLedgerFunctionsService {
       "withdrawalsThisMonth": withdrawalsThisMonth,
     });
   }
+
+  Future<Map<String, dynamic>> adminAutoBackfillInvestor({
+    required String userId,
+    required DateTime depositDate,
+    required double depositAmount,
+    bool dryRun = false,
+  }) async {
+    final result = await _f
+        .httpsCallable("adminAutoBackfillInvestor")
+        .call(<String, dynamic>{
+      "userId": userId,
+      "depositDate":
+          "${depositDate.year.toString().padLeft(4, '0')}"
+          "-${depositDate.month.toString().padLeft(2, '0')}"
+          "-${depositDate.day.toString().padLeft(2, '0')}",
+      "depositAmount": depositAmount,
+      "dryRun": dryRun,
+    });
+    return Map<String, dynamic>.from(result.data as Map);
+  }
 }

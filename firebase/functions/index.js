@@ -190,6 +190,8 @@ exports.fiveMarketDailyCredit = fiveMarketDaily.fiveMarketDailyCredit;
 exports.saveFiveMarketConfig = fiveMarketDaily.saveFiveMarketConfig;
 exports.saveFiveMarketDayOverride = fiveMarketDaily.saveFiveMarketDayOverride;
 exports.setFiveMarketDailyLedger = fiveMarketDaily.setFiveMarketDailyLedger;
+exports.adminAutoBackfillInvestor =
+  require("./five_market_daily").adminAutoBackfillInvestor;
 
 // ── Fee System v2 — Daily Management Fee (Phase 3) ───────────
 const mgmtFeeDaily = require("./management_fee_daily");

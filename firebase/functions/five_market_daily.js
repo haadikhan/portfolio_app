@@ -798,3 +798,365 @@ exports.setFiveMarketDailyLedger = onCall({ region: REGION }, async (request) =>
 
   return { ok: true };
 });
+
+exports.adminAutoBackfillInvestor = onCall(
+  { region: REGION, timeoutSeconds: 300, memory: "512MiB" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const { userId, depositDate, depositAmount, dryRun = false } =
+      request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim())
+      throw new HttpsError("invalid-argument", "userId required.");
+    const uid = userId.trim();
+
+    if (!depositDate || !/^\d{4}-\d{2}-\d{2}$/.test(depositDate))
+      throw new HttpsError(
+        "invalid-argument",
+        "depositDate required (yyyy-MM-dd).",
+      );
+
+    const depositDateObj = new Date(depositDate + "T00:00:00.000Z");
+    if (isNaN(depositDateObj.getTime()))
+      throw new HttpsError("invalid-argument", "Invalid depositDate.");
+
+    const todayPkt = getPktDateString(0);
+    const todayPktDate = new Date(todayPkt + "T00:00:00.000Z");
+    if (depositDateObj >= todayPktDate)
+      throw new HttpsError(
+        "invalid-argument",
+        "depositDate must be before today.",
+      );
+
+    const amount = Number(depositAmount);
+    if (!amount || amount <= 0 || !isFinite(amount))
+      throw new HttpsError(
+        "invalid-argument",
+        "depositAmount must be a positive number.",
+      );
+
+    const adminUid = request.auth.uid;
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    const [configSnap, holSnap, feeConfigSnap] = await Promise.all([
+      db().collection("settings").doc("five_market_calc").get(),
+      db().collection("settings").doc("pakistan_holidays").get(),
+      db().collection("settings").doc("fee_config").get(),
+    ]);
+
+    const config =
+      configSnap.exists && configSnap.data()
+        ? configSnap.data()
+        : { allocations: {}, rates: {} };
+
+    const holidays = holSnap.exists
+      ? (holSnap.data().holidays || []).map((h) => h && h.date).filter(Boolean)
+      : [];
+
+    const feeConfig = feeConfigSnap.exists ? feeConfigSnap.data() : {};
+    const feesEnabled = feeConfig.isEnabled === true;
+    const perfFeePct = feesEnabled
+      ? Number(feeConfig.performanceFeePct) || 0
+      : 0;
+
+    const yesterdayPkt = getPktDateString(-1);
+    const eodSnaps = await db()
+      .collection("investment_daily_market_close")
+      .where("date", ">=", depositDate)
+      .where("date", "<=", yesterdayPkt)
+      .get();
+
+    const eodMap = {};
+    for (const doc of eodSnaps.docs) {
+      eodMap[doc.id] = doc.data();
+    }
+
+    let basePkr = amount;
+    let currentDate = new Date(depositDate + "T00:00:00.000Z");
+    const monthlyData = {};
+    let missingEodDays = 0;
+
+    while (currentDate < todayPktDate) {
+      const dateStr = currentDate.toISOString().split("T")[0];
+      const dow = currentDate.getUTCDay();
+      const isWeekend = dow === 0 || dow === 6;
+      const isHoliday = holidays.includes(dateStr);
+      const isTradingDay = !isWeekend && !isHoliday;
+      const monthKey = dateStr.substring(0, 7);
+
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          grossProfit: 0,
+          tradingDays: 0,
+          lastTradingDate: null,
+          firstDate: dateStr,
+        };
+      }
+
+      if (isTradingDay) {
+        const eod = eodMap[dateStr];
+        if (!eod) missingEodDays++;
+        const result = calculateDailyProfit({
+          basePkr,
+          config,
+          eodSnap: eod || { tradingDay: true },
+        });
+        monthlyData[monthKey].grossProfit += result.totalProfitPkr;
+        monthlyData[monthKey].tradingDays++;
+        monthlyData[monthKey].lastTradingDate = dateStr;
+      }
+
+      currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    const months = Object.keys(monthlyData).sort();
+    let totalGrossProfit = 0;
+    let totalNetProfit = 0;
+    let totalFees = 0;
+
+    const monthResults = months.map((monthKey) => {
+      const md = monthlyData[monthKey];
+      const grossProfit = parseFloat(md.grossProfit.toFixed(2));
+      const performanceFee =
+        grossProfit > 0 && perfFeePct > 0
+          ? parseFloat(((grossProfit * perfFeePct) / 100).toFixed(2))
+          : 0;
+      const netProfit = parseFloat((grossProfit - performanceFee).toFixed(2));
+      const returnPct =
+        basePkr > 0
+          ? parseFloat(((grossProfit / basePkr) * 100).toFixed(4))
+          : 0;
+      const previousValue = parseFloat(basePkr.toFixed(2));
+
+      totalGrossProfit += grossProfit;
+      totalNetProfit += netProfit;
+      totalFees += performanceFee;
+      basePkr = basePkr + netProfit;
+
+      return {
+        monthKey,
+        grossProfit,
+        performanceFee,
+        netProfit,
+        returnPct,
+        previousValue,
+        newValue: parseFloat(basePkr.toFixed(2)),
+        lastTradingDate: md.lastTradingDate,
+        tradingDays: md.tradingDays,
+        firstDate: md.firstDate,
+      };
+    });
+
+    if (dryRun) {
+      return {
+        ok: true,
+        dryRun: true,
+        monthsProcessed: monthResults.length,
+        totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
+        totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
+        totalFees: parseFloat(totalFees.toFixed(2)),
+        missingEodDays,
+        months: monthResults,
+      };
+    }
+
+    const depositTs = admin.firestore.Timestamp.fromDate(depositDateObj);
+    const depositTid =
+      "DEP-BACKFILL-" +
+      Date.now().toString(36).toUpperCase() +
+      "-" +
+      Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    await db()
+      .collection("transactions")
+      .doc(depositTid)
+      .set({
+        id: depositTid,
+        userId: uid,
+        type: "deposit",
+        amount,
+        status: "approved",
+        createdAt: depositTs,
+        updatedAt: now,
+        notes: "Admin auto-backfill deposit",
+        paymentMethod: "admin_entry",
+        approvedBy: adminUid,
+        isBackdated: true,
+        backdatedBy: adminUid,
+        backdatedAt: now,
+        isAutoBackfill: true,
+      });
+
+    for (const m of monthResults) {
+      if (m.netProfit <= 0 && m.grossProfit <= 0) continue;
+
+      const backfillDateStr = m.lastTradingDate || m.firstDate;
+      const backfillTs = admin.firestore.Timestamp.fromDate(
+        new Date(backfillDateStr + "T18:59:00.000Z"),
+      );
+
+      const batch = db().batch();
+
+      const profitTid = db().collection("transactions").doc();
+      batch.set(profitTid, {
+        id: profitTid.id,
+        userId: uid,
+        type: "profit_entry",
+        amount: m.netProfit,
+        status: "approved",
+        createdAt: backfillTs,
+        updatedAt: now,
+        notes: `Auto-backfill ${m.monthKey} — gross PKR ${m.grossProfit.toFixed(2)}, net PKR ${m.netProfit.toFixed(2)}`,
+        approvedBy: adminUid,
+        periodKey: m.monthKey,
+        grossProfit: m.grossProfit,
+        performanceFeeDeducted: m.performanceFee,
+        managementFeeDeducted: 0,
+        monthlyPct: m.returnPct,
+        isBackdated: true,
+        backdatedBy: adminUid,
+        backdatedAt: now,
+        isAutoBackfill: true,
+      });
+
+      if (m.performanceFee > 0) {
+        const feeTid = db().collection("transactions").doc();
+        batch.set(feeTid, {
+          id: feeTid.id,
+          userId: uid,
+          type: "performance_fee",
+          feeKind: "performance",
+          amount: m.performanceFee,
+          status: "approved",
+          feePct: perfFeePct,
+          feeBaseAmount: m.grossProfit,
+          relatedTxId: profitTid.id,
+          periodKey: m.monthKey,
+          createdAt: backfillTs,
+          updatedAt: now,
+          approvedBy: adminUid,
+          notes: `Auto-backfill performance fee ${m.monthKey}`,
+          isBackdated: true,
+          backdatedBy: adminUid,
+          backdatedAt: now,
+          isAutoBackfill: true,
+        });
+      }
+
+      const histRef = db()
+        .collection("portfolios")
+        .doc(uid)
+        .collection("returnHistory")
+        .doc();
+      batch.set(histRef, {
+        returnPct: m.returnPct,
+        profitAmount: m.netProfit,
+        previousValue: m.previousValue,
+        newValue: m.newValue,
+        appliedAt: backfillTs,
+        appliedBy: adminUid,
+        mode: "auto_backfill",
+        periodKey: m.monthKey,
+        isBackdated: true,
+        backdatedBy: adminUid,
+        backdatedAt: now,
+      });
+
+      batch.set(
+        db().collection("portfolios").doc(uid),
+        {
+          currentValue: m.newValue,
+          totalDeposited: amount,
+          lastMonthlyReturnPct: m.returnPct,
+          lastUpdated: backfillTs,
+          fiveMarketDailyLedger: true,
+          netDeposits: amount,
+        },
+        { merge: true },
+      );
+
+      const totalFeeAmt = parseFloat(m.performanceFee.toFixed(2));
+      const effectiveFeeRatePct =
+        m.grossProfit > 0
+          ? parseFloat(((totalFeeAmt / m.grossProfit) * 100).toFixed(4))
+          : 0;
+
+      batch.set(
+        db()
+          .collection("users")
+          .doc(uid)
+          .collection("fee_statements")
+          .doc(m.monthKey),
+        {
+          periodKey: m.monthKey,
+          principalAtStart: m.previousValue,
+          depositsThisMonth: m.monthKey === months[0] ? amount : 0,
+          withdrawalsThisMonth: 0,
+          grossProfit: m.grossProfit,
+          netProfit: m.netProfit,
+          managementFee: 0,
+          performanceFee: m.performanceFee,
+          frontEndLoadFee: 0,
+          referralFee: 0,
+          totalFees: totalFeeAmt,
+          effectiveFeeRatePct,
+          generatedAt: now,
+          isBackdated: true,
+          backdatedBy: adminUid,
+          isAutoBackfill: true,
+        },
+        { merge: true },
+      );
+
+      await batch.commit();
+    }
+
+    const { recalculateWallet } = require("./wallet_helpers");
+    await recalculateWallet(uid);
+
+    const walletSnap = await db().collection("wallets").doc(uid).get();
+    if (walletSnap.exists) {
+      const w = walletSnap.data();
+      const netDeposits = parseFloat(
+        (Number(w.totalDeposited || 0) - Number(w.totalWithdrawn || 0)).toFixed(
+          2,
+        ),
+      );
+      await db()
+        .collection("portfolios")
+        .doc(uid)
+        .set({ netDeposits, netDepositsUpdatedAt: now }, { merge: true });
+    }
+
+    await safeAppendAudit(
+      adminUid,
+      "admin",
+      "adminAutoBackfillInvestor",
+      "investor",
+      uid,
+      null,
+      {
+        depositDate,
+        depositAmount: amount,
+        monthsProcessed: monthResults.length,
+        totalGrossProfit,
+        totalNetProfit,
+      },
+    );
+
+    return {
+      ok: true,
+      dryRun: false,
+      monthsProcessed: monthResults.length,
+      totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
+      totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
+      totalFees: parseFloat(totalFees.toFixed(2)),
+      depositTransactionId: depositTid,
+      missingEodDays,
+      months: monthResults,
+    };
+  },
+);
