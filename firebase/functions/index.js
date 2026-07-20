@@ -34,6 +34,9 @@ const mpin = require("./mpin");
 const fees = require("./fees");
 const otpSecurity = require("./otp_security");
 Object.assign(exports, walletLedger);
+exports.adminAddReturnHistoryEntry =
+  require("./wallet_ledger").adminAddReturnHistoryEntry;
+exports.adminAddFeeStatement = require("./wallet_ledger").adminAddFeeStatement;
 Object.assign(exports, notifications);
 Object.assign(exports, marketData);
 Object.assign(exports, appUpdates);

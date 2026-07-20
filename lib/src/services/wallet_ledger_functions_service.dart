@@ -191,4 +191,53 @@ class WalletLedgerFunctionsService {
           "-${openingDate.day.toString().padLeft(2, '0')}",
     });
   }
+
+  /// Admin: write one historical return-history entry to
+  /// portfolios/{userId}/returnHistory and update portfolios/{userId}.currentValue.
+  Future<void> adminAddReturnHistoryEntry({
+    required String userId,
+    required double returnPct,
+    required double profitAmount,
+    required double previousValue,
+    DateTime? effectiveDate,
+  }) async {
+    await _f.httpsCallable("adminAddReturnHistoryEntry").call(<String, dynamic>{
+      "userId": userId,
+      "returnPct": returnPct,
+      "profitAmount": profitAmount,
+      "previousValue": previousValue,
+      if (effectiveDate != null)
+        "effectiveDate":
+            "${effectiveDate.year.toString().padLeft(4, '0')}"
+            "-${effectiveDate.month.toString().padLeft(2, '0')}"
+            "-${effectiveDate.day.toString().padLeft(2, '0')}",
+    });
+  }
+
+  /// Admin: write one historical fee statement to
+  /// users/{userId}/fee_statements/{periodKey}.
+  /// periodKey format: "yyyy-MM" e.g. "2024-11"
+  Future<void> adminAddFeeStatement({
+    required String userId,
+    required String periodKey,
+    required double grossProfit,
+    required double netProfit,
+    double managementFee = 0,
+    double performanceFee = 0,
+    double principalAtStart = 0,
+    double depositsThisMonth = 0,
+    double withdrawalsThisMonth = 0,
+  }) async {
+    await _f.httpsCallable("adminAddFeeStatement").call(<String, dynamic>{
+      "userId": userId,
+      "periodKey": periodKey,
+      "grossProfit": grossProfit,
+      "netProfit": netProfit,
+      "managementFee": managementFee,
+      "performanceFee": performanceFee,
+      "principalAtStart": principalAtStart,
+      "depositsThisMonth": depositsThisMonth,
+      "withdrawalsThisMonth": withdrawalsThisMonth,
+    });
+  }
 }

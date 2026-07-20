@@ -34,6 +34,22 @@ class _AdminBackdatedEntriesScreenState
   DateTime? _depDate;
   bool _depositBusy = false;
 
+  final _retUserId = TextEditingController();
+  final _retPct = TextEditingController();
+  final _retProfit = TextEditingController();
+  final _retPrevValue = TextEditingController();
+  DateTime? _retDate;
+  bool _retBusy = false;
+
+  final _feeUserId = TextEditingController();
+  final _feePeriodKey = TextEditingController();
+  final _feeGrossProfit = TextEditingController();
+  final _feeNetProfit = TextEditingController();
+  final _feeMgmtFee = TextEditingController();
+  final _feePerfFee = TextEditingController();
+  final _feePrincipal = TextEditingController();
+  bool _feeBusy = false;
+
   @override
   void dispose() {
     _profitUserId.dispose();
@@ -45,6 +61,17 @@ class _AdminBackdatedEntriesScreenState
     _depUserId.dispose();
     _depAmount.dispose();
     _depNote.dispose();
+    _retUserId.dispose();
+    _retPct.dispose();
+    _retProfit.dispose();
+    _retPrevValue.dispose();
+    _feeUserId.dispose();
+    _feePeriodKey.dispose();
+    _feeGrossProfit.dispose();
+    _feeNetProfit.dispose();
+    _feeMgmtFee.dispose();
+    _feePerfFee.dispose();
+    _feePrincipal.dispose();
     super.dispose();
   }
 
@@ -257,6 +284,109 @@ class _AdminBackdatedEntriesScreenState
       }
     } finally {
       if (mounted) setState(() => _depositBusy = false);
+    }
+  }
+
+  Future<void> _postReturnHistory() async {
+    final uid = _retUserId.text.trim();
+    final pct = double.tryParse(_retPct.text.trim());
+    final profit = double.tryParse(_retProfit.text.trim());
+    final prev = double.tryParse(_retPrevValue.text.trim());
+    if (uid.isEmpty ||
+        pct == null ||
+        pct < 0 ||
+        profit == null ||
+        profit <= 0 ||
+        prev == null ||
+        prev < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "User ID, return % (0+), profit amount (>0), "
+            "and previous value (0+) required.",
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _retBusy = true);
+    try {
+      await ref.read(walletLedgerFunctionsProvider).adminAddReturnHistoryEntry(
+            userId: uid,
+            returnPct: pct,
+            profitAmount: profit,
+            previousValue: prev,
+            effectiveDate: _retDate,
+          );
+      _retUserId.clear();
+      _retPct.clear();
+      _retProfit.clear();
+      _retPrevValue.clear();
+      setState(() => _retDate = null);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Return history entry posted for $uid")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _retBusy = false);
+    }
+  }
+
+  Future<void> _postFeeStatement() async {
+    final uid = _feeUserId.text.trim();
+    final pk = _feePeriodKey.text.trim();
+    final gp = double.tryParse(_feeGrossProfit.text.trim());
+    final np = double.tryParse(_feeNetProfit.text.trim());
+    final pkOk = RegExp(r'^\d{4}-\d{2}$').hasMatch(pk);
+    if (uid.isEmpty || !pkOk || gp == null || gp <= 0 || np == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "User ID, period (yyyy-MM, e.g. 2024-11), "
+            "gross profit, and net profit required.",
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _feeBusy = true);
+    try {
+      await ref.read(walletLedgerFunctionsProvider).adminAddFeeStatement(
+            userId: uid,
+            periodKey: pk,
+            grossProfit: gp,
+            netProfit: np,
+            managementFee: double.tryParse(_feeMgmtFee.text.trim()) ?? 0,
+            performanceFee: double.tryParse(_feePerfFee.text.trim()) ?? 0,
+            principalAtStart: double.tryParse(_feePrincipal.text.trim()) ?? 0,
+          );
+      _feeUserId.clear();
+      _feePeriodKey.clear();
+      _feeGrossProfit.clear();
+      _feeNetProfit.clear();
+      _feeMgmtFee.clear();
+      _feePerfFee.clear();
+      _feePrincipal.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Fee statement posted for $uid ($pk)")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _feeBusy = false);
     }
   }
 
@@ -503,6 +633,198 @@ class _AdminBackdatedEntriesScreenState
                                     ),
                                   )
                                 : const Text("Post deposit"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            "Backdated return history entry",
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Adds a record to the investor's Return History tab "
+                            "(portfolios/{uid}/returnHistory).",
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _retUserId,
+                            decoration: const InputDecoration(
+                              labelText: "User ID",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _retPct,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Return % (e.g. 5.0)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _retProfit,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Profit amount (PKR)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _retPrevValue,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText:
+                                  "Portfolio value BEFORE this return (PKR)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _dateRow(
+                            selected: _retDate,
+                            onTap: () => _pickDate(
+                              current: _retDate,
+                              onPicked: (d) => setState(() => _retDate = d),
+                            ),
+                            onClear: () => setState(() => _retDate = null),
+                          ),
+                          _backdatedWarning(_retDate),
+                          FilledButton(
+                            onPressed: _retBusy ? null : _postReturnHistory,
+                            child: _retBusy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text("Post return history entry"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            "Backdated fee statement",
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Creates a monthly fee statement shown in the investor's "
+                            "Reports screen (users/{uid}/fee_statements/{yyyy-MM}).",
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _feeUserId,
+                            decoration: const InputDecoration(
+                              labelText: "User ID",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feePeriodKey,
+                            decoration: const InputDecoration(
+                              labelText: "Period (yyyy-MM, e.g. 2024-11)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feePrincipal,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Principal at start of month (PKR)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feeGrossProfit,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Gross profit (PKR)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feeMgmtFee,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Management fee (PKR, 0 if none)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feePerfFee,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Performance fee (PKR, 0 if none)",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _feeNetProfit,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: "Net profit credited to investor (PKR)",
+                              hintText:
+                                  "= Gross profit − management fee − performance fee",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: _feeBusy ? null : _postFeeStatement,
+                            child: _feeBusy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text("Post fee statement"),
                           ),
                         ],
                       ),

@@ -1483,6 +1483,185 @@ exports.setAccountOpeningDate = onCall(
   },
 );
 
+exports.adminAddReturnHistoryEntry = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const { userId, returnPct, profitAmount, previousValue, effectiveDate } =
+      request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim())
+      throw new HttpsError("invalid-argument", "userId required.");
+
+    const pct = Number(returnPct);
+    if (isNaN(pct) || pct < 0 || pct > 100)
+      throw new HttpsError("invalid-argument", "returnPct 0–100 required.");
+
+    const profit = Number(profitAmount);
+    if (isNaN(profit) || profit <= 0)
+      throw new HttpsError("invalid-argument", "profitAmount must be > 0.");
+
+    const prev = Number(previousValue);
+    if (isNaN(prev) || prev < 0)
+      throw new HttpsError("invalid-argument", "previousValue must be >= 0.");
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    let appliedAt;
+    if (effectiveDate) {
+      const parsed = new Date(effectiveDate + "T00:00:00.000Z");
+      if (isNaN(parsed.getTime()))
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate must be yyyy-MM-dd.",
+        );
+      if (parsed > new Date())
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate cannot be in the future.",
+        );
+      appliedAt = admin.firestore.Timestamp.fromDate(parsed);
+    } else {
+      appliedAt = now;
+    }
+
+    const uid = userId.trim();
+    const newValue = +(prev + profit).toFixed(2);
+
+    const histRef = db()
+      .collection("portfolios")
+      .doc(uid)
+      .collection("returnHistory")
+      .doc();
+
+    const batch = db().batch();
+
+    // Write return history entry
+    batch.set(histRef, {
+      returnPct: pct,
+      profitAmount: profit,
+      previousValue: prev,
+      newValue,
+      appliedAt,
+      appliedBy: request.auth.uid,
+      mode: "manual",
+      isBackdated: !!effectiveDate,
+      backdatedBy: !!effectiveDate ? request.auth.uid : null,
+      backdatedAt: !!effectiveDate ? now : null,
+    });
+
+    // Update portfolios/{uid} currentValue if this entry makes it larger
+    // (use merge so we don't overwrite if portfolio doc doesn't exist yet)
+    batch.set(
+      db().collection("portfolios").doc(uid),
+      {
+        currentValue: newValue,
+        lastMonthlyReturnPct: pct,
+        lastUpdated: now,
+      },
+      { merge: true },
+    );
+
+    await batch.commit();
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "adminAddReturnHistoryEntry",
+      "portfolios",
+      uid,
+      null,
+      { userId: uid, returnPct: pct, profitAmount: profit, effectiveDate },
+    );
+
+    return { ok: true, histId: histRef.id };
+  },
+);
+
+exports.adminAddFeeStatement = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const {
+      userId,
+      periodKey, // "yyyy-MM" e.g. "2024-11"
+      grossProfit,
+      netProfit,
+      managementFee,
+      performanceFee,
+      principalAtStart,
+      depositsThisMonth,
+      withdrawalsThisMonth,
+    } = request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim())
+      throw new HttpsError("invalid-argument", "userId required.");
+
+    if (!periodKey || !/^\d{4}-\d{2}$/.test(periodKey))
+      throw new HttpsError(
+        "invalid-argument",
+        "periodKey must be yyyy-MM (e.g. '2024-11').",
+      );
+
+    const gp = Number(grossProfit) || 0;
+    const np = Number(netProfit) || gp;
+    const mf = Number(managementFee) || 0;
+    const pf = Number(performanceFee) || 0;
+    const pas = Number(principalAtStart) || 0;
+    const dep = Number(depositsThisMonth) || 0;
+    const wit = Number(withdrawalsThisMonth) || 0;
+    const totalFees = +(mf + pf).toFixed(2);
+    const effectiveFeeRatePct =
+      gp > 0 ? +((totalFees / gp) * 100).toFixed(4) : 0;
+
+    const uid = userId.trim();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    await db()
+      .collection("users")
+      .doc(uid)
+      .collection("fee_statements")
+      .doc(periodKey)
+      .set(
+        {
+          periodKey,
+          principalAtStart: pas,
+          depositsThisMonth: dep,
+          withdrawalsThisMonth: wit,
+          grossProfit: gp,
+          netProfit: np,
+          managementFee: mf,
+          performanceFee: pf,
+          frontEndLoadFee: 0,
+          referralFee: 0,
+          totalFees,
+          effectiveFeeRatePct,
+          generatedAt: now,
+          isBackdated: true,
+          backdatedBy: request.auth.uid,
+        },
+        { merge: true },
+      );
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "adminAddFeeStatement",
+      "fee_statements",
+      `${uid}/${periodKey}`,
+      null,
+      { userId: uid, periodKey, grossProfit: gp, netProfit: np },
+    );
+
+    return { ok: true };
+  },
+);
+
 /** Admin: recompute wallet for a user (repair) */
 exports.recalculateWalletForUser = onCall(
   { region: "us-central1" },
