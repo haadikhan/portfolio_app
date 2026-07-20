@@ -31,7 +31,16 @@
           "package_name": "com.isc.wai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "500864820062-46498inml1up5jqlibrr01l7fg69mtvh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.isc.wai",
+            "certificate_hash": "34844a31db5e3e5845739c8b9b2489d35671f5ed"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD5kvMjHdDirc6kZVNUWHgW8enc8i64vPY"
