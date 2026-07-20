@@ -249,6 +249,8 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Always use a light document-viewer background regardless of theme.
+      backgroundColor: const Color(0xFFE8E8E8),
       appBar: AppBar(
         title: Text(widget.title ?? context.tr("reports_view_title")),
         actions: [
@@ -330,16 +332,34 @@ class _ReportPdfPreviewScreenState extends State<ReportPdfPreviewScreen> {
                                         Matrix4.identity();
                                   }
                                 },
-                                // Child matches the viewport so BoxFit.contain
-                                // fills the maximum available screen space.
-                                child: SizedBox(
+                                child: Container(
                                   width: vw,
                                   height: vh,
-                                  child: Image.memory(
-                                    snapshot.data!,
-                                    fit: BoxFit.contain,
-                                    filterQuality: FilterQuality.high,
-                                    gaplessPlayback: true,
+                                  color: const Color(0xFFE8E8E8),
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Image.memory(
+                                      snapshot.data!,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.high,
+                                      gaplessPlayback: true,
+                                    ),
                                   ),
                                 ),
                               );
