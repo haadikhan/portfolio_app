@@ -127,7 +127,8 @@ class _AdminAutoBackfillScreenState
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      useRootNavigator: false,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text("Confirm auto-backfill"),
         content: Text(
           "This will write $months month(s) of historical entries "
@@ -139,11 +140,11 @@ class _AdminAutoBackfillScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogCtx, false),
             child: const Text("Cancel"),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogCtx, true),
             child: const Text("Run backfill"),
           ),
         ],
