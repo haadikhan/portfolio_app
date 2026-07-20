@@ -33,6 +33,7 @@ import "screens/admin_withdrawals_queue_screen.dart";
 import "screens/admin_market_screen.dart";
 import "screens/admin_five_market_screen.dart";
 import "screens/admin_app_updates_screen.dart";
+import "screens/admin_backdated_entries_screen.dart";
 import "screens/admin_change_requests_screen.dart";
 import "widgets/admin_shell.dart";
 
@@ -138,6 +139,10 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/returns",
             builder: (_, __) => const AdminReturnsScreen(),
+          ),
+          GoRoute(
+            path: "/backdated-entries",
+            builder: (_, __) => const AdminBackdatedEntriesScreen(),
           ),
           GoRoute(
             path: "/five-market",

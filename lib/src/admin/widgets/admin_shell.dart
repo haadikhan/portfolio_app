@@ -21,6 +21,7 @@ const _kAdminShellRoutes = <String>[
   "/crm/investors",
   "/crm/team",
   "/returns",
+  "/backdated-entries",
   "/five-market",
   "/fees",
   "/earnings",
@@ -241,9 +242,19 @@ class AdminShell extends ConsumerWidget {
                       visualDensity: VisualDensity.compact,
                       leading: const Icon(Icons.trending_up_outlined),
                       title: Text(context.tr("returns")),
-                      selected: loc.startsWith("/returns"),
+                      selected: loc.startsWith("/returns") &&
+                          !loc.startsWith("/backdated-entries"),
                       onTap: () => _go(context, "/returns"),
                     ),
+                    if (isAdmin)
+                      ListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        leading: const Icon(Icons.history_edu_outlined),
+                        title: const Text("Backdated Entries"),
+                        selected: loc.startsWith("/backdated-entries"),
+                        onTap: () => _go(context, "/backdated-entries"),
+                      ),
                     ListTile(
                       dense: true,
                       visualDensity: VisualDensity.compact,
@@ -613,6 +624,11 @@ class _AdminNavigationRail extends StatelessWidget {
           label: Text(context.tr("returns")),
         ),
         NavigationRailDestination(
+          icon: const Icon(Icons.history_edu_outlined),
+          selectedIcon: const Icon(Icons.history_edu),
+          label: const Text("Backdated Entries"),
+        ),
+        NavigationRailDestination(
           icon: const Icon(Icons.pie_chart_outline_rounded),
           selectedIcon: const Icon(Icons.pie_chart_rounded),
           label: Text(context.tr("admin_nav_five_market")),
@@ -665,14 +681,15 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
-  if (loc.startsWith("/broadcast")) return 18;
-  if (loc.startsWith("/notifications")) return 17;
-  if (loc.startsWith("/app-updates")) return 16;
-  if (loc.startsWith("/upload-reports")) return 15;
-  if (loc.startsWith("/fee-ledger")) return 14;
-  if (loc.startsWith("/earnings")) return 13;
-  if (loc.startsWith("/fees")) return 12;
-  if (loc.startsWith("/five-market")) return 11;
+  if (loc.startsWith("/broadcast")) return 19;
+  if (loc.startsWith("/notifications")) return 18;
+  if (loc.startsWith("/app-updates")) return 17;
+  if (loc.startsWith("/upload-reports")) return 16;
+  if (loc.startsWith("/fee-ledger")) return 15;
+  if (loc.startsWith("/earnings")) return 14;
+  if (loc.startsWith("/fees")) return 13;
+  if (loc.startsWith("/five-market")) return 12;
+  if (loc.startsWith("/backdated-entries")) return 11;
   if (loc.startsWith("/returns")) return 10;
   if (loc.startsWith("/crm/team")) return 9;
   if (loc.startsWith("/crm/investors")) return 8;
