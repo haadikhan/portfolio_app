@@ -800,7 +800,7 @@ exports.setFiveMarketDailyLedger = onCall({ region: REGION }, async (request) =>
 });
 
 exports.adminAutoBackfillInvestor = onCall(
-  { region: REGION, timeoutSeconds: 300, memory: "512MiB" },
+  { region: REGION, timeoutSeconds: 540, memory: "512MiB" },
   async (request) => {
     if (!request.auth?.uid)
       throw new HttpsError("unauthenticated", "Sign in required.");
@@ -841,6 +841,7 @@ exports.adminAutoBackfillInvestor = onCall(
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
 
+    // ── Load config ────────────────────────────────────────────────────────
     const [configSnap, holSnap, feeConfigSnap] = await Promise.all([
       db().collection("settings").doc("five_market_calc").get(),
       db().collection("settings").doc("pakistan_holidays").get(),
@@ -862,6 +863,7 @@ exports.adminAutoBackfillInvestor = onCall(
       ? Number(feeConfig.performanceFeePct) || 0
       : 0;
 
+    // ── Load all EOD snapshots from depositDate to yesterday ───────────────
     const yesterdayPkt = getPktDateString(-1);
     const eodSnaps = await db()
       .collection("investment_daily_market_close")
@@ -874,10 +876,13 @@ exports.adminAutoBackfillInvestor = onCall(
       eodMap[doc.id] = doc.data();
     }
 
-    let basePkr = amount;
+    // ── Simulate day-by-day, collecting daily and monthly results ──────────
+    // runningBasePkr compounds daily (gross) and deducts monthly perf fee.
+    let runningBasePkr = amount;
     let currentDate = new Date(depositDate + "T00:00:00.000Z");
-    const monthlyData = {};
+    const monthlyData = {};  // monthKey → { grossProfit, tradingDays, lastDate, firstDate, basePkrAtStart, dailyEntries[] }
     let missingEodDays = 0;
+    let totalTradingDays = 0;
 
     while (currentDate < todayPktDate) {
       const dateStr = currentDate.toISOString().split("T")[0];
@@ -893,6 +898,8 @@ exports.adminAutoBackfillInvestor = onCall(
           tradingDays: 0,
           lastTradingDate: null,
           firstDate: dateStr,
+          basePkrAtStart: parseFloat(runningBasePkr.toFixed(2)),
+          dailyEntries: [],
         };
       }
 
@@ -900,23 +907,39 @@ exports.adminAutoBackfillInvestor = onCall(
         const eod = eodMap[dateStr];
         if (!eod) missingEodDays++;
         const result = calculateDailyProfit({
-          basePkr,
+          basePkr: runningBasePkr,
           config,
           eodSnap: eod || { tradingDay: true },
         });
-        monthlyData[monthKey].grossProfit += result.totalProfitPkr;
+        const dailyPkr = parseFloat(result.totalProfitPkr.toFixed(2));
+
+        monthlyData[monthKey].dailyEntries.push({
+          date: dateStr,
+          basePkr: parseFloat(runningBasePkr.toFixed(2)),
+          markets: result.markets,
+          totalProfitPkr: dailyPkr,
+          eodSource: eod ? (eod.effectiveDaySource || "calendar") : "missing",
+        });
+        monthlyData[monthKey].grossProfit += dailyPkr;
         monthlyData[monthKey].tradingDays++;
         monthlyData[monthKey].lastTradingDate = dateStr;
+
+        // Compound daily with GROSS profit (fees deducted monthly below)
+        runningBasePkr += dailyPkr;
+        totalTradingDays++;
       }
 
       currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     }
 
+    // ── Build monthly summaries ────────────────────────────────────────────
     const months = Object.keys(monthlyData).sort();
     let totalGrossProfit = 0;
     let totalNetProfit = 0;
     let totalFees = 0;
 
+    // Reset runningBasePkr to recompute with fee deductions per month
+    runningBasePkr = amount;
     const monthResults = months.map((monthKey) => {
       const md = monthlyData[monthKey];
       const grossProfit = parseFloat(md.grossProfit.toFixed(2));
@@ -926,15 +949,17 @@ exports.adminAutoBackfillInvestor = onCall(
           : 0;
       const netProfit = parseFloat((grossProfit - performanceFee).toFixed(2));
       const returnPct =
-        basePkr > 0
-          ? parseFloat(((grossProfit / basePkr) * 100).toFixed(4))
+        runningBasePkr > 0
+          ? parseFloat(((grossProfit / runningBasePkr) * 100).toFixed(4))
           : 0;
-      const previousValue = parseFloat(basePkr.toFixed(2));
+      const previousValue = parseFloat(runningBasePkr.toFixed(2));
 
       totalGrossProfit += grossProfit;
       totalNetProfit += netProfit;
       totalFees += performanceFee;
-      basePkr = basePkr + netProfit;
+
+      // Compound monthly NET (fee deducted) for the preview
+      runningBasePkr = runningBasePkr + grossProfit - performanceFee;
 
       return {
         monthKey,
@@ -943,18 +968,20 @@ exports.adminAutoBackfillInvestor = onCall(
         netProfit,
         returnPct,
         previousValue,
-        newValue: parseFloat(basePkr.toFixed(2)),
+        newValue: parseFloat(runningBasePkr.toFixed(2)),
         lastTradingDate: md.lastTradingDate,
         tradingDays: md.tradingDays,
         firstDate: md.firstDate,
       };
     });
 
+    // ── DRY RUN: return preview without writing ────────────────────────────
     if (dryRun) {
       return {
         ok: true,
         dryRun: true,
         monthsProcessed: monthResults.length,
+        tradingDaysProcessed: totalTradingDays,
         totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
         totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
         totalFees: parseFloat(totalFees.toFixed(2)),
@@ -963,6 +990,75 @@ exports.adminAutoBackfillInvestor = onCall(
       };
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // WRITE MODE
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // ── Step 1: Clean up any previous backfill data for this user ─────────
+    // Deletes old isAutoBackfill:true transactions to prevent double-counting.
+    const existingBackfillTxns = await db()
+      .collection("transactions")
+      .where("userId", "==", uid)
+      .where("isAutoBackfill", "==", true)
+      .get();
+
+    if (!existingBackfillTxns.empty) {
+      const txChunks = [];
+      for (let i = 0; i < existingBackfillTxns.docs.length; i += 400) {
+        txChunks.push(existingBackfillTxns.docs.slice(i, i + 400));
+      }
+      for (const chunk of txChunks) {
+        const delBatch = db().batch();
+        for (const d of chunk) delBatch.delete(d.ref);
+        await delBatch.commit();
+      }
+    }
+
+    // Clean up existing backfilled five_market_daily docs (isBackdated:true)
+    const existingDailySnap = await db()
+      .collection("portfolios")
+      .doc(uid)
+      .collection("five_market_daily")
+      .get();
+
+    const backdatedDailyDocs = existingDailySnap.docs.filter(
+      (d) => d.data().isBackdated === true,
+    );
+    if (backdatedDailyDocs.length > 0) {
+      const dayChunks = [];
+      for (let i = 0; i < backdatedDailyDocs.length; i += 400) {
+        dayChunks.push(backdatedDailyDocs.slice(i, i + 400));
+      }
+      for (const chunk of dayChunks) {
+        const delBatch = db().batch();
+        for (const d of chunk) delBatch.delete(d.ref);
+        await delBatch.commit();
+      }
+    }
+
+    // Clean up existing returnHistory entries that were from a previous backfill
+    const existingHistSnap = await db()
+      .collection("portfolios")
+      .doc(uid)
+      .collection("returnHistory")
+      .get();
+
+    const backdatedHistDocs = existingHistSnap.docs.filter(
+      (d) => d.data().isBackdated === true,
+    );
+    if (backdatedHistDocs.length > 0) {
+      const hChunks = [];
+      for (let i = 0; i < backdatedHistDocs.length; i += 400) {
+        hChunks.push(backdatedHistDocs.slice(i, i + 400));
+      }
+      for (const chunk of hChunks) {
+        const delBatch = db().batch();
+        for (const d of chunk) delBatch.delete(d.ref);
+        await delBatch.commit();
+      }
+    }
+
+    // ── Step 2: Write deposit transaction (backdated to depositDate) ───────
     const depositTs = admin.firestore.Timestamp.fromDate(depositDateObj);
     const depositTid =
       "DEP-BACKFILL-" +
@@ -990,55 +1086,145 @@ exports.adminAutoBackfillInvestor = onCall(
         isAutoBackfill: true,
       });
 
-    for (const m of monthResults) {
-      if (m.netProfit <= 0 && m.grossProfit <= 0) continue;
+    // ── Step 3: Write DAILY five_market_daily docs + daily transactions ────
+    // Processes month by month. Within each month, writes one batch per day.
+    // Also writes monthly returnHistory + fee_statement + performance_fee.
+    let portfolioCurrentValue = amount;
 
-      const backfillDateStr = m.lastTradingDate || m.firstDate;
-      const backfillTs = admin.firestore.Timestamp.fromDate(
-        new Date(backfillDateStr + "T18:59:00.000Z"),
+    for (const monthKey of months) {
+      const md = monthlyData[monthKey];
+      const monthGross = parseFloat(md.grossProfit.toFixed(2));
+      const performanceFee =
+        monthGross > 0 && perfFeePct > 0
+          ? parseFloat(((monthGross * perfFeePct) / 100).toFixed(2))
+          : 0;
+      const monthNet = parseFloat((monthGross - performanceFee).toFixed(2));
+      const monthReturnPct =
+        portfolioCurrentValue > 0
+          ? parseFloat(
+              ((monthGross / portfolioCurrentValue) * 100).toFixed(4),
+            )
+          : 0;
+      const prevPortfolioValue = parseFloat(portfolioCurrentValue.toFixed(2));
+
+      const lastDateStr = md.lastTradingDate || md.firstDate;
+      const monthEndTs = admin.firestore.Timestamp.fromDate(
+        new Date(lastDateStr + "T18:59:00.000Z"),
       );
 
-      const batch = db().batch();
+      // --- Write individual day docs and daily profit_entry transactions ---
+      for (const entry of md.dailyEntries) {
+        if (entry.totalProfitPkr === 0) continue;
 
-      const profitTid = db().collection("transactions").doc();
-      batch.set(profitTid, {
-        id: profitTid.id,
-        userId: uid,
-        type: "profit_entry",
-        amount: m.netProfit,
-        status: "approved",
-        createdAt: backfillTs,
-        updatedAt: now,
-        notes: `Auto-backfill ${m.monthKey} — gross PKR ${m.grossProfit.toFixed(2)}, net PKR ${m.netProfit.toFixed(2)}`,
-        approvedBy: adminUid,
-        periodKey: m.monthKey,
-        grossProfit: m.grossProfit,
-        performanceFeeDeducted: m.performanceFee,
-        managementFeeDeducted: 0,
-        monthlyPct: m.returnPct,
+        const dayTs = admin.firestore.Timestamp.fromDate(
+          new Date(entry.date + "T18:59:00.000Z"),
+        );
+
+        const dayBatch = db().batch();
+
+        const dailyTxRef = db().collection("transactions").doc();
+        dayBatch.set(dailyTxRef, {
+          id: dailyTxRef.id,
+          userId: uid,
+          type: "profit_entry",
+          status: "approved",
+          amount: entry.totalProfitPkr,
+          notes: `Five-market daily profit ${entry.date}`,
+          metadata: {
+            periodKey: entry.date,
+            source: "five_market_daily",
+            markets: entry.markets,
+          },
+          createdAt: dayTs,
+          updatedAt: dayTs,
+          approvedBy: "system_five_market_daily",
+          isBackdated: true,
+          backdatedBy: adminUid,
+          backdatedAt: now,
+          isAutoBackfill: true,
+        });
+
+        const dailyDocRef = db()
+          .collection("portfolios")
+          .doc(uid)
+          .collection("five_market_daily")
+          .doc(entry.date);
+
+        dayBatch.set(dailyDocRef, {
+          date: entry.date,
+          basePkr: entry.basePkr,
+          tradingDay: true,
+          markets: entry.markets,
+          totalProfitPkr: entry.totalProfitPkr,
+          creditedToWallet: true,
+          effectiveDaySource: entry.eodSource,
+          notes: `Five-market daily profit ${entry.date}`,
+          createdAt: dayTs,
+          creditedAt: dayTs,
+          transactionId: dailyTxRef.id,
+          isBackdated: true,
+          backdatedBy: adminUid,
+        });
+
+        await dayBatch.commit();
+      }
+
+      // --- Write monthly: returnHistory + portfolio update + fee_statement ---
+      portfolioCurrentValue = prevPortfolioValue + monthNet;
+
+      const monthBatch = db().batch();
+
+      // Return history entry (one per month, shows in Portfolio screen)
+      const histRef = db()
+        .collection("portfolios")
+        .doc(uid)
+        .collection("returnHistory")
+        .doc();
+      monthBatch.set(histRef, {
+        returnPct: monthReturnPct,
+        profitAmount: monthNet,
+        previousValue: prevPortfolioValue,
+        newValue: parseFloat(portfolioCurrentValue.toFixed(2)),
+        appliedAt: monthEndTs,
+        appliedBy: adminUid,
+        mode: "auto_backfill",
+        periodKey: monthKey,
         isBackdated: true,
         backdatedBy: adminUid,
         backdatedAt: now,
-        isAutoBackfill: true,
       });
 
-      if (m.performanceFee > 0) {
-        const feeTid = db().collection("transactions").doc();
-        batch.set(feeTid, {
-          id: feeTid.id,
+      // Update portfolios/{uid} document
+      monthBatch.set(
+        db().collection("portfolios").doc(uid),
+        {
+          currentValue: parseFloat(portfolioCurrentValue.toFixed(2)),
+          totalDeposited: amount,
+          lastMonthlyReturnPct: monthReturnPct,
+          lastUpdated: monthEndTs,
+          fiveMarketDailyLedger: true,
+          netDeposits: amount,
+        },
+        { merge: true },
+      );
+
+      // Monthly performance fee transaction (if applicable)
+      if (performanceFee > 0) {
+        const feeTxRef = db().collection("transactions").doc();
+        monthBatch.set(feeTxRef, {
+          id: feeTxRef.id,
           userId: uid,
           type: "performance_fee",
           feeKind: "performance",
-          amount: m.performanceFee,
+          amount: performanceFee,
           status: "approved",
           feePct: perfFeePct,
-          feeBaseAmount: m.grossProfit,
-          relatedTxId: profitTid.id,
-          periodKey: m.monthKey,
-          createdAt: backfillTs,
-          updatedAt: now,
+          feeBaseAmount: monthGross,
+          periodKey: monthKey,
+          createdAt: monthEndTs,
+          updatedAt: monthEndTs,
           approvedBy: adminUid,
-          notes: `Auto-backfill performance fee ${m.monthKey}`,
+          notes: `Auto-backfill performance fee ${monthKey}`,
           isBackdated: true,
           backdatedBy: adminUid,
           backdatedAt: now,
@@ -1046,59 +1232,28 @@ exports.adminAutoBackfillInvestor = onCall(
         });
       }
 
-      const histRef = db()
-        .collection("portfolios")
-        .doc(uid)
-        .collection("returnHistory")
-        .doc();
-      batch.set(histRef, {
-        returnPct: m.returnPct,
-        profitAmount: m.netProfit,
-        previousValue: m.previousValue,
-        newValue: m.newValue,
-        appliedAt: backfillTs,
-        appliedBy: adminUid,
-        mode: "auto_backfill",
-        periodKey: m.monthKey,
-        isBackdated: true,
-        backdatedBy: adminUid,
-        backdatedAt: now,
-      });
-
-      batch.set(
-        db().collection("portfolios").doc(uid),
-        {
-          currentValue: m.newValue,
-          totalDeposited: amount,
-          lastMonthlyReturnPct: m.returnPct,
-          lastUpdated: backfillTs,
-          fiveMarketDailyLedger: true,
-          netDeposits: amount,
-        },
-        { merge: true },
-      );
-
-      const totalFeeAmt = parseFloat(m.performanceFee.toFixed(2));
+      // Fee statement (shown in Reports screen)
+      const totalFeeAmt = parseFloat(performanceFee.toFixed(2));
       const effectiveFeeRatePct =
-        m.grossProfit > 0
-          ? parseFloat(((totalFeeAmt / m.grossProfit) * 100).toFixed(4))
+        monthGross > 0
+          ? parseFloat(((totalFeeAmt / monthGross) * 100).toFixed(4))
           : 0;
 
-      batch.set(
+      monthBatch.set(
         db()
           .collection("users")
           .doc(uid)
           .collection("fee_statements")
-          .doc(m.monthKey),
+          .doc(monthKey),
         {
-          periodKey: m.monthKey,
-          principalAtStart: m.previousValue,
-          depositsThisMonth: m.monthKey === months[0] ? amount : 0,
+          periodKey: monthKey,
+          principalAtStart: prevPortfolioValue,
+          depositsThisMonth: monthKey === months[0] ? amount : 0,
           withdrawalsThisMonth: 0,
-          grossProfit: m.grossProfit,
-          netProfit: m.netProfit,
+          grossProfit: monthGross,
+          netProfit: monthNet,
           managementFee: 0,
-          performanceFee: m.performanceFee,
+          performanceFee,
           frontEndLoadFee: 0,
           referralFee: 0,
           totalFees: totalFeeAmt,
@@ -1111,9 +1266,10 @@ exports.adminAutoBackfillInvestor = onCall(
         { merge: true },
       );
 
-      await batch.commit();
+      await monthBatch.commit();
     }
 
+    // ── Step 4: Recalculate wallet from all written transactions ──────────
     const { recalculateWallet } = require("./wallet_helpers");
     await recalculateWallet(uid);
 
@@ -1121,9 +1277,9 @@ exports.adminAutoBackfillInvestor = onCall(
     if (walletSnap.exists) {
       const w = walletSnap.data();
       const netDeposits = parseFloat(
-        (Number(w.totalDeposited || 0) - Number(w.totalWithdrawn || 0)).toFixed(
-          2,
-        ),
+        (
+          Number(w.totalDeposited || 0) - Number(w.totalWithdrawn || 0)
+        ).toFixed(2),
       );
       await db()
         .collection("portfolios")
@@ -1141,7 +1297,8 @@ exports.adminAutoBackfillInvestor = onCall(
       {
         depositDate,
         depositAmount: amount,
-        monthsProcessed: monthResults.length,
+        monthsProcessed: months.length,
+        tradingDaysProcessed: totalTradingDays,
         totalGrossProfit,
         totalNetProfit,
       },
@@ -1150,7 +1307,8 @@ exports.adminAutoBackfillInvestor = onCall(
     return {
       ok: true,
       dryRun: false,
-      monthsProcessed: monthResults.length,
+      monthsProcessed: months.length,
+      tradingDaysProcessed: totalTradingDays,
       totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
       totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
       totalFees: parseFloat(totalFees.toFixed(2)),
