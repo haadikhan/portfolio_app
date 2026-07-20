@@ -73,7 +73,7 @@ final kmi30CompanyAllocationsProvider =
     }
 
     final live =
-        ref.watch(selectedCompanyLiveTickStreamProvider(c.symbol)).valueOrNull;
+        ref.watch(ahleTradeTickStreamProvider(c.symbol)).valueOrNull;
     final rest = ref.watch(kmi30RestTickProvider(c.symbol)).valueOrNull;
     final tick = selectKmi30CompanyTick(live, rest);
     final dailyBars =

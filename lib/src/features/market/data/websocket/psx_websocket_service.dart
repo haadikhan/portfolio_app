@@ -88,19 +88,23 @@ class PsxWebSocketService {
   void _sendSubscribe() {
     final ch = _channel;
     if (ch == null) return;
-    ch.sink.add(jsonEncode({"action": "subscribe", "symbols": _symbols}));
-    for (var i = 0; i < _symbols.length; i++) {
-      final sym = _symbols[i];
-      final marketType = sym == "KMI30" ? "IDX" : "EQ";
-      ch.sink.add(
-        jsonEncode({
-          "type": "subscribe",
-          "subscriptionType": "marketData",
-          "params": {"marketType": marketType, "symbol": sym},
-          "requestId": "kmi30-$i-$sym",
-        }),
-      );
-    }
+    // Company symbol subscriptions disabled — AhleTrade polling now provides
+    // per-company ticks. PSX WS company endpoints are currently unavailable.
+    // Uncomment the block below to re-enable when PSX Terminal access is restored.
+    //
+    // ch.sink.add(jsonEncode({"action": "subscribe", "symbols": _symbols}));
+    // for (var i = 0; i < _symbols.length; i++) {
+    //   final sym = _symbols[i];
+    //   final marketType = sym == "KMI30" ? "IDX" : "EQ";
+    //   ch.sink.add(
+    //     jsonEncode({
+    //       "type": "subscribe",
+    //       "subscriptionType": "marketData",
+    //       "params": {"marketType": marketType, "symbol": sym},
+    //       "requestId": "kmi30-$i-$sym",
+    //     }),
+    //   );
+    // }
   }
 
   /// Seeds cache so UI can show REST priming without waiting for WS.

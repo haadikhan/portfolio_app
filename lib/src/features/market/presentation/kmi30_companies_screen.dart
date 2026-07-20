@@ -173,7 +173,7 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
       final alloc = allocBySymbol[c.symbol];
       final restAsync = ref.watch(kmi30RestTickProvider(c.symbol));
       final liveAsync =
-          ref.watch(selectedCompanyLiveTickStreamProvider(c.symbol));
+          ref.watch(ahleTradeTickStreamProvider(c.symbol));
       final t = selectKmi30CompanyTick(
         liveAsync.valueOrNull,
         restAsync.valueOrNull,

@@ -8,6 +8,7 @@ import "../../data/models/gold_price_quote.dart";
 import "../../data/models/kmi30_bar.dart";
 import "../../data/models/kmi30_company.dart";
 import "../../data/models/kmi30_tick.dart";
+import "../../data/repositories/ahletrade_repository.dart";
 import "../../data/repositories/gold_price_repository.dart";
 import "../../data/repositories/psx_repository.dart";
 import "../../data/websocket/psx_websocket_service.dart";
@@ -105,6 +106,29 @@ final selectedCompanyRestFallbackTickProvider =
     FutureProvider.family<Kmi30Tick, String>((ref, symbol) async {
       return ref.read(psxRepositoryProvider).fetchTick(symbol);
     });
+
+/// AhleTrade polling feed — replaces PSX Terminal company ticks.
+/// Fetches immediately then polls every 5 seconds while subscribed.
+final ahleTradeTickStreamProvider =
+    StreamProvider.family<Kmi30Tick, String>((ref, symbol) async* {
+  final repo = ref.read(ahleTradeRepositoryProvider);
+
+  // Initial fetch immediately on mount.
+  try {
+    final tick = await repo.fetchTick(symbol);
+    yield tick;
+  } catch (_) {}
+
+  // Poll every 5 seconds.
+  await for (final _ in Stream<void>.periodic(const Duration(seconds: 5))) {
+    try {
+      final tick = await repo.fetchTick(symbol);
+      yield tick;
+    } catch (_) {
+      // Silently skip failed polls — keep stream alive.
+    }
+  }
+});
 
 // ─── Gold spot (KMI30 screen only) ─────────────────────────────────────────
 

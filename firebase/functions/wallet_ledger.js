@@ -1164,7 +1164,7 @@ exports.addProfitEntry = onCall({ region: "us-central1" }, async (request) => {
   if (!request.auth?.uid)
     throw new HttpsError("unauthenticated", "Sign in required.");
   await assertAdmin(request.auth.uid);
-  const { userId, amount, note } = request.data || {};
+  const { userId, amount, note, effectiveDate } = request.data || {};
   if (!userId) throw new HttpsError("invalid-argument", "userId required.");
   const amt = Number(amount);
   if (!amt || amt <= 0)
@@ -1172,18 +1172,44 @@ exports.addProfitEntry = onCall({ region: "us-central1" }, async (request) => {
 
   const tid = txId();
   const tRef = db().collection("transactions").doc(tid);
+  let createdAt;
   const now = admin.firestore.FieldValue.serverTimestamp();
-  await tRef.set({
+  if (effectiveDate) {
+    const parsed = new Date(effectiveDate + "T00:00:00.000Z");
+    if (isNaN(parsed.getTime())) {
+      throw new HttpsError(
+        "invalid-argument",
+        "effectiveDate must be a valid date (yyyy-MM-dd).",
+      );
+    }
+    if (parsed > new Date()) {
+      throw new HttpsError(
+        "invalid-argument",
+        "effectiveDate cannot be in the future.",
+      );
+    }
+    createdAt = admin.firestore.Timestamp.fromDate(parsed);
+  } else {
+    createdAt = now;
+  }
+
+  const docData = {
     id: tid,
     userId,
     type: "profit",
     amount: amt,
     status: "approved",
-    createdAt: now,
+    createdAt,
     updatedAt: now,
     notes: note || "profit",
     approvedBy: request.auth.uid,
-  });
+  };
+  if (effectiveDate) {
+    docData.isBackdated = true;
+    docData.backdatedBy = request.auth.uid;
+    docData.backdatedAt = now;
+  }
+  await tRef.set(docData);
   await recalculateWallet(userId);
   await safeAppendAudit(
     request.auth.uid,
@@ -1223,7 +1249,7 @@ exports.addAdjustmentEntry = onCall(
     if (!request.auth?.uid)
       throw new HttpsError("unauthenticated", "Sign in required.");
     await assertAdmin(request.auth.uid);
-    const { userId, amount, note } = request.data || {};
+    const { userId, amount, note, effectiveDate } = request.data || {};
     if (!userId) throw new HttpsError("invalid-argument", "userId required.");
     const amt = Number(amount);
     if (Number.isNaN(amt) || amt === 0)
@@ -1237,18 +1263,44 @@ exports.addAdjustmentEntry = onCall(
 
     const tid = txId();
     const tRef = db().collection("transactions").doc(tid);
+    let createdAt;
     const now = admin.firestore.FieldValue.serverTimestamp();
-    await tRef.set({
+    if (effectiveDate) {
+      const parsed = new Date(effectiveDate + "T00:00:00.000Z");
+      if (isNaN(parsed.getTime())) {
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate must be a valid date (yyyy-MM-dd).",
+        );
+      }
+      if (parsed > new Date()) {
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate cannot be in the future.",
+        );
+      }
+      createdAt = admin.firestore.Timestamp.fromDate(parsed);
+    } else {
+      createdAt = now;
+    }
+
+    const docData = {
       id: tid,
       userId,
       type: "adjustment",
       amount: Math.abs(amt) * (amt < 0 ? -1 : 1),
       status: "approved",
-      createdAt: now,
+      createdAt,
       updatedAt: now,
       notes: note.trim(),
       approvedBy: request.auth.uid,
-    });
+    };
+    if (effectiveDate) {
+      docData.isBackdated = true;
+      docData.backdatedBy = request.auth.uid;
+      docData.backdatedAt = now;
+    }
+    await tRef.set(docData);
     await recalculateWallet(userId);
     await safeAppendAudit(
       request.auth.uid,
@@ -1277,6 +1329,157 @@ exports.addAdjustmentEntry = onCall(
     );
 
     return { transactionId: tid };
+  },
+);
+
+/** Admin: create an approved deposit directly (optional backdated effectiveDate). */
+exports.adminCreateDeposit = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const { userId, amount, note, paymentMethod, effectiveDate } =
+      request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim())
+      throw new HttpsError("invalid-argument", "userId required.");
+
+    const amt = Number(amount);
+    if (!amt || amt <= 0 || !isFinite(amt))
+      throw new HttpsError(
+        "invalid-argument",
+        "amount must be a positive number.",
+      );
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    let createdAt;
+    if (effectiveDate) {
+      const parsed = new Date(effectiveDate + "T00:00:00.000Z");
+      if (isNaN(parsed.getTime()))
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate must be valid (yyyy-MM-dd).",
+        );
+      if (parsed > new Date())
+        throw new HttpsError(
+          "invalid-argument",
+          "effectiveDate cannot be in the future.",
+        );
+      createdAt = admin.firestore.Timestamp.fromDate(parsed);
+    } else {
+      createdAt = now;
+    }
+
+    const tid = txId();
+    const tRef = db().collection("transactions").doc(tid);
+    const trimmedUserId = userId.trim();
+
+    const docData = {
+      id: tid,
+      userId: trimmedUserId,
+      type: "deposit",
+      amount: amt,
+      status: "approved",
+      createdAt,
+      updatedAt: now,
+      notes: (note || "Admin deposit entry").trim(),
+      paymentMethod: (paymentMethod || "admin_entry").trim(),
+      approvedBy: request.auth.uid,
+    };
+
+    if (effectiveDate) {
+      docData.isBackdated = true;
+      docData.backdatedBy = request.auth.uid;
+      docData.backdatedAt = now;
+    }
+
+    await tRef.set(docData);
+
+    await recalculateWallet(trimmedUserId);
+    await syncPortfolioNetDeposits(trimmedUserId);
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "adminCreateDeposit",
+      "transaction",
+      tid,
+      null,
+      {
+        userId: trimmedUserId,
+        amount: amt,
+        isBackdated: !!effectiveDate,
+        effectiveDate: effectiveDate || null,
+      },
+    );
+
+    return { transactionId: tid, ok: true };
+  },
+);
+
+/** Admin: set investor account opening date on users/{uid}. */
+exports.setAccountOpeningDate = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const { userId, openingDate } = request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim())
+      throw new HttpsError("invalid-argument", "userId required.");
+
+    if (!openingDate || typeof openingDate !== "string")
+      throw new HttpsError(
+        "invalid-argument",
+        "openingDate required (yyyy-MM-dd).",
+      );
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(openingDate))
+      throw new HttpsError(
+        "invalid-argument",
+        "openingDate must be in yyyy-MM-dd format.",
+      );
+
+    const parsed = new Date(openingDate + "T00:00:00.000Z");
+    if (isNaN(parsed.getTime()))
+      throw new HttpsError("invalid-argument", "Invalid openingDate.");
+
+    if (parsed > new Date())
+      throw new HttpsError(
+        "invalid-argument",
+        "openingDate cannot be in the future.",
+      );
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const trimmedUserId = userId.trim();
+
+    await db()
+      .collection("users")
+      .doc(trimmedUserId)
+      .set(
+        {
+          accountOpeningDate: admin.firestore.Timestamp.fromDate(parsed),
+          accountOpeningDateSetBy: request.auth.uid,
+          accountOpeningDateSetAt: now,
+        },
+        { merge: true },
+      );
+
+    await safeAppendAudit(
+      request.auth.uid,
+      "admin",
+      "setAccountOpeningDate",
+      "user",
+      trimmedUserId,
+      null,
+      { openingDate },
+    );
+
+    return { ok: true };
   },
 );
 

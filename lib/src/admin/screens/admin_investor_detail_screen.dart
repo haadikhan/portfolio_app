@@ -18,6 +18,7 @@ import "../services/consent_agreement_pdf_builder.dart";
 import "../crm/crm_assignment_section.dart";
 import "../models/admin_investor_models.dart";
 import "../models/kyc_admin_models.dart";
+import "../../providers/wallet_providers.dart";
 import "../providers/admin_providers.dart";
 import "../providers/five_market_admin_providers.dart";
 import "../providers/admin_change_request_providers.dart";
@@ -256,6 +257,7 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
           ),
           Text("Email: ${user.email.isEmpty ? "—" : user.email}"),
           Text("Phone: ${user.phone.isEmpty ? "—" : user.phone}"),
+          _AccountOpeningDateRow(userId: user.userId),
           if (isAdmin) ...[
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -1716,6 +1718,137 @@ class _ReferrerCardState extends ConsumerState<_ReferrerCard> {
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AccountOpeningDateRow extends ConsumerStatefulWidget {
+  const _AccountOpeningDateRow({required this.userId});
+  final String userId;
+
+  @override
+  ConsumerState<_AccountOpeningDateRow> createState() =>
+      _AccountOpeningDateRowState();
+}
+
+class _AccountOpeningDateRowState extends ConsumerState<_AccountOpeningDateRow> {
+  bool _saving = false;
+
+  String _fmt(DateTime d) =>
+      "${d.day.toString().padLeft(2, '0')} "
+      "${const [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ][d.month]} ${d.year}";
+
+  Future<void> _pick(DateTime? current) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime.now(),
+      firstDate: DateTime(2015),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Set account opening date"),
+        content: Text(
+          "Set account opening date to ${_fmt(picked)} "
+          "for this investor?\n\n"
+          "This will be visible to the investor in the app.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Confirm"),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(walletLedgerFunctionsProvider).setAccountOpeningDate(
+            userId: widget.userId,
+            openingDate: picked,
+          );
+      ref.invalidate(investorDetailProvider(widget.userId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Account opening date set to ${_fmt(picked)}"),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.userId)
+          .snapshots(),
+      builder: (context, snap) {
+        DateTime? openingDate;
+        if (snap.hasData && snap.data!.exists) {
+          final raw = snap.data!.data();
+          final ts = raw?["accountOpeningDate"];
+          if (ts is Timestamp) openingDate = ts.toDate();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Text(
+                openingDate == null
+                    ? "Account opening date: Not set"
+                    : "Account opening date: ${_fmt(openingDate)}",
+              ),
+              const SizedBox(width: 8),
+              if (_saving)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                TextButton(
+                  onPressed: () => _pick(openingDate),
+                  child: Text(openingDate == null ? "Set date" : "Edit"),
+                ),
+            ],
           ),
         );
       },

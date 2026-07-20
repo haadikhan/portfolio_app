@@ -536,7 +536,14 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
   final _adjAmount = TextEditingController();
   final _adjNote = TextEditingController();
   final _repairUid = TextEditingController();
+  final _depUserId = TextEditingController();
+  final _depAmount = TextEditingController();
+  final _depNote = TextEditingController();
   bool _busy = false;
+  DateTime? _profitDate;
+  DateTime? _adjDate;
+  String _depMethod = "admin_entry";
+  DateTime? _depDate;
 
   @override
   void dispose() {
@@ -546,7 +553,98 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     _adjAmount.dispose();
     _adjNote.dispose();
     _repairUid.dispose();
+    _depUserId.dispose();
+    _depAmount.dispose();
+    _depNote.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate({
+    required DateTime? current,
+    required void Function(DateTime?) onPicked,
+  }) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) onPicked(picked);
+  }
+
+  Widget _dateRow({
+    required DateTime? selected,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    return Row(
+      children: [
+        const Icon(Icons.calendar_today_outlined, size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            selected == null
+                ? "Date: Today (current)"
+                : "Date: ${selected.day.toString().padLeft(2, '0')} "
+                    "${_monthName(selected.month)} ${selected.year}",
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+        TextButton(onPressed: onTap, child: const Text("Change")),
+        if (selected != null)
+          TextButton(
+            onPressed: onClear,
+            child: const Text("Reset to today"),
+          ),
+      ],
+    );
+  }
+
+  String _monthName(int m) => const [
+        "",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ][m];
+
+  Widget _backdatedWarning(DateTime? date) {
+    if (date == null) return const SizedBox.shrink();
+    final isBackdated = !(date.year == DateTime.now().year &&
+        date.month == DateTime.now().month &&
+        date.day == DateTime.now().day);
+    if (!isBackdated) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.shade700),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: Colors.amber.shade800,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "Backdated entry — will appear in past records",
+            style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -578,6 +676,16 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
             border: OutlineInputBorder(),
           ),
         ),
+        const SizedBox(height: 12),
+        _dateRow(
+          selected: _profitDate,
+          onTap: () => _pickDate(
+            current: _profitDate,
+            onPicked: (d) => setState(() => _profitDate = d),
+          ),
+          onClear: () => setState(() => _profitDate = null),
+        ),
+        _backdatedWarning(_profitDate),
         FilledButton(
           onPressed: _busy ? null : _postProfit,
           child: const Text("Post profit"),
@@ -608,9 +716,82 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
             border: OutlineInputBorder(),
           ),
         ),
+        const SizedBox(height: 12),
+        _dateRow(
+          selected: _adjDate,
+          onTap: () => _pickDate(
+            current: _adjDate,
+            onPicked: (d) => setState(() => _adjDate = d),
+          ),
+          onClear: () => setState(() => _adjDate = null),
+        ),
+        _backdatedWarning(_adjDate),
         FilledButton(
           onPressed: _busy ? null : _postAdj,
           child: const Text("Post adjustment"),
+        ),
+        const Divider(height: 32),
+        Text(
+          "Admin deposit entry",
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _depUserId,
+          decoration: const InputDecoration(
+            labelText: "User ID",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _depAmount,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: "Amount (PKR)",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _depMethod,
+          decoration: const InputDecoration(
+            labelText: "Payment method",
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: "admin_entry", child: Text("Admin entry")),
+            DropdownMenuItem(
+              value: "bank_transfer",
+              child: Text("Bank transfer"),
+            ),
+            DropdownMenuItem(value: "cheque", child: Text("Cheque")),
+            DropdownMenuItem(value: "cash", child: Text("Cash")),
+          ],
+          onChanged: (v) => setState(() => _depMethod = v ?? "admin_entry"),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _depNote,
+          decoration: const InputDecoration(
+            labelText: "Note (optional)",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _dateRow(
+          selected: _depDate,
+          onTap: () => _pickDate(
+            current: _depDate,
+            onPicked: (d) => setState(() => _depDate = d),
+          ),
+          onClear: () => setState(() => _depDate = null),
+        ),
+        _backdatedWarning(_depDate),
+        const SizedBox(height: 8),
+        FilledButton(
+          onPressed: _busy ? null : _postDeposit,
+          child: const Text("Post deposit"),
         ),
         const Divider(height: 32),
         Text(
@@ -641,15 +822,15 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     }
     setState(() => _busy = true);
     try {
-      await ref
-          .read(walletLedgerFunctionsProvider)
-          .addProfitEntry(
+      await ref.read(walletLedgerFunctionsProvider).addProfitEntryWithDate(
             userId: uid,
             amount: amt,
             note: _profitNote.text.trim().isEmpty
                 ? null
                 : _profitNote.text.trim(),
+            effectiveDate: _profitDate,
           );
+      setState(() => _profitDate = null);
       _toast("Profit posted.");
     } catch (e) {
       _toast("$e");
@@ -668,12 +849,59 @@ class _ManualPostingsTabState extends ConsumerState<_ManualPostingsTab> {
     }
     setState(() => _busy = true);
     try {
-      await ref
-          .read(walletLedgerFunctionsProvider)
-          .addAdjustmentEntry(userId: uid, amount: amt, note: note);
+      await ref.read(walletLedgerFunctionsProvider).addAdjustmentEntryWithDate(
+            userId: uid,
+            amount: amt,
+            note: note,
+            effectiveDate: _adjDate,
+          );
+      setState(() => _adjDate = null);
       _toast("Adjustment posted.");
     } catch (e) {
       _toast("$e");
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _postDeposit() async {
+    final uid = _depUserId.text.trim();
+    final amtStr = _depAmount.text.trim();
+    if (uid.isEmpty || amtStr.isEmpty) return;
+    final amt = double.tryParse(amtStr);
+    if (amt == null || amt <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid positive amount.")),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref.read(walletLedgerFunctionsProvider).adminCreateDeposit(
+            userId: uid,
+            amount: amt,
+            note: _depNote.text.trim().isEmpty ? null : _depNote.text.trim(),
+            paymentMethod: _depMethod,
+            effectiveDate: _depDate,
+          );
+      _depUserId.clear();
+      _depAmount.clear();
+      _depNote.clear();
+      setState(() {
+        _depMethod = "admin_entry";
+        _depDate = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Deposit posted for $uid")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -116,4 +116,79 @@ class WalletLedgerFunctionsService {
       "userId": userId,
     });
   }
+
+  /// Profit entry with optional backdated effectiveDate.
+  /// effectiveDate null = today (serverTimestamp on server).
+  Future<void> addProfitEntryWithDate({
+    required String userId,
+    required double amount,
+    String? note,
+    DateTime? effectiveDate,
+  }) async {
+    await _f.httpsCallable("addProfitEntry").call(<String, dynamic>{
+      "userId": userId,
+      "amount": amount,
+      if (note != null && note.isNotEmpty) "note": note,
+      if (effectiveDate != null)
+        "effectiveDate":
+            "${effectiveDate.year.toString().padLeft(4, '0')}"
+            "-${effectiveDate.month.toString().padLeft(2, '0')}"
+            "-${effectiveDate.day.toString().padLeft(2, '0')}",
+    });
+  }
+
+  /// Adjustment entry with optional backdated effectiveDate.
+  Future<void> addAdjustmentEntryWithDate({
+    required String userId,
+    required double amount,
+    required String note,
+    DateTime? effectiveDate,
+  }) async {
+    await _f.httpsCallable("addAdjustmentEntry").call(<String, dynamic>{
+      "userId": userId,
+      "amount": amount,
+      "note": note,
+      if (effectiveDate != null)
+        "effectiveDate":
+            "${effectiveDate.year.toString().padLeft(4, '0')}"
+            "-${effectiveDate.month.toString().padLeft(2, '0')}"
+            "-${effectiveDate.day.toString().padLeft(2, '0')}",
+    });
+  }
+
+  /// Admin-created deposit (bypasses investor request flow).
+  Future<void> adminCreateDeposit({
+    required String userId,
+    required double amount,
+    String? note,
+    String? paymentMethod,
+    DateTime? effectiveDate,
+  }) async {
+    await _f.httpsCallable("adminCreateDeposit").call(<String, dynamic>{
+      "userId": userId,
+      "amount": amount,
+      if (note != null && note.isNotEmpty) "note": note,
+      if (paymentMethod != null && paymentMethod.isNotEmpty)
+        "paymentMethod": paymentMethod,
+      if (effectiveDate != null)
+        "effectiveDate":
+            "${effectiveDate.year.toString().padLeft(4, '0')}"
+            "-${effectiveDate.month.toString().padLeft(2, '0')}"
+            "-${effectiveDate.day.toString().padLeft(2, '0')}",
+    });
+  }
+
+  /// Set account opening date for an investor.
+  Future<void> setAccountOpeningDate({
+    required String userId,
+    required DateTime openingDate,
+  }) async {
+    await _f.httpsCallable("setAccountOpeningDate").call(<String, dynamic>{
+      "userId": userId,
+      "openingDate":
+          "${openingDate.year.toString().padLeft(4, '0')}"
+          "-${openingDate.month.toString().padLeft(2, '0')}"
+          "-${openingDate.day.toString().padLeft(2, '0')}",
+    });
+  }
 }

@@ -14,6 +14,22 @@ import "providers/kmi30_companies_providers.dart";
 import "widgets/candle_chart_painter.dart";
 import "widgets/kmi30_line_chart.dart";
 
+String _friendlyError(Object error) {
+  final msg = error.toString().toLowerCase();
+  if (msg.contains("403") ||
+      msg.contains("restricted") ||
+      msg.contains("access")) {
+    return "Chart data temporarily unavailable.";
+  }
+  if (msg.contains("connection") ||
+      msg.contains("socket") ||
+      msg.contains("network") ||
+      msg.contains("failed")) {
+    return "Unable to connect to market data.";
+  }
+  return "Market data unavailable.";
+}
+
 class Kmi30CompanyChartScreen extends ConsumerWidget {
   const Kmi30CompanyChartScreen({super.key, required this.symbol});
 
@@ -24,7 +40,7 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
     final tf = ref.watch(selectedTimeframeProvider);
     final chartType = ref.watch(selectedChartTypeProvider);
     final restAsync = ref.watch(kmi30RestTickProvider(symbol));
-    final liveAsync = ref.watch(selectedCompanyLiveTickStreamProvider(symbol));
+    final liveAsync = ref.watch(ahleTradeTickStreamProvider(symbol));
     final dailyAsync = ref.watch(companyDailyOhlcBarsProvider(symbol));
     final klinesAsync = ref.watch(selectedCompanyKlinesProvider(symbol));
     final wsStatus = ref.watch(wsConnectionStatusProvider);
@@ -39,12 +55,10 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
       title: context.trParams("kmi30_chart_app_bar", {"symbol": symbol}),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.invalidate(ahleTradeTickStreamProvider(symbol));
           ref.invalidate(kmi30RestTickProvider(symbol));
           ref.invalidate(selectedCompanyKlinesProvider(symbol));
           ref.invalidate(companyDailyOhlcBarsProvider(symbol));
-          if (status != PsxWsStatus.connected) {
-            ref.invalidate(selectedCompanyRestFallbackTickProvider(symbol));
-          }
         },
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -97,9 +111,26 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
                 if (effectiveTick == null && restAsync.hasError && !hasAny) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      "${context.tr("error_prefix")} ${restAsync.error}",
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${context.tr("error_prefix")} ${_friendlyError(restAsync.error!)}",
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref.invalidate(ahleTradeTickStreamProvider(symbol));
+                            ref.invalidate(kmi30RestTickProvider(symbol));
+                            ref.invalidate(
+                                selectedCompanyKlinesProvider(symbol));
+                            ref.invalidate(
+                                companyDailyOhlcBarsProvider(symbol));
+                          },
+                          child: const Text("Tap to retry"),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -108,9 +139,26 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
                     effectiveTick == null) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      "${context.tr("error_prefix")} ${klinesAsync.error}",
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${context.tr("error_prefix")} ${_friendlyError(klinesAsync.error!)}",
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref.invalidate(ahleTradeTickStreamProvider(symbol));
+                            ref.invalidate(kmi30RestTickProvider(symbol));
+                            ref.invalidate(
+                                selectedCompanyKlinesProvider(symbol));
+                            ref.invalidate(
+                                companyDailyOhlcBarsProvider(symbol));
+                          },
+                          child: const Text("Tap to retry"),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -168,7 +216,20 @@ class Kmi30CompanyChartScreen extends ConsumerWidget {
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
-                  child: Text("${context.tr("error_prefix")} $e"),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("${context.tr("error_prefix")} ${_friendlyError(e)}"),
+                      TextButton(
+                        onPressed: () {
+                          ref.invalidate(ahleTradeTickStreamProvider(symbol));
+                          ref.invalidate(selectedCompanyKlinesProvider(symbol));
+                          ref.invalidate(companyDailyOhlcBarsProvider(symbol));
+                        },
+                        child: const Text("Tap to retry"),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

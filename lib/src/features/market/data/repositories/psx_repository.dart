@@ -73,6 +73,11 @@ class PsxRepository {
       "https://psxterminal.com/api/klines/$s/$tf?limit=$limit",
     );
     final res = await _client.get(uri);
+    if (res.statusCode == 403) {
+      throw Exception(
+        "Chart data unavailable. Market data access restricted.",
+      );
+    }
     if (res.statusCode != 200) {
       throw Exception("Klines request failed (HTTP ${res.statusCode}).");
     }
