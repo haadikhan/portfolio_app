@@ -876,11 +876,68 @@ exports.adminAutoBackfillInvestor = onCall(
       eodMap[doc.id] = doc.data();
     }
 
+    // ── Fetch historical KMI30 % changes as fallback for missing/errored EOD ─
+    // Uses Yahoo Finance KSE100 (^PKOL) as a proxy when PSX Terminal data is
+    // unavailable. KSE100 and KMI30 are highly correlated Pakistan market indexes.
+    // Falls back gracefully to empty map if Yahoo Finance also fails.
+    const historicalKmi30Map = await (async () => {
+      try {
+        const p1 = Math.floor(
+          new Date(depositDate + "T00:00:00Z").getTime() / 1000,
+        );
+        const p2 = Math.floor(
+          new Date(yesterdayPkt + "T23:59:59Z").getTime() / 1000,
+        );
+        // Try Yahoo Finance — Pakistan KSE100 index as KMI30 proxy
+        const url =
+          `https://query1.finance.yahoo.com/v8/finance/chart/%5EPKOL` +
+          `?interval=1d&period1=${p1}&period2=${p2}`;
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; ISC-WAI-Server/1.0)",
+            "Accept": "application/json",
+          },
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!res.ok) throw new Error(`Yahoo Finance HTTP ${res.status}`);
+        const json = await res.json();
+        const result = json?.chart?.result?.[0];
+        if (!result) throw new Error("No chart result");
+
+        const timestamps = result.timestamp || [];
+        const closes = result.indicators?.quote?.[0]?.close || [];
+        if (!timestamps.length) throw new Error("Empty timestamps");
+
+        const map = {};
+        for (let i = 1; i < timestamps.length; i++) {
+          const prev = closes[i - 1];
+          const curr = closes[i];
+          if (!prev || !curr || isNaN(prev) || isNaN(curr)) continue;
+          const pktDate = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Karachi",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(timestamps[i] * 1000));
+          map[pktDate] = parseFloat(
+            (((curr - prev) / prev) * 100).toFixed(4),
+          );
+        }
+        logger.info("backfill_yahoo_kmi30_ok", {
+          dates: Object.keys(map).length,
+        });
+        return map;
+      } catch (e) {
+        logger.warn("backfill_yahoo_kmi30_failed", { error: String(e) });
+        return {};
+      }
+    })();
+
     // ── Simulate day-by-day, collecting daily and monthly results ──────────
     // runningBasePkr compounds daily (gross) and deducts monthly perf fee.
     let runningBasePkr = amount;
     let currentDate = new Date(depositDate + "T00:00:00.000Z");
-    const monthlyData = {};  // monthKey → { grossProfit, tradingDays, lastDate, firstDate, basePkrAtStart, dailyEntries[] }
+    const monthlyData = {};
     let missingEodDays = 0;
     let totalTradingDays = 0;
 
@@ -905,11 +962,36 @@ exports.adminAutoBackfillInvestor = onCall(
 
       if (isTradingDay) {
         const eod = eodMap[dateStr];
-        if (!eod) missingEodDays++;
+
+        // Determine whether stored KMI30 data is valid (not errored/missing)
+        const kmi30IsValid =
+          eod &&
+          eod.kmi30 &&
+          typeof eod.kmi30 === "object" &&
+          !eod.kmi30.error &&
+          eod.kmi30.changePercent != null;
+
+        if (!kmi30IsValid) missingEodDays++;
+
+        // Build effective EOD: prefer stored data; supplement KMI30 from
+        // Yahoo Finance historical map when stored data is missing or errored.
+        let effectiveEod = eod || { tradingDay: true };
+        let kmi30Source = kmi30IsValid
+          ? eod.effectiveDaySource || "calendar"
+          : "missing";
+
+        if (!kmi30IsValid && historicalKmi30Map[dateStr] !== undefined) {
+          effectiveEod = {
+            ...effectiveEod,
+            kmi30: { changePercent: historicalKmi30Map[dateStr] },
+          };
+          kmi30Source = "yahoo_kse100_proxy";
+        }
+
         const result = calculateDailyProfit({
           basePkr: runningBasePkr,
           config,
-          eodSnap: eod || { tradingDay: true },
+          eodSnap: effectiveEod,
         });
         const dailyPkr = parseFloat(result.totalProfitPkr.toFixed(2));
 
@@ -918,7 +1000,7 @@ exports.adminAutoBackfillInvestor = onCall(
           basePkr: parseFloat(runningBasePkr.toFixed(2)),
           markets: result.markets,
           totalProfitPkr: dailyPkr,
-          eodSource: eod ? (eod.effectiveDaySource || "calendar") : "missing",
+          eodSource: kmi30Source,
         });
         monthlyData[monthKey].grossProfit += dailyPkr;
         monthlyData[monthKey].tradingDays++;
