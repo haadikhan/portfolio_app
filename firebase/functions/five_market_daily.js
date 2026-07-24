@@ -877,36 +877,33 @@ exports.adminAutoBackfillInvestor = onCall(
     }
 
     // ── Fetch historical KMI30 % changes as fallback for missing/errored EOD ─
-    // Uses Yahoo Finance KSE100 (^PKOL) as a proxy when PSX Terminal data is
-    // unavailable. KSE100 and KMI30 are highly correlated Pakistan market indexes.
-    // Falls back gracefully to empty map if Yahoo Finance also fails.
+    // Uses Yahoo Finance Pakistan market data as a proxy when PSX Terminal data
+    // is unavailable. Falls back gracefully to empty map if all sources fail.
     const historicalKmi30Map = await (async () => {
-      try {
-        const p1 = Math.floor(
-          new Date(depositDate + "T00:00:00Z").getTime() / 1000,
-        );
-        const p2 = Math.floor(
-          new Date(yesterdayPkt + "T23:59:59Z").getTime() / 1000,
-        );
-        // Try Yahoo Finance — Pakistan KSE100 index as KMI30 proxy
+      // Helper: parse Yahoo Finance v8 chart JSON into a date→changePercent map.
+      // Uses the last 2 years of data and filters to the relevant date range.
+      async function tryYahooTicker(ticker) {
         const url =
-          `https://query1.finance.yahoo.com/v8/finance/chart/%5EPKOL` +
-          `?interval=1d&period1=${p1}&period2=${p2}`;
+          `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}` +
+          `?interval=1d&range=2y`;
         const res = await fetch(url, {
           headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; ISC-WAI-Server/1.0)",
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+              "AppleWebKit/537.36 (KHTML, like Gecko) " +
+              "Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
           },
           signal: AbortSignal.timeout(20000),
         });
-        if (!res.ok) throw new Error(`Yahoo Finance HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const result = json?.chart?.result?.[0];
         if (!result) throw new Error("No chart result");
-
         const timestamps = result.timestamp || [];
         const closes = result.indicators?.quote?.[0]?.close || [];
-        if (!timestamps.length) throw new Error("Empty timestamps");
+        if (timestamps.length < 2) throw new Error("Insufficient data");
 
         const map = {};
         for (let i = 1; i < timestamps.length; i++) {
@@ -919,18 +916,43 @@ exports.adminAutoBackfillInvestor = onCall(
             month: "2-digit",
             day: "2-digit",
           }).format(new Date(timestamps[i] * 1000));
-          map[pktDate] = parseFloat(
-            (((curr - prev) / prev) * 100).toFixed(4),
-          );
+          // Only include dates in our backfill range
+          if (pktDate >= depositDate && pktDate <= yesterdayPkt) {
+            map[pktDate] = parseFloat(
+              (((curr - prev) / prev) * 100).toFixed(4),
+            );
+          }
         }
-        logger.info("backfill_yahoo_kmi30_ok", {
-          dates: Object.keys(map).length,
-        });
+        if (!Object.keys(map).length) throw new Error("No dates in range");
         return map;
-      } catch (e) {
-        logger.warn("backfill_yahoo_kmi30_failed", { error: String(e) });
-        return {};
       }
+
+      // Try multiple tickers in order — first success wins.
+      // KSE100 and KMI30 are the two main Pakistan stock indexes.
+      const tickers = [
+        "%5EKSE",    // ^KSE  — KSE100 on Yahoo Finance
+        "%5EPKOL",   // ^PKOL — alternate Pakistan index ticker
+        "%5EKSEI",   // ^KSEI — KSE Meezan Index
+      ];
+
+      for (const ticker of tickers) {
+        try {
+          const map = await tryYahooTicker(ticker);
+          logger.info("backfill_yahoo_kmi30_ok", {
+            ticker,
+            dates: Object.keys(map).length,
+          });
+          return map;
+        } catch (e) {
+          logger.warn("backfill_yahoo_ticker_failed", {
+            ticker,
+            error: String(e),
+          });
+        }
+      }
+
+      logger.warn("backfill_yahoo_kmi30_all_failed");
+      return {};
     })();
 
     // ── Simulate day-by-day, collecting daily and monthly results ──────────
