@@ -858,6 +858,19 @@ exports.adminAutoBackfillInvestor = onCall(
       depositByDate[d.date] = (depositByDate[d.date] || 0) + d.amount;
     }
 
+    // Build a lookup: date string → front-end load fee for deposits on that date
+    const frontEndLoadByDate = {};
+    let totalFrontEndLoad = 0;
+    if (frontEndLoadPct > 0) {
+      for (const d of deposits) {
+        const fee = parseFloat((d.amount * frontEndLoadPct / 100).toFixed(2));
+        if (fee > 0) {
+          frontEndLoadByDate[d.date] = (frontEndLoadByDate[d.date] || 0) + fee;
+          totalFrontEndLoad = parseFloat((totalFrontEndLoad + fee).toFixed(2));
+        }
+      }
+    }
+
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
 
@@ -881,6 +894,14 @@ exports.adminAutoBackfillInvestor = onCall(
     const feesEnabled = feeConfig.isEnabled === true;
     const perfFeePct = feesEnabled
       ? Number(feeConfig.performanceFeePct) || 0
+      : 0;
+    // Annual management fee % (field may be stored as either name)
+    const mgmtFeePctAnnual = feesEnabled
+      ? (Number(feeConfig.managementFeePctAnnual) || Number(feeConfig.managementFeeAnnualPct) || 0)
+      : 0;
+    // Front-end load % charged once per deposit
+    const frontEndLoadPct = feesEnabled
+      ? (Number(feeConfig.frontEndLoadPct) || 0)
       : 0;
 
     // ── Load all EOD snapshots from depositDate to yesterday ───────────────
@@ -1006,6 +1027,10 @@ exports.adminAutoBackfillInvestor = onCall(
       if (depositByDate[dateStr]) {
         runningBasePkr += depositByDate[dateStr];
       }
+      // Deduct front-end load on deposit dates (reduces the invested capital base)
+      if (frontEndLoadByDate[dateStr]) {
+        runningBasePkr -= frontEndLoadByDate[dateStr];
+      }
 
       if (isTradingDay) {
         const eod = eodMap[dateStr];
@@ -1067,8 +1092,12 @@ exports.adminAutoBackfillInvestor = onCall(
     let totalNetProfit = 0;
     let totalFees = 0;
 
-    // Reset runningBasePkr to recompute with fee deductions per month
-    runningBasePkr = totalAmount;
+    // Reset runningBasePkr to recompute with fee deductions per month.
+    // Start after front-end load deductions (reflects actual invested capital).
+    runningBasePkr = totalAmount - totalFrontEndLoad;
+    // Seed total fees with the front-end loads already computed.
+    totalFees = parseFloat(totalFrontEndLoad.toFixed(2));
+
     const monthResults = months.map((monthKey) => {
       const md = monthlyData[monthKey];
       const grossProfit = parseFloat(md.grossProfit.toFixed(2));
@@ -1076,7 +1105,13 @@ exports.adminAutoBackfillInvestor = onCall(
         grossProfit > 0 && perfFeePct > 0
           ? parseFloat(((grossProfit * perfFeePct) / 100).toFixed(2))
           : 0;
-      const netProfit = parseFloat((grossProfit - performanceFee).toFixed(2));
+      // Monthly management fee: annual rate ÷ 12, applied to opening portfolio value
+      const managementFee =
+        runningBasePkr > 0 && mgmtFeePctAnnual > 0
+          ? parseFloat(((runningBasePkr * mgmtFeePctAnnual) / 100 / 12).toFixed(2))
+          : 0;
+      const totalMonthFees = parseFloat((performanceFee + managementFee).toFixed(2));
+      const netProfit = parseFloat((grossProfit - totalMonthFees).toFixed(2));
       const returnPct =
         runningBasePkr > 0
           ? parseFloat(((grossProfit / runningBasePkr) * 100).toFixed(4))
@@ -1085,15 +1120,16 @@ exports.adminAutoBackfillInvestor = onCall(
 
       totalGrossProfit += grossProfit;
       totalNetProfit += netProfit;
-      totalFees += performanceFee;
+      totalFees += totalMonthFees;
 
-      // Compound monthly NET (fee deducted) for the preview
-      runningBasePkr = runningBasePkr + grossProfit - performanceFee;
+      // Compound monthly NET (all fees deducted) for the preview
+      runningBasePkr = runningBasePkr + grossProfit - totalMonthFees;
 
       return {
         monthKey,
         grossProfit,
         performanceFee,
+        managementFee,
         netProfit,
         returnPct,
         previousValue,
@@ -1112,6 +1148,7 @@ exports.adminAutoBackfillInvestor = onCall(
         monthsProcessed: monthResults.length,
         tradingDaysProcessed: totalTradingDays,
         totalDeposited: totalAmount,
+        totalFrontEndLoad: parseFloat(totalFrontEndLoad.toFixed(2)),
         totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
         totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
         totalFees: parseFloat(totalFees.toFixed(2)),
@@ -1219,10 +1256,50 @@ exports.adminAutoBackfillInvestor = onCall(
       depositTids.push(depTid);
     }
 
+    // ── Step 2b: Write front-end load fee transactions (backdated to each deposit date) ──
+    const frontEndLoadTids = [];
+    if (frontEndLoadPct > 0) {
+      for (let di = 0; di < deposits.length; di++) {
+        const dep = deposits[di];
+        const fee = parseFloat((dep.amount * frontEndLoadPct / 100).toFixed(2));
+        if (fee <= 0) continue;
+        const felTs = admin.firestore.Timestamp.fromDate(
+          new Date(dep.date + "T00:00:00.000Z"),
+        );
+        const felTid =
+          "FEL-BACKFILL-" +
+          Date.now().toString(36).toUpperCase() +
+          "-" +
+          Math.random().toString(36).substring(2, 8).toUpperCase();
+        await db().collection("transactions").doc(felTid).set({
+          id: felTid,
+          userId: uid,
+          type: "front_end_load_fee",
+          feeKind: "front_end_load",
+          amount: fee,
+          status: "approved",
+          feePct: frontEndLoadPct,
+          feeBaseAmount: dep.amount,
+          relatedTxId: depositTids[di] || "",
+          periodKey: dep.date.substring(0, 7),
+          createdAt: felTs,
+          updatedAt: now,
+          approvedBy: adminUid,
+          notes: `Front-end load (${frontEndLoadPct}%) on deposit ${dep.date}`,
+          isBackdated: true,
+          backdatedBy: adminUid,
+          backdatedAt: now,
+          isAutoBackfill: true,
+        });
+        frontEndLoadTids.push(felTid);
+      }
+    }
+
     // ── Step 3: Write DAILY five_market_daily docs + daily transactions ────
     // Processes month by month. Within each month, writes one batch per day.
-    // Also writes monthly returnHistory + fee_statement + performance_fee.
-    let portfolioCurrentValue = totalAmount;
+    // Also writes monthly returnHistory + fee_statement + performance_fee + management_fee.
+    // Start after front-end load deductions to reflect actual invested capital.
+    let portfolioCurrentValue = totalAmount - totalFrontEndLoad;
 
     for (const monthKey of months) {
       const md = monthlyData[monthKey];
@@ -1231,14 +1308,19 @@ exports.adminAutoBackfillInvestor = onCall(
         monthGross > 0 && perfFeePct > 0
           ? parseFloat(((monthGross * perfFeePct) / 100).toFixed(2))
           : 0;
-      const monthNet = parseFloat((monthGross - performanceFee).toFixed(2));
+      // Monthly management fee: annual rate ÷ 12 on opening portfolio value
+      const prevPortfolioValue = parseFloat(portfolioCurrentValue.toFixed(2));
+      const managementFee =
+        prevPortfolioValue > 0 && mgmtFeePctAnnual > 0
+          ? parseFloat(((prevPortfolioValue * mgmtFeePctAnnual) / 100 / 12).toFixed(2))
+          : 0;
+      const monthNet = parseFloat((monthGross - performanceFee - managementFee).toFixed(2));
       const monthReturnPct =
         portfolioCurrentValue > 0
           ? parseFloat(
               ((monthGross / portfolioCurrentValue) * 100).toFixed(4),
             )
           : 0;
-      const prevPortfolioValue = parseFloat(portfolioCurrentValue.toFixed(2));
 
       const lastDateStr = md.lastTradingDate || md.firstDate;
       const monthEndTs = admin.firestore.Timestamp.fromDate(
@@ -1307,6 +1389,31 @@ exports.adminAutoBackfillInvestor = onCall(
 
       const monthBatch = db().batch();
 
+      // Management fee transaction (silent — hidden from monthly report, visible in yearly)
+      if (managementFee > 0) {
+        const mgmtTxRef = db().collection("transactions").doc();
+        monthBatch.set(mgmtTxRef, {
+          id: mgmtTxRef.id,
+          userId: uid,
+          type: "management_fee",
+          feeKind: "management",
+          amount: managementFee,
+          status: "approved",
+          feePct: mgmtFeePctAnnual,
+          feeBaseAmount: prevPortfolioValue,
+          periodKey: monthKey,
+          silentFee: true,
+          createdAt: monthEndTs,
+          updatedAt: monthEndTs,
+          approvedBy: adminUid,
+          notes: `Management fee (${mgmtFeePctAnnual}%/yr ÷ 12 months) for ${monthKey} on PKR ${prevPortfolioValue}`,
+          isBackdated: true,
+          backdatedBy: adminUid,
+          backdatedAt: now,
+          isAutoBackfill: true,
+        });
+      }
+
       // Return history entry (one per month, shows in Portfolio screen)
       const histRef = db()
         .collection("portfolios")
@@ -1366,7 +1473,16 @@ exports.adminAutoBackfillInvestor = onCall(
       }
 
       // Fee statement (shown in Reports screen)
-      const totalFeeAmt = parseFloat(performanceFee.toFixed(2));
+      // Front-end load allocated to the month(s) where deposits were made
+      const frontEndLoadForThisMonth = parseFloat(
+        Object.entries(frontEndLoadByDate)
+          .filter(([date]) => date.startsWith(monthKey))
+          .reduce((s, [, v]) => s + v, 0)
+          .toFixed(2),
+      );
+      const totalFeeAmt = parseFloat(
+        (performanceFee + managementFee + frontEndLoadForThisMonth).toFixed(2),
+      );
       const effectiveFeeRatePct =
         monthGross > 0
           ? parseFloat(((totalFeeAmt / monthGross) * 100).toFixed(4))
@@ -1387,9 +1503,9 @@ exports.adminAutoBackfillInvestor = onCall(
           withdrawalsThisMonth: 0,
           grossProfit: monthGross,
           netProfit: monthNet,
-          managementFee: 0,
+          managementFee,
           performanceFee,
-          frontEndLoadFee: 0,
+          frontEndLoadFee: frontEndLoadForThisMonth,
           referralFee: 0,
           totalFees: totalFeeAmt,
           effectiveFeeRatePct,
@@ -1446,7 +1562,9 @@ exports.adminAutoBackfillInvestor = onCall(
       totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
       totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
       totalFees: parseFloat(totalFees.toFixed(2)),
+      totalFrontEndLoad: parseFloat(totalFrontEndLoad.toFixed(2)),
       depositTransactionIds: depositTids,
+      frontEndLoadTransactionIds: frontEndLoadTids,
       totalDeposited: totalAmount,
       missingEodDays,
       months: monthResults,
