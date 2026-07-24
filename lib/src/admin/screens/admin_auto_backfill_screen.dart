@@ -16,8 +16,8 @@ class AdminAutoBackfillScreen extends ConsumerStatefulWidget {
 class _AdminAutoBackfillScreenState
     extends ConsumerState<AdminAutoBackfillScreen> {
   final _userIdCtl = TextEditingController();
-  final _amountCtl = TextEditingController();
-  DateTime? _depositDate;
+  // Each deposit entry: { controller: TextEditingController, date: DateTime? }
+  final List<_DepositEntry> _deposits = [_DepositEntry()];
   bool _busy = false;
   bool _previewDone = false;
   Map<String, dynamic>? _previewResult;
@@ -28,50 +28,20 @@ class _AdminAutoBackfillScreenState
   @override
   void dispose() {
     _userIdCtl.dispose();
-    _amountCtl.dispose();
+    for (final d in _deposits) {
+      d.dispose();
+    }
     super.dispose();
   }
 
-  String _fmtDate(DateTime d) =>
-      "${d.day.toString().padLeft(2, "0")} "
-      "${const [
-        "",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ][d.month]} "
-      "${d.year}";
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _depositDate ??
-          DateTime.now().subtract(const Duration(days: 30)),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().subtract(const Duration(days: 1)),
-    );
-    if (picked != null) {
-      setState(() {
-        _depositDate = picked;
-        _previewDone = false;
-        _previewResult = null;
-      });
-    }
-  }
-
   bool _inputsValid() {
-    final uid = _userIdCtl.text.trim();
-    final amt = double.tryParse(_amountCtl.text.trim());
-    return uid.isNotEmpty && amt != null && amt > 0 && _depositDate != null;
+    if (_userIdCtl.text.trim().isEmpty) return false;
+    if (_deposits.isEmpty) return false;
+    for (final d in _deposits) {
+      final amt = double.tryParse(d.amountCtl.text.trim());
+      if (amt == null || amt <= 0 || d.date == null) return false;
+    }
+    return true;
   }
 
   Future<void> _runPreview() async {
@@ -79,7 +49,7 @@ class _AdminAutoBackfillScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            "Enter user ID, deposit amount, and deposit date first.",
+            "Enter user ID and at least one deposit with amount and date.",
           ),
         ),
       );
@@ -91,12 +61,20 @@ class _AdminAutoBackfillScreenState
       _previewDone = false;
     });
     try {
+      final depositsPayload = _deposits
+          .map((d) => <String, dynamic>{
+                "date": "${d.date!.year.toString().padLeft(4, '0')}"
+                    "-${d.date!.month.toString().padLeft(2, '0')}"
+                    "-${d.date!.day.toString().padLeft(2, '0')}",
+                "amount": double.parse(d.amountCtl.text.trim()),
+              })
+          .toList();
+
       final result = await ref
           .read(walletLedgerFunctionsProvider)
           .adminAutoBackfillInvestor(
             userId: _userIdCtl.text.trim(),
-            depositDate: _depositDate!,
-            depositAmount: double.parse(_amountCtl.text.trim()),
+            deposits: depositsPayload,
             dryRun: true,
           );
       if (mounted) {
@@ -154,12 +132,20 @@ class _AdminAutoBackfillScreenState
 
     setState(() => _busy = true);
     try {
+      final depositsPayload = _deposits
+          .map((d) => <String, dynamic>{
+                "date": "${d.date!.year.toString().padLeft(4, '0')}"
+                    "-${d.date!.month.toString().padLeft(2, '0')}"
+                    "-${d.date!.day.toString().padLeft(2, '0')}",
+                "amount": double.parse(d.amountCtl.text.trim()),
+              })
+          .toList();
+
       final result = await ref
           .read(walletLedgerFunctionsProvider)
           .adminAutoBackfillInvestor(
             userId: uid,
-            depositDate: _depositDate!,
-            depositAmount: double.parse(_amountCtl.text.trim()),
+            deposits: depositsPayload,
             dryRun: false,
           );
 
@@ -171,9 +157,18 @@ class _AdminAutoBackfillScreenState
             (result["missingEodDays"] as num?)?.toInt() ?? 0;
 
         _userIdCtl.clear();
-        _amountCtl.clear();
         setState(() {
-          _depositDate = null;
+          for (final d in _deposits) {
+            d.amountCtl.clear();
+            d.date = null;
+          }
+          // Keep one empty entry
+          if (_deposits.length > 1) {
+            for (final d in _deposits.skip(1)) {
+              d.dispose();
+            }
+            _deposits.removeRange(1, _deposits.length);
+          }
           _previewDone = false;
           _previewResult = null;
         });
@@ -296,70 +291,58 @@ class _AdminAutoBackfillScreenState
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _amountCtl,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() {
+                      Text(
+                        "Deposits",
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (int i = 0; i < _deposits.length; i++) ...[
+                        _DepositRowWidget(
+                          index: i + 1,
+                          entry: _deposits[i],
+                          canRemove: _deposits.length > 1,
+                          onDatePick: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _deposits[i].date ??
+                                  DateTime.now().subtract(
+                                      const Duration(days: 30)),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now()
+                                  .subtract(const Duration(days: 1)),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _deposits[i].date = picked;
+                                _previewDone = false;
+                                _previewResult = null;
+                              });
+                            }
+                          },
+                          onRemove: () => setState(() {
+                            _deposits[i].dispose();
+                            _deposits.removeAt(i);
+                            _previewDone = false;
+                            _previewResult = null;
+                          }),
+                          onChanged: (_) => setState(() {
+                            _previewDone = false;
+                            _previewResult = null;
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: () => setState(() {
+                          _deposits.add(_DepositEntry());
                           _previewDone = false;
                           _previewResult = null;
                         }),
-                        decoration: const InputDecoration(
-                          labelText: "Deposit amount (PKR)",
-                          hintText: "e.g. 500000",
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.currency_exchange),
-                        ),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text("Add another deposit"),
                       ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _pickDate,
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(
-                          _depositDate == null
-                              ? "Pick deposit date"
-                              : "Deposit date: ${_fmtDate(_depositDate!)}",
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                      if (_depositDate != null) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border:
-                                Border.all(color: Colors.amber.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                size: 16,
-                                color: Colors.amber.shade800,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  "Backdated entry — all records will use "
-                                  "dates from ${_fmtDate(_depositDate!)} onward.",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.amber.shade900,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -757,6 +740,116 @@ class _Row extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DepositEntry {
+  final TextEditingController amountCtl = TextEditingController();
+  DateTime? date;
+
+  void dispose() => amountCtl.dispose();
+}
+
+class _DepositRowWidget extends StatelessWidget {
+  const _DepositRowWidget({
+    required this.index,
+    required this.entry,
+    required this.canRemove,
+    required this.onDatePick,
+    required this.onRemove,
+    required this.onChanged,
+  });
+
+  final int index;
+  final _DepositEntry entry;
+  final bool canRemove;
+  final VoidCallback onDatePick;
+  final VoidCallback onRemove;
+  final ValueChanged<String> onChanged;
+
+  String _fmtDate(DateTime d) =>
+      "${d.day.toString().padLeft(2, '0')} "
+      "${const ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month]} "
+      "${d.year}";
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Deposit $index",
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              if (canRemove)
+                GestureDetector(
+                  onTap: onRemove,
+                  child: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: scheme.error,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: entry.amountCtl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              labelText: "Amount (PKR)",
+              border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onDatePick,
+            icon: const Icon(Icons.calendar_today_outlined, size: 16),
+            label: Text(
+              entry.date == null
+                  ? "Pick deposit date"
+                  : _fmtDate(entry.date!),
+              style: const TextStyle(fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+          if (entry.date != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              "⚠ Backdated to ${_fmtDate(entry.date!)}",
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.amber.shade800,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

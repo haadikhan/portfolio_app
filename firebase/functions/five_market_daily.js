@@ -806,37 +806,57 @@ exports.adminAutoBackfillInvestor = onCall(
       throw new HttpsError("unauthenticated", "Sign in required.");
     await assertAdmin(request.auth.uid);
 
-    const { userId, depositDate, depositAmount, dryRun = false } =
+    const { userId, depositDate, depositAmount, deposits: depositsRaw, dryRun = false } =
       request.data || {};
 
     if (!userId || typeof userId !== "string" || !userId.trim())
       throw new HttpsError("invalid-argument", "userId required.");
     const uid = userId.trim();
 
-    if (!depositDate || !/^\d{4}-\d{2}-\d{2}$/.test(depositDate))
-      throw new HttpsError(
-        "invalid-argument",
-        "depositDate required (yyyy-MM-dd).",
-      );
+    // Support both single-deposit (old) and multi-deposit (new) formats.
+    let deposits;
+    if (Array.isArray(depositsRaw) && depositsRaw.length > 0) {
+      deposits = depositsRaw
+        .map((d) => ({
+          date: String(d.date || "").trim(),
+          amount: Number(d.amount),
+        }))
+        .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.date) && d.amount > 0)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (!deposits.length)
+        throw new HttpsError("invalid-argument", "No valid deposits provided.");
+    } else if (depositDate && depositAmount) {
+      // Backward-compatible single deposit
+      deposits = [{ date: String(depositDate).trim(), amount: Number(depositAmount) }];
+    } else {
+      throw new HttpsError("invalid-argument", "Provide deposits array or depositDate+depositAmount.");
+    }
 
-    const depositDateObj = new Date(depositDate + "T00:00:00.000Z");
-    if (isNaN(depositDateObj.getTime()))
-      throw new HttpsError("invalid-argument", "Invalid depositDate.");
+    const firstDeposit = deposits[0];
+    const firstDepositDateObj = new Date(firstDeposit.date + "T00:00:00.000Z");
+    if (isNaN(firstDepositDateObj.getTime()))
+      throw new HttpsError("invalid-argument", "Invalid first deposit date.");
 
     const todayPkt = getPktDateString(0);
     const todayPktDate = new Date(todayPkt + "T00:00:00.000Z");
-    if (depositDateObj >= todayPktDate)
-      throw new HttpsError(
-        "invalid-argument",
-        "depositDate must be before today.",
-      );
+    if (firstDepositDateObj >= todayPktDate)
+      throw new HttpsError("invalid-argument", "First deposit date must be before today.");
 
-    const amount = Number(depositAmount);
-    if (!amount || amount <= 0 || !isFinite(amount))
-      throw new HttpsError(
-        "invalid-argument",
-        "depositAmount must be a positive number.",
-      );
+    for (const d of deposits) {
+      const parsed = new Date(d.date + "T00:00:00.000Z");
+      if (parsed >= todayPktDate)
+        throw new HttpsError("invalid-argument", `Deposit date ${d.date} must be before today.`);
+      if (!isFinite(d.amount) || d.amount <= 0)
+        throw new HttpsError("invalid-argument", `Deposit amount for ${d.date} must be positive.`);
+    }
+
+    const totalAmount = deposits.reduce((s, d) => s + d.amount, 0);
+
+    // Build a lookup: date string → deposit amount for that date
+    const depositByDate = {};
+    for (const d of deposits) {
+      depositByDate[d.date] = (depositByDate[d.date] || 0) + d.amount;
+    }
 
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
@@ -867,7 +887,7 @@ exports.adminAutoBackfillInvestor = onCall(
     const yesterdayPkt = getPktDateString(-1);
     const eodSnaps = await db()
       .collection("investment_daily_market_close")
-      .where("date", ">=", depositDate)
+      .where("date", ">=", firstDeposit.date)
       .where("date", "<=", yesterdayPkt)
       .get();
 
@@ -917,7 +937,7 @@ exports.adminAutoBackfillInvestor = onCall(
             day: "2-digit",
           }).format(new Date(timestamps[i] * 1000));
           // Only include dates in our backfill range
-          if (pktDate >= depositDate && pktDate <= yesterdayPkt) {
+          if (pktDate >= firstDeposit.date && pktDate <= yesterdayPkt) {
             map[pktDate] = parseFloat(
               (((curr - prev) / prev) * 100).toFixed(4),
             );
@@ -957,8 +977,8 @@ exports.adminAutoBackfillInvestor = onCall(
 
     // ── Simulate day-by-day, collecting daily and monthly results ──────────
     // runningBasePkr compounds daily (gross) and deducts monthly perf fee.
-    let runningBasePkr = amount;
-    let currentDate = new Date(depositDate + "T00:00:00.000Z");
+    let runningBasePkr = 0;   // starts at 0; each deposit adds to base on its date
+    let currentDate = new Date(firstDeposit.date + "T00:00:00.000Z");
     const monthlyData = {};
     let missingEodDays = 0;
     let totalTradingDays = 0;
@@ -980,6 +1000,11 @@ exports.adminAutoBackfillInvestor = onCall(
           basePkrAtStart: parseFloat(runningBasePkr.toFixed(2)),
           dailyEntries: [],
         };
+      }
+
+      // Apply any deposit(s) that fall on this date
+      if (depositByDate[dateStr]) {
+        runningBasePkr += depositByDate[dateStr];
       }
 
       if (isTradingDay) {
@@ -1043,7 +1068,7 @@ exports.adminAutoBackfillInvestor = onCall(
     let totalFees = 0;
 
     // Reset runningBasePkr to recompute with fee deductions per month
-    runningBasePkr = amount;
+    runningBasePkr = totalAmount;
     const monthResults = months.map((monthKey) => {
       const md = monthlyData[monthKey];
       const grossProfit = parseFloat(md.grossProfit.toFixed(2));
@@ -1086,10 +1111,12 @@ exports.adminAutoBackfillInvestor = onCall(
         dryRun: true,
         monthsProcessed: monthResults.length,
         tradingDaysProcessed: totalTradingDays,
+        totalDeposited: totalAmount,
         totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
         totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
         totalFees: parseFloat(totalFees.toFixed(2)),
         missingEodDays,
+        deposits: deposits.map((d) => ({ date: d.date, amount: d.amount })),
         months: monthResults,
       };
     }
@@ -1162,24 +1189,24 @@ exports.adminAutoBackfillInvestor = onCall(
       }
     }
 
-    // ── Step 2: Write deposit transaction (backdated to depositDate) ───────
-    const depositTs = admin.firestore.Timestamp.fromDate(depositDateObj);
-    const depositTid =
-      "DEP-BACKFILL-" +
-      Date.now().toString(36).toUpperCase() +
-      "-" +
-      Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    await db()
-      .collection("transactions")
-      .doc(depositTid)
-      .set({
-        id: depositTid,
+    // ── Step 2: Write one deposit transaction per deposit entry (all backdated) ─
+    const depositTids = [];
+    for (const dep of deposits) {
+      const depTs = admin.firestore.Timestamp.fromDate(
+        new Date(dep.date + "T00:00:00.000Z")
+      );
+      const depTid =
+        "DEP-BACKFILL-" +
+        Date.now().toString(36).toUpperCase() +
+        "-" +
+        Math.random().toString(36).substring(2, 8).toUpperCase();
+      await db().collection("transactions").doc(depTid).set({
+        id: depTid,
         userId: uid,
         type: "deposit",
-        amount,
+        amount: dep.amount,
         status: "approved",
-        createdAt: depositTs,
+        createdAt: depTs,
         updatedAt: now,
         notes: "Deposit",
         paymentMethod: "admin_entry",
@@ -1189,11 +1216,13 @@ exports.adminAutoBackfillInvestor = onCall(
         backdatedAt: now,
         isAutoBackfill: true,
       });
+      depositTids.push(depTid);
+    }
 
     // ── Step 3: Write DAILY five_market_daily docs + daily transactions ────
     // Processes month by month. Within each month, writes one batch per day.
     // Also writes monthly returnHistory + fee_statement + performance_fee.
-    let portfolioCurrentValue = amount;
+    let portfolioCurrentValue = totalAmount;
 
     for (const monthKey of months) {
       const md = monthlyData[monthKey];
@@ -1303,11 +1332,11 @@ exports.adminAutoBackfillInvestor = onCall(
         db().collection("portfolios").doc(uid),
         {
           currentValue: parseFloat(portfolioCurrentValue.toFixed(2)),
-          totalDeposited: amount,
+          totalDeposited: totalAmount,
           lastMonthlyReturnPct: monthReturnPct,
           lastUpdated: monthEndTs,
           fiveMarketDailyLedger: true,
-          netDeposits: amount,
+          netDeposits: totalAmount,
         },
         { merge: true },
       );
@@ -1352,7 +1381,9 @@ exports.adminAutoBackfillInvestor = onCall(
         {
           periodKey: monthKey,
           principalAtStart: prevPortfolioValue,
-          depositsThisMonth: monthKey === months[0] ? amount : 0,
+          depositsThisMonth: deposits
+            .filter((d) => d.date.startsWith(monthKey))
+            .reduce((s, d) => s + d.amount, 0),
           withdrawalsThisMonth: 0,
           grossProfit: monthGross,
           netProfit: monthNet,
@@ -1399,8 +1430,7 @@ exports.adminAutoBackfillInvestor = onCall(
       uid,
       null,
       {
-        depositDate,
-        depositAmount: amount,
+        deposits,
         monthsProcessed: months.length,
         tradingDaysProcessed: totalTradingDays,
         totalGrossProfit,
@@ -1416,7 +1446,8 @@ exports.adminAutoBackfillInvestor = onCall(
       totalGrossProfit: parseFloat(totalGrossProfit.toFixed(2)),
       totalNetProfit: parseFloat(totalNetProfit.toFixed(2)),
       totalFees: parseFloat(totalFees.toFixed(2)),
-      depositTransactionId: depositTid,
+      depositTransactionIds: depositTids,
+      totalDeposited: totalAmount,
       missingEodDays,
       months: monthResults,
     };
