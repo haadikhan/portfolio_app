@@ -858,19 +858,6 @@ exports.adminAutoBackfillInvestor = onCall(
       depositByDate[d.date] = (depositByDate[d.date] || 0) + d.amount;
     }
 
-    // Build a lookup: date string → front-end load fee for deposits on that date
-    const frontEndLoadByDate = {};
-    let totalFrontEndLoad = 0;
-    if (frontEndLoadPct > 0) {
-      for (const d of deposits) {
-        const fee = parseFloat((d.amount * frontEndLoadPct / 100).toFixed(2));
-        if (fee > 0) {
-          frontEndLoadByDate[d.date] = (frontEndLoadByDate[d.date] || 0) + fee;
-          totalFrontEndLoad = parseFloat((totalFrontEndLoad + fee).toFixed(2));
-        }
-      }
-    }
-
     const adminUid = request.auth.uid;
     const now = admin.firestore.FieldValue.serverTimestamp();
 
@@ -903,6 +890,20 @@ exports.adminAutoBackfillInvestor = onCall(
     const frontEndLoadPct = feesEnabled
       ? (Number(feeConfig.frontEndLoadPct) || 0)
       : 0;
+
+    // Build a lookup: date string → front-end load fee for deposits on that date
+    // (must run AFTER frontEndLoadPct is resolved from fee_config)
+    const frontEndLoadByDate = {};
+    let totalFrontEndLoad = 0;
+    if (frontEndLoadPct > 0) {
+      for (const d of deposits) {
+        const fee = parseFloat((d.amount * frontEndLoadPct / 100).toFixed(2));
+        if (fee > 0) {
+          frontEndLoadByDate[d.date] = (frontEndLoadByDate[d.date] || 0) + fee;
+          totalFrontEndLoad = parseFloat((totalFrontEndLoad + fee).toFixed(2));
+        }
+      }
+    }
 
     // ── Load all EOD snapshots from depositDate to yesterday ───────────────
     const yesterdayPkt = getPktDateString(-1);
