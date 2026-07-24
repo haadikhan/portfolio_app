@@ -918,12 +918,63 @@ exports.adminAutoBackfillInvestor = onCall(
       eodMap[doc.id] = doc.data();
     }
 
+    // ── Helper: convert a timestamp to PKT date string ─────────────────────
+    function tsToPktDate(ts) {
+      // Detect ms vs seconds by magnitude (ms > 1e12)
+      const d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Karachi",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    }
+
     // ── Fetch historical KMI30 % changes as fallback for missing/errored EOD ─
-    // Uses Yahoo Finance Pakistan market data as a proxy when PSX Terminal data
-    // is unavailable. Falls back gracefully to empty map if all sources fail.
+    // Source order: PSX Terminal (most accurate) → Yahoo Finance → empty map.
     const historicalKmi30Map = await (async () => {
-      // Helper: parse Yahoo Finance v8 chart JSON into a date→changePercent map.
-      // Uses the last 2 years of data and filters to the relevant date range.
+      // ── Source 1: PSX Terminal historical (same API as live EOD snapshot) ──
+      try {
+        const res = await fetch(
+          "https://psxterminal.com/api/klines/KMI30/1d?limit=730",
+          { headers: { "User-Agent": "ISC-WAI-Server/1.0" }, signal: AbortSignal.timeout(25000) },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const rawBars = Array.isArray(data) ? data : data.data || data.bars || [];
+        if (rawBars.length < 2) throw new Error("Insufficient data");
+
+        const parsed = rawBars.map((bar) => {
+          if (Array.isArray(bar)) {
+            return { t: Number(bar[0] ?? 0), close: Number(bar[4] ?? 0) };
+          }
+          const o = bar && typeof bar === "object" ? bar : {};
+          return {
+            t: Number(o.timestamp ?? o.time ?? o.t ?? 0),
+            close: Number(o.close ?? 0),
+          };
+        }).filter((b) => b.t > 0 && b.close > 0).sort((a, b) => a.t - b.t);
+
+        if (parsed.length < 2) throw new Error("No valid bars");
+
+        const map = {};
+        for (let i = 1; i < parsed.length; i++) {
+          const prev = parsed[i - 1].close;
+          const curr = parsed[i].close;
+          if (!prev || !curr) continue;
+          const pktDate = tsToPktDate(parsed[i].t);
+          if (pktDate >= firstDeposit.date && pktDate <= yesterdayPkt) {
+            map[pktDate] = parseFloat((((curr - prev) / prev) * 100).toFixed(4));
+          }
+        }
+        if (!Object.keys(map).length) throw new Error("No dates in range");
+        logger.info("backfill_psx_kmi30_historical_ok", { dates: Object.keys(map).length });
+        return map;
+      } catch (e) {
+        logger.warn("backfill_psx_kmi30_historical_failed", { error: String(e) });
+      }
+
+      // ── Source 2: Yahoo Finance Pakistan market indexes ──────────────────
       async function tryYahooTicker(ticker) {
         const url =
           `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}` +
@@ -952,49 +1003,63 @@ exports.adminAutoBackfillInvestor = onCall(
           const prev = closes[i - 1];
           const curr = closes[i];
           if (!prev || !curr || isNaN(prev) || isNaN(curr)) continue;
-          const pktDate = new Intl.DateTimeFormat("en-CA", {
-            timeZone: "Asia/Karachi",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(new Date(timestamps[i] * 1000));
-          // Only include dates in our backfill range
+          const pktDate = tsToPktDate(timestamps[i]);  // Yahoo uses seconds
           if (pktDate >= firstDeposit.date && pktDate <= yesterdayPkt) {
-            map[pktDate] = parseFloat(
-              (((curr - prev) / prev) * 100).toFixed(4),
-            );
+            map[pktDate] = parseFloat((((curr - prev) / prev) * 100).toFixed(4));
           }
         }
         if (!Object.keys(map).length) throw new Error("No dates in range");
         return map;
       }
 
-      // Try multiple tickers in order — first success wins.
-      // KSE100 and KMI30 are the two main Pakistan stock indexes.
       const tickers = [
-        "%5EKSE",    // ^KSE  — KSE100 on Yahoo Finance
-        "%5EPKOL",   // ^PKOL — alternate Pakistan index ticker
+        "%5EKSE",    // ^KSE  — KSE100
+        "%5EPKOL",   // ^PKOL — alternate Pakistan index
         "%5EKSEI",   // ^KSEI — KSE Meezan Index
       ];
-
       for (const ticker of tickers) {
         try {
           const map = await tryYahooTicker(ticker);
-          logger.info("backfill_yahoo_kmi30_ok", {
-            ticker,
-            dates: Object.keys(map).length,
-          });
+          logger.info("backfill_yahoo_kmi30_ok", { ticker, dates: Object.keys(map).length });
           return map;
         } catch (e) {
-          logger.warn("backfill_yahoo_ticker_failed", {
-            ticker,
-            error: String(e),
-          });
+          logger.warn("backfill_yahoo_ticker_failed", { ticker, error: String(e) });
         }
       }
 
-      logger.warn("backfill_yahoo_kmi30_all_failed");
+      logger.warn("backfill_kmi30_all_sources_failed");
       return {};
+    })();
+
+    // ── Fetch historical Gold % changes (Binance PAXGUSDT) ─────────────────
+    // Used to supplement missing gold data for the same days KMI30 may be missing.
+    const historicalGoldMap = await (async () => {
+      try {
+        const res = await fetch(
+          "https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1d&limit=730",
+          { headers: { "User-Agent": "ISC-WAI-Server/1.0" }, signal: AbortSignal.timeout(20000) },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const klines = await res.json();
+        if (!Array.isArray(klines) || klines.length < 2) throw new Error("Insufficient data");
+
+        const map = {};
+        for (let i = 1; i < klines.length; i++) {
+          const prevClose = Number(klines[i - 1][4]);
+          const currClose = Number(klines[i][4]);
+          if (!prevClose || !currClose) continue;
+          const pktDate = tsToPktDate(Number(klines[i][0])); // Binance uses ms
+          if (pktDate >= firstDeposit.date && pktDate <= yesterdayPkt) {
+            map[pktDate] = parseFloat((((currClose - prevClose) / prevClose) * 100).toFixed(4));
+          }
+        }
+        if (!Object.keys(map).length) throw new Error("No dates in range");
+        logger.info("backfill_gold_historical_ok", { dates: Object.keys(map).length });
+        return map;
+      } catch (e) {
+        logger.warn("backfill_gold_historical_failed", { error: String(e) });
+        return {};
+      }
     })();
 
     // ── Simulate day-by-day, collecting daily and monthly results ──────────
@@ -1058,7 +1123,20 @@ exports.adminAutoBackfillInvestor = onCall(
             ...effectiveEod,
             kmi30: { changePercent: historicalKmi30Map[dateStr] },
           };
-          kmi30Source = "yahoo_kse100_proxy";
+          kmi30Source = "historical_proxy";
+        }
+
+        // Supplement missing gold data from Binance historical map
+        const storedGoldValid =
+          effectiveEod.gold &&
+          typeof effectiveEod.gold === "object" &&
+          !effectiveEod.gold.error &&
+          effectiveEod.gold.changePercent != null;
+        if (!storedGoldValid && historicalGoldMap[dateStr] !== undefined) {
+          effectiveEod = {
+            ...effectiveEod,
+            gold: { changePercent: historicalGoldMap[dateStr] },
+          };
         }
 
         const result = calculateDailyProfit({
