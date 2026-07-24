@@ -34,24 +34,32 @@ class _AdminAutoBackfillScreenState
     super.dispose();
   }
 
-  bool _inputsValid() {
-    if (_userIdCtl.text.trim().isEmpty) return false;
-    if (_deposits.isEmpty) return false;
-    for (final d in _deposits) {
+  bool _inputsValid() => _validationError() == null;
+
+  String? _validationError() {
+    if (_userIdCtl.text.trim().isEmpty) return "User ID is required.";
+    if (_deposits.isEmpty) return "Add at least one deposit.";
+    for (int i = 0; i < _deposits.length; i++) {
+      final d = _deposits[i];
       final amt = double.tryParse(d.amountCtl.text.trim());
-      if (amt == null || amt <= 0 || d.date == null) return false;
+      if (d.amountCtl.text.trim().isEmpty && d.date == null) {
+        return "Deposit ${i + 1} is empty — fill it in or remove it (✕).";
+      }
+      if (amt == null || amt <= 0) {
+        return "Deposit ${i + 1}: enter a valid amount greater than 0.";
+      }
+      if (d.date == null) {
+        return "Deposit ${i + 1}: pick a deposit date.";
+      }
     }
-    return true;
+    return null;
   }
 
   Future<void> _runPreview() async {
-    if (!_inputsValid()) {
+    final err = _validationError();
+    if (err != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Enter user ID and at least one deposit with amount and date.",
-          ),
-        ),
+        SnackBar(content: Text(err)),
       );
       return;
     }
