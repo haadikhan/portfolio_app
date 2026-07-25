@@ -13,7 +13,7 @@ import "../data/websocket/psx_websocket_service.dart";
 import "providers/kmi30_companies_providers.dart";
 import "widgets/gold_price_card.dart";
 
-final _pkr = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
+final _pkr = NumberFormat("#,##0");
 
 class Kmi30CompaniesScreen extends ConsumerWidget {
   const Kmi30CompaniesScreen({super.key});
@@ -178,136 +178,193 @@ class Kmi30CompaniesScreen extends ConsumerWidget {
         liveAsync.valueOrNull,
         restAsync.valueOrNull,
       );
+      final theme = Theme.of(context);
+      final dayPct =
+          t != null ? displayKmi30Percent(t.changePercent) : 0.0;
+      final hasInvest = alloc != null && alloc.hasInvestment;
 
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () =>
-              context.push("/market/kmi30-companies/${c.symbol}"),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        c.symbol,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        c.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  flex: 3,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: () {
-                      if (t == null && restAsync.isLoading) {
-                        return const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      }
-                      if (t == null) {
-                        return Text(
-                          "--",
-                          style: Theme.of(context).textTheme.bodySmall,
-                        );
-                      }
-                      final last = t.price;
-                      final scheme = Theme.of(context).colorScheme;
-                      if (!isTradingDay) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "${context.tr("market_last")} ${last.toStringAsFixed(2)}",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
-                            ),
-                            Text(
-                              context.tr("kmi30_market_closed_today"),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.end,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      final dayPct =
-                          displayKmi30Percent(t.changePercent);
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "${context.tr("market_last")} ${last.toStringAsFixed(2)}",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
+      return InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () =>
+            context.push("/market/kmi30-companies/${c.symbol}"),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── ROW 1: Identity + Price ──────────────────────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.symbol,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
                           ),
-                          Text(
-                            "${context.tr("market_day_change")} "
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          c.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (t == null)
+                        Text("--", style: theme.textTheme.bodyMedium)
+                      else
+                        Text(
+                          "PKR ${t.price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      if (t != null && isTradingDay)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: dayPct >= 0
+                                ? Colors.green.shade600
+                                    .withValues(alpha: 0.12)
+                                : Colors.red.shade600
+                                    .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
                             "${dayPct >= 0 ? "+" : ""}${dayPct.toStringAsFixed(2)}%",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               color: dayPct >= 0
                                   ? Colors.green.shade600
                                   : Colors.red.shade600,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                      );
-                    }(),
+                        ),
+                    ],
                   ),
-                ),
-                Flexible(
-                  flex: 3,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: _InvestedColumn(
-                      alloc: alloc,
-                      isTradingDay: isTradingDay,
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Divider(height: 1, color: theme.colorScheme.outlineVariant),
+              const SizedBox(height: 10),
+              // ── ROW 2: Investment metrics ────────────────────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Allocated",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasInvest
+                              ? "PKR ${_pkr.format(alloc.investedPkr)}"
+                              : "--",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded, size: 20),
-              ],
-            ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Index weight",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasInvest
+                              ? "${alloc.weightPercent.toStringAsFixed(1)}%"
+                              : "--",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "Today P&L",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          !hasInvest || !isTradingDay
+                              ? "--"
+                              : "${alloc.todayProfitPkr >= 0 ? "+" : ""}PKR "
+                                  "${_pkr.format(alloc.todayProfitPkr)}",
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: !hasInvest || !isTradingDay
+                                ? theme.colorScheme.onSurfaceVariant
+                                : alloc.todayProfitPkr > 0
+                                    ? Colors.green.shade600
+                                    : alloc.todayProfitPkr < 0
+                                        ? Colors.red.shade600
+                                        : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       );
@@ -521,76 +578,6 @@ class _OffDayBanner extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _InvestedColumn extends StatelessWidget {
-  const _InvestedColumn({
-    required this.alloc,
-    required this.isTradingDay,
-  });
-
-  final Kmi30CompanyAllocation? alloc;
-  final bool isTradingDay;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (alloc == null || !alloc!.hasInvestment) {
-      return Text(
-        "--",
-        style: theme.textTheme.bodySmall,
-        textAlign: TextAlign.end,
-      );
-    }
-    final a = alloc!;
-    final todayPl = isTradingDay ? a.todayProfitPkr : 0.0;
-    final plColor = !isTradingDay
-        ? theme.colorScheme.onSurfaceVariant
-        : todayPl > 0
-            ? Colors.green.shade600
-            : todayPl < 0
-                ? Colors.red.shade600
-                : theme.colorScheme.onSurfaceVariant;
-    final plSign = todayPl >= 0 ? "+" : "";
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          "${context.tr("kmi30_allocated_short")}\n${_pkr.format(a.investedPkr)}",
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.end,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          "${a.weightPercent.toStringAsFixed(1)}% of index",
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.end,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontSize: 10,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          "${context.tr("kmi30_today_pl_short")}: $plSign${_pkr.format(todayPl)}",
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 10,
-            color: plColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

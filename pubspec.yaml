@@ -100,9 +100,10 @@ flutter_launcher_icons:
   ios: true
   web:
     generate: true
-  image_path: assets/branding/app_brand.png
+  image_path: assets/branding/ic_launcher_legacy.png
+  image_path_ios: assets/branding/ic_launcher_legacy.png
   adaptive_icon_background: "#0F7A2C"
-  adaptive_icon_foreground: assets/branding/app_brand.png
+  adaptive_icon_foreground: assets/branding/ic_launcher_foreground.png
   min_sdk_android: 21
 
   # An image asset can refer to one or more resolution-specific "variants", see
