@@ -1,8 +1,19 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 
-/// Sideloaded release builds need the debug provider + a registered debug token.
-/// Play / App Store production attestation is opt-in via dart-define.
+/// Controls which App Check provider is used in release builds.
+///
+/// Defaults to `false` — sideloaded / non-Play-Store release builds use
+/// AndroidDebugProvider so they are not rejected by Play Integrity's
+/// APP_RECOGNITION_VERDICT (which returns UNRECOGNIZED_VERSION for
+/// apps not distributed through Google Play).
+///
+/// Set to `true` (via --dart-define=FIREBASE_APP_CHECK_USE_PRODUCTION_ATTESTATION=true)
+/// ONLY when the app is published on Google Play Store.
+///
+/// When using AndroidDebugProvider in release, the App Check debug token
+/// printed to logcat must be registered once in Firebase Console →
+/// App Check → Manage debug tokens (or set App Check to Monitor mode).
 const bool kAppCheckProductionAttestation = bool.fromEnvironment(
   'FIREBASE_APP_CHECK_USE_PRODUCTION_ATTESTATION',
   defaultValue: false,
@@ -57,25 +68,35 @@ Future<void> _tryWarmWebAppCheckTokenAfterActivate() async {
 Future<void> activateFirebaseAppCheckBootstrap() async {
   final AndroidAppCheckProvider providerAndroidResolved;
   final AppleAppCheckProvider providerAppleResolved;
-  if (kDebugMode) {
+  if (kDebugMode || !kAppCheckProductionAttestation) {
+    // Debug builds AND sideloaded release builds: use the debug provider.
+    //
+    // Play Integrity (production) rejects sideloaded APKs with
+    // UNRECOGNIZED_VERSION, causing "App Check token is invalid" on ALL
+    // Firebase operations (login, OTP, Firestore) when enforcement is on.
+    //
+    // The Firebase SDK prints the App Check debug token to logcat:
+    //   adb logcat | findstr "AppCheck"
+    // Register that token once in:
+    //   Firebase Console → App Check → Apps → com.isc.wai → Manage debug tokens
+    //
+    // OR set App Check to "Monitor" (not Enforce) in Firebase Console to
+    // allow all requests while still collecting metrics.
     providerAndroidResolved = const AndroidDebugProvider();
     providerAppleResolved = const AppleDebugProvider();
   } else {
-    providerAndroidResolved = kAppCheckProductionAttestation
-        ? const AndroidPlayIntegrityProvider()
-        : const AndroidDebugProvider();
-    providerAppleResolved = kAppCheckProductionAttestation
-        ? const AppleDeviceCheckProvider()
-        : const AppleDebugProvider();
+    // Play Store release builds only (--dart-define=FIREBASE_APP_CHECK_USE_PRODUCTION_ATTESTATION=true).
+    // Play Integrity works correctly when the app is distributed via Google Play.
+    providerAndroidResolved = const AndroidPlayIntegrityProvider();
+    providerAppleResolved = const AppleDeviceCheckProvider();
   }
-  if (kDebugMode) {
-    debugPrint(
-      '[AppCheck] activate '
-      'android=${providerAndroidResolved.runtimeType} '
-      'apple=${providerAppleResolved.runtimeType} '
-      'productionAttestation=$kAppCheckProductionAttestation',
-    );
-  }
+  debugPrint(
+    '[AppCheck] activate '
+    'android=${providerAndroidResolved.runtimeType} '
+    'apple=${providerAppleResolved.runtimeType} '
+    'productionAttestation=$kAppCheckProductionAttestation '
+    'debugMode=$kDebugMode',
+  );
 
   if (kIsWeb) {
     final siteKey = _webRecaptchaSiteKey.trim();
