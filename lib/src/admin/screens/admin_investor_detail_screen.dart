@@ -24,6 +24,7 @@ import "../providers/five_market_admin_providers.dart";
 import "../providers/admin_change_request_providers.dart";
 import "../services/five_market_admin_service.dart";
 import "admin_change_requests_screen.dart";
+import "admin_deposit_screen.dart";
 
 class AdminInvestorDetailScreen extends ConsumerStatefulWidget {
   const AdminInvestorDetailScreen({super.key, required this.userId});
@@ -259,6 +260,23 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
           Text("Phone: ${user.phone.isEmpty ? "—" : user.phone}"),
           _AccountOpeningDateRow(userId: user.userId),
           if (isAdmin) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AdminDepositScreen(
+                    userId: user.userId,
+                    investorName: user.name,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.add_card_outlined),
+              label: const Text("Make Deposit"),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+                foregroundColor: Colors.white,
+              ),
+            ),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: widget.isDeleting ? null : widget.onDelete,

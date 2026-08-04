@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ISC-WAI Admin Panel — Video Tutorial Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  :root {
+    --brand: #0F7A2C;
+    --ink: #1a1a1a;
+    --muted: #555;
+    --line: #d8e5dc;
+    --bg-soft: #f4faf6;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Source Sans 3", "Segoe UI", sans-serif;
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+  }
+  .urdu {
+    font-family: "Noto Nastaliq Urdu", "Segoe UI", sans-serif;
+    direction: rtl;
+    text-align: right;
+    line-height: 2;
+  }
+  .page {
+    padding: 36px 48px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  h1 {
+    color: var(--brand);
+    font-size: 22pt;
+    margin: 0 0 6px;
+    page-break-after: avoid;
+  }
+  h2 {
+    color: var(--brand);
+    font-size: 14pt;
+    border-bottom: 2px solid var(--brand);
+    padding-bottom: 4px;
+    margin-top: 28px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 10pt;
+    margin-bottom: 18px;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--brand);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 9pt;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .callout {
+    background: var(--bg-soft);
+    border-left: 4px solid var(--brand);
+    padding: 12px 14px;
+    margin: 14px 0;
+    page-break-inside: avoid;
+  }
+  .warn {
+    background: #fff8e8;
+    border-left: 4px solid #c98900;
+    padding: 12px 14px;
+    margin: 14px 0;
+    page-break-inside: avoid;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 7px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-soft);
+    color: var(--brand);
+  }
+  ol.steps li, ul.bullets li { margin-bottom: 6px; }
+  .scene {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    page-break-inside: avoid;
+  }
+  .scene-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .scene-title { font-weight: 700; color: var(--brand); }
+  .time { color: var(--muted); font-size: 9.5pt; white-space: nowrap; }
+  .vo-en { margin: 6px 0; }
+  .vo-ur { margin: 6px 0; background: #fafafa; padding: 8px 10px; border-radius: 4px; }
+  .label { font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .footer-note {
+    margin-top: 32px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 9.5pt;
+    color: var(--muted);
+  }
+  @media print {
+    .page { padding: 24px 28px; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>ISC-WAI Admin Panel<br/>Video Tutorial Brief</h1>
+<p class="meta">
+  <span class="badge">FOR VIDEO EDITOR</span>
+  Document type: Staff tutorial · Target length: <strong>3–5 minutes</strong> · Languages: <strong>English + Urdu</strong> voiceover<br/>
+  Product: <strong>ISC-WAI — Admin</strong> (web panel) · Brand green: #0F7A2C<br/>
+  Audience: Administrators and CRM staff · Style: Step-by-step operations tutorial
+</p>
+
+<div class="callout">
+  <strong>How to use this document:</strong> Record the <em>dedicated Admin web app</em> (desktop Chrome), not the investor mobile app. Follow scenes in order. Each scene has screen actions plus English and Urdu voiceover suggestions.
+</div>
+
+<div class="warn">
+  <strong>Access note:</strong> Admins use a separate entry — run / open the Admin web target (title: “ISC-WAI — Admin”), not the customer mobile app for day-to-day ops. Roles: <strong>admin</strong> (full access) and <strong>crm</strong> (CRM + notifications only).
+</div>
+
+<h2>1. Video goals</h2>
+<ul class="bullets">
+  <li>Show how staff sign in and how Admin vs CRM roles differ.</li>
+  <li>Tour the left navigation (rail / drawer) and daily ops flow.</li>
+  <li>Demonstrate KYC approve/reject, deposit &amp; withdrawal queues, deposit bank settings.</li>
+  <li>Cover investors, CRM, returns, daily markets, fees, reports, broadcast.</li>
+  <li>Keep tone professional and procedural — training for internal users.</li>
+</ul>
+
+<h2>2. Production notes for editor</h2>
+<table>
+  <tr><th>Item</th><th>Guidance</th></tr>
+  <tr><td>Length</td><td>3–5 minutes (aim ~4:15). Optional short CRM-only cut (~90 sec).</td></tr>
+  <tr><td>Format</td><td>Desktop screen recording + bilingual VO</td></tr>
+  <tr><td>Browser</td><td>Chrome, wide window so Navigation Rail is visible (≥720px)</td></tr>
+  <tr><td>Account</td><td>Demo admin account; optional CRM account for role difference</td></tr>
+  <tr><td>Privacy</td><td>Blur real investor CNIC, bank, phone, emails; use demo data</td></tr>
+  <tr><td>Do not dwell</td><td>Backdated Entries / Auto Backfill (mention only as “advanced / careful use”)</td></tr>
+  <tr><td>Do not show</td><td>Passwords, production secrets, real customer PII</td></tr>
+</table>
+
+<h2>3. Admin navigation map</h2>
+<table>
+  <tr><th>#</th><th>Menu item</th><th>Purpose</th></tr>
+  <tr><td>1</td><td>Overview</td><td>KPIs: users, pending KYC, deposits, withdrawals, totals</td></tr>
+  <tr><td>2</td><td>KYC queue</td><td>Review and approve/reject investor KYC</td></tr>
+  <tr><td>3</td><td>Deposits</td><td>Approve/reject deposit requests + proof</td></tr>
+  <tr><td>4</td><td>Deposit Settings</td><td>Company bank details shown to investors</td></tr>
+  <tr><td>5</td><td>Withdrawals</td><td>Approve/reject withdrawal requests</td></tr>
+  <tr><td>6</td><td>Change Requests</td><td>Profile / bank / nominee change tickets</td></tr>
+  <tr><td>7</td><td>Investors</td><td>Search investors, open full profile</td></tr>
+  <tr><td>8</td><td>CRM home / investors / team</td><td>Follow-ups, notes, communications, create CRM users</td></tr>
+  <tr><td>9</td><td>Returns</td><td>Apply monthly returns, projection, repair tools</td></tr>
+  <tr><td>10</td><td>Daily markets</td><td>Five-sleeve allocations, rates, holidays, EOD</td></tr>
+  <tr><td>11</td><td>Fee management / Earnings / Fee ledger</td><td>Fee config and company income</td></tr>
+  <tr><td>12</td><td>Investor reports</td><td>Upload PDF statements for investors</td></tr>
+  <tr><td>13</td><td>App updates</td><td>Publish Android APK / force-update policy</td></tr>
+  <tr><td>14</td><td>Notifications / Broadcast</td><td>Staff inbox + message all investors</td></tr>
+  <tr><td>—</td><td>Backdated Entries / Auto Backfill</td><td>Admin-only historical tools (optional mention)</td></tr>
+</table>
+
+<h3>Role matrix (say this once)</h3>
+<table>
+  <tr><th>Capability</th><th>Admin</th><th>CRM</th></tr>
+  <tr><td>Overview, KYC, money queues, fees, returns, markets, reports, broadcast, app updates</td><td>Yes</td><td>No</td></tr>
+  <tr><td>CRM home, assigned investors, notes / follow-ups / communications</td><td>Yes</td><td>Yes</td></tr>
+  <tr><td>Create CRM team users</td><td>Yes</td><td>No</td></tr>
+  <tr><td>Notifications inbox</td><td>Yes</td><td>Yes</td></tr>
+</table>
+
+<h2>4. Daily ops flow (happy path)</h2>
+<ol class="steps">
+  <li>Open Admin web app → Sign in with work email</li>
+  <li>Overview → check pending counts</li>
+  <li>Clear KYC queue (Approve / Reject with reason)</li>
+  <li>Process Deposits (check proof → Approve)</li>
+  <li>Process Withdrawals</li>
+  <li>Handle Change Requests</li>
+  <li>Assign / work CRM follow-ups</li>
+  <li>As needed: Returns, Daily markets, Fees, Broadcast, Upload reports</li>
+</ol>
+
+<h2>5. Scene-by-scene storyboard (3–5 min)</h2>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 1 — Access &amp; login</span>
+    <span class="time">0:00 – 0:25</span>
+  </div>
+  <p><span class="label">Show</span> Admin login page: logo, “Admin sign in”, “ISC-WAI — KYC operations”, Work email, Password, Sign in.</p>
+  <p class="vo-en"><span class="label">EN VO</span> “Welcome to the ISC-WAI Admin panel. Staff do not use the investor mobile app for daily operations — open the Admin web panel and sign in with your work email and password. Only accounts with Admin or CRM role can enter.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> آئی ایس سی وائی ایڈمن پینل میں خوش آمدید۔ روزمرہ کام کے لیے انویسٹر موبائل ایپ استعمال نہیں ہوتی — ایڈمن ویب پینل کھولیں اور اپنے ورک ای میل سے سائن اِن کریں۔ صرف ایڈمن یا سی آر ایم رول والے اکاؤنٹس داخل ہو سکتے ہیں۔</p>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 2 — Shell &amp; Overview</span>
+    <span class="time">0:25 – 0:55</span>
+  </div>
+  <p><span class="label">Show</span> Left rail menu; Overview cards: Total users, Pending KYC, Pending deposits/withdrawals, totals in PKR. Theme / language prefs; Sign out in app bar.</p>
+  <p class="vo-en"><span class="label">EN VO</span> “After login, Admins land on Overview — your operational snapshot. The left menu is your map of every tool. CRM staff land on CRM home instead, with limited menus. Start every day by checking pending KYC, deposits, and withdrawals.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> لاگ اِن کے بعد ایڈمن Overview پر آتے ہیں — آپ کا آپریشنل سنیپ شاٹ۔ بائیں مینو ہر ٹول کا نقشہ ہے۔ سی آر ایم اسٹاف براہِ راست CRM home پر جاتے ہیں، محدود مینو کے ساتھ۔ ہر دن pending KYC، ڈیپازٹس اور ودڈرالز چیک کر کے شروع کریں۔</p>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 3 — KYC queue</span>
+    <span class="time">0:55 – 1:30</span>
+  </div>
+  <p><span class="label">Show</span> KYC queue table → View details → review CNIC images, bank, nominee → Approve (or Reject with required reason).</p>
+  <p class="vo-en"><span class="label">EN VO</span> “Open KYC queue. Select an investor, review identity documents, bank details, and nominee. Tap Approve when everything is correct, or Reject and enter a clear reason so the investor can fix and resubmit.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> KYC queue کھولیں۔ سرمایہ کار منتخب کریں، شناختی دستاویزات، بینک اور نامزد شخص چیک کریں۔ سب درست ہو تو Approve دبائیں، ورنہ Reject کریں اور واضح وجہ لکھیں تاکہ صارف درست کر کے دوبارہ بھیج سکے۔</p>
+  <div class="warn" style="margin-top:8px">Blur CNIC photos and personal numbers on camera.</div>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 4 — Deposits, Deposit Settings, Withdrawals</span>
+    <span class="time">1:30 – 2:20</span>
+  </div>
+  <p><span class="label">Show</span> Deposits → Pending tab → View request → proof + fee preview → Approve / Approve &amp; Complete or Reject. Deposit Settings: bank name, account holder, IBAN, preview, Save. Withdrawals queue: same approve/reject pattern.</p>
+  <p class="vo-en"><span class="label">EN VO</span> “In Deposits, open pending requests, verify payment proof and the fee preview, then Approve. Deposit Settings is where you publish the company bank account investors see when they transfer money — keep it accurate. In Withdrawals, review the amount against the investor’s money-market balance and Approve or Reject.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> Deposits میں pending درخواستیں کھولیں، ادائیگی کا ثبوت اور فیس کا جائزہ لیں، پھر Approve کریں۔ Deposit Settings میں وہ کمپنی بینک اکاؤنٹ محفوظ کریں جو سرمایہ کاروں کو ٹرانسفر کے وقت دکھتا ہے — ہمیشہ درست رکھیں۔ Withdrawals میں رقم کو منی مارکیٹ بیلنس سے ملائیں اور Approve یا Reject کریں۔</p>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 5 — Change Requests &amp; Investors</span>
+    <span class="time">2:20 – 2:50</span>
+  </div>
+  <p><span class="label">Show</span> Change Requests: Pending → Approve / Reject. Investors: search → View detail (KYC card, wallet metrics, CRM assignment, transactions).</p>
+  <p class="vo-en"><span class="label">EN VO</span> “Change Requests are tickets when investors ask to update name, phone, bank, or nominee — approve or reject with notes. Investors search opens the full profile: KYC status, deposited and profit totals, CRM assignment, and transaction history.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> Change Requests وہ ٹکٹس ہیں جب صارف نام، فون، بینک یا نامزد شخص تبدیل کرنا چاہے — نوٹ کے ساتھ منظور یا مسترد کریں۔ Investors سے تلاش کر کے مکمل پروفائل کھولیں: KYC، جمع اور منافع، CRM تفویض، اور لین دین کی ہسٹری۔</p>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 6 — CRM</span>
+    <span class="time">2:50 – 3:20</span>
+  </div>
+  <p><span class="label">Show</span> CRM home → CRM investors → investor detail tabs: Overview, Notes (Add note), Follow-ups (Add / Mark complete), Communications. CRM team: Add CRM user (admin only).</p>
+  <p class="vo-en"><span class="label">EN VO</span> “CRM is for relationship work. Staff see assigned investors, add notes, schedule follow-ups, and log communications. Admins can open CRM Team to create new CRM logins.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> CRM تعلقات کے کام کے لیے ہے۔ اسٹاف اپنے تفویض شدہ سرمایہ کار دیکھتے ہیں، نوٹس لکھتے ہیں، فالو اپ شیڈول کرتے ہیں، اور بات چیت ریکارڈ کرتے ہیں۔ ایڈمن CRM Team سے نئے CRM لاگ اِن بنا سکتے ہیں۔</p>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 7 — Returns, Daily markets, Fees</span>
+    <span class="time">3:20 – 3:55</span>
+  </div>
+  <p><span class="label">Show</span> Returns: monthly return % → Apply to all users (show confirm, don’t necessarily execute on prod). Daily markets: Config allocations (must total 100%), rates, Day overrides / Holidays glance. Fee management + Earnings glance.</p>
+  <p class="vo-en"><span class="label">EN VO</span> “Returns is where you apply monthly profit percentage across users. Daily markets controls the five-sleeve model — stock, tech, debt, money, and gold allocations must total one hundred percent — plus rates, holidays, and end-of-day logs. Fee management and Earnings track company fee income.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> Returns میں ماہانہ منافع فیصد تمام صارفین پر لاگو ہوتا ہے۔ Daily markets پانچ حصوں کا ماڈل کنٹرول کرتا ہے — سٹاک، ٹیک، ڈیٹ، منی اور گولڈ کی تقسیم ایک سو فیصد ہونی چاہیے — ساتھ ریٹس، چھٹیاں اور اینڈ آف ڈے لاگ۔ Fee management اور Earnings کمپنی کی فیس آمدنی دکھاتے ہیں۔</p>
+  <div class="warn" style="margin-top:8px">For “Apply to all users”, show the confirm dialog but avoid running destructive actions on live production during recording — use staging if possible.</div>
+</div>
+
+<div class="scene">
+  <div class="scene-head">
+    <span class="scene-title">Scene 8 — Reports, Broadcast, wrap-up</span>
+    <span class="time">3:55 – 4:30</span>
+  </div>
+  <p><span class="label">Show</span> Upload investor report PDF → publish. Broadcast: title + message → Send. Notifications inbox. Brief mention of App updates. Sign out.</p>
+  <p class="vo-en"><span class="label">EN VO</span> “Upload investor reports as PDFs so clients can download statements in the app. Use Broadcast to send an announcement to every investor inbox. Check your Notifications badge for staff alerts. App Updates publishes a new Android build when you need a forced update. That’s the full Admin workflow for ISC-WAI.”</p>
+  <p class="vo-ur urdu"><span class="label" style="direction:ltr;display:block;text-align:left;font-family:'Source Sans 3',sans-serif">UR VO</span> سرمایہ کار رپورٹس PDF اپ لوڈ کریں تاکہ کلائنٹ ایپ سے اسٹیٹمنٹ ڈاؤن لوڈ کر سکیں۔ Broadcast سے تمام سرمایہ کاروں کو اعلان بھیجیں۔ Notifications میں اسٹاف الرٹس دیکھیں۔ App Updates سے نیا اینڈرائیڈ بلڈ شائع کریں جب زبردستی اپڈیٹ درکار ہو۔ یہ ISC-WAI کا مکمل ایڈمن ورک فلو ہے۔</p>
+</div>
+
+<h2>6. Feature checklist</h2>
+<table>
+  <tr><th>Feature</th><th>Must show?</th><th>Notes</th></tr>
+  <tr><td>Admin login + role difference</td><td>Yes</td><td>Admin vs CRM</td></tr>
+  <tr><td>Overview + left nav</td><td>Yes</td><td></td></tr>
+  <tr><td>KYC approve/reject</td><td>Yes</td><td>Core</td></tr>
+  <tr><td>Deposits + Deposit Settings + Withdrawals</td><td>Yes</td><td>Core money ops</td></tr>
+  <tr><td>Change Requests</td><td>Yes</td><td>Short</td></tr>
+  <tr><td>Investors detail</td><td>Yes</td><td>Short</td></tr>
+  <tr><td>CRM notes / follow-ups / team</td><td>Yes</td><td></td></tr>
+  <tr><td>Returns + Daily markets + Fees</td><td>Yes</td><td>Glance if tight on time</td></tr>
+  <tr><td>Upload reports + Broadcast</td><td>Yes</td><td></td></tr>
+  <tr><td>App updates</td><td>Optional</td><td>Mention</td></tr>
+  <tr><td>Backdated / Auto Backfill</td><td>Optional</td><td>“Advanced — use carefully”</td></tr>
+  <tr><td>Investor mobile app</td><td>No</td><td>Separate investor PDF</td></tr>
+</table>
+
+<h2>7. On-screen labels to highlight</h2>
+<p>Admin sign in · Work email · Overview · KYC queue · View details · Approve · Reject · Deposits · View request · Approve &amp; Complete · Deposit Bank Settings · Save Bank Details · Withdrawals · Change Requests · Investors · CRM home · CRM investors · CRM team · Returns &amp; profit entry · Apply to all users · Daily markets · Fee management · Earnings · Company Fee Ledger · Upload investor report · Broadcast · Sign out</p>
+
+<h2>8. Suggested end card</h2>
+<p class="vo-en"><strong>EN:</strong> “ISC-WAI Admin — clear queues daily, protect investor trust, keep markets and fees configured correctly.”</p>
+<p class="vo-ur urdu"><strong>UR:</strong> آئی ایس سی وائی ایڈمن — روزانہ کیو صاف رکھیں، سرمایہ کار کا اعتماد محفوظ رکھیں، مارکیٹس اور فیس درست کنفیگر رکھیں۔</p>
+
+<div class="footer-note">
+  Prepared for the video editor · Admin / CRM staff tutorial only · Companion document: Investor tutorial brief<br/>
+  App title: ISC-WAI — Admin · Roles: admin, crm · Prefer staging data for recording
+</div>
+
+</div>
+</body>
+</html>

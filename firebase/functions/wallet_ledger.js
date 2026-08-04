@@ -1419,6 +1419,171 @@ exports.adminCreateDeposit = onCall(
   },
 );
 
+/**
+ * Admin: manually credit an investor's wallet with an approved deposit,
+ * optionally deducting a flat 2% front-end load fee as a separate ledger
+ * entry. Writes directly to the canonical `transactions` collection (the
+ * same collection the investor app already reads via
+ * `userId == request.auth.uid`), then reuses `recalculateWallet` /
+ * `syncPortfolioNetDeposits` so `wallets/{uid}` reflects the change
+ * immediately — no investor-app changes required.
+ */
+exports.adminInitiateDeposit = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth?.uid)
+      throw new HttpsError("unauthenticated", "Sign in required.");
+    await assertAdmin(request.auth.uid);
+
+    const {
+      userId,
+      amountPkr,
+      applyFrontEndFee,
+      proofImageUrl,
+      notes,
+      backdateIso,
+    } = request.data || {};
+
+    if (!userId || typeof userId !== "string" || !userId.trim()) {
+      throw new HttpsError("invalid-argument", "userId required.");
+    }
+    const amt = Number(amountPkr);
+    if (!amt || amt <= 0 || !isFinite(amt)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "amountPkr must be a positive number.",
+      );
+    }
+
+    const trimmedUserId = userId.trim();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    let txDate = now;
+    let backdated = false;
+    if (backdateIso) {
+      const parsed = new Date(backdateIso);
+      if (isNaN(parsed.getTime())) {
+        throw new HttpsError(
+          "invalid-argument",
+          "backdateIso must be a valid date.",
+        );
+      }
+      if (parsed > new Date()) {
+        throw new HttpsError(
+          "invalid-argument",
+          "backdateIso cannot be in the future.",
+        );
+      }
+      txDate = admin.firestore.Timestamp.fromDate(parsed);
+      backdated = true;
+    }
+
+    const applyFee = applyFrontEndFee === true;
+    const feeRate = 0.02;
+    const feeAmount = applyFee ? parseFloat((amt * feeRate).toFixed(2)) : 0;
+    const netAmount = parseFloat((amt - feeAmount).toFixed(2));
+
+    const adminUid = request.auth.uid;
+    const depositTxId = txId();
+    const txRef = db().collection("transactions").doc(depositTxId);
+
+    const depositDoc = {
+      id: depositTxId,
+      userId: trimmedUserId,
+      type: "deposit",
+      amount: amt,
+      netAmount,
+      status: "approved",
+      createdAt: txDate,
+      updatedAt: now,
+      approvedBy: adminUid,
+      notes: (notes || "Admin-initiated deposit").trim(),
+      proofUrl: proofImageUrl ? String(proofImageUrl).trim() : null,
+      paymentMethod: "admin_deposit",
+      initiatedBy: "admin",
+      source: "admin_deposit",
+      frontEndFeeApplied: applyFee,
+      frontEndFeeAmount: feeAmount,
+    };
+    if (backdated) {
+      depositDoc.isBackdated = true;
+      depositDoc.backdatedBy = adminUid;
+      depositDoc.backdatedAt = now;
+    }
+
+    const batch = db().batch();
+    batch.set(txRef, depositDoc);
+
+    let feeTxId = null;
+    if (applyFee && feeAmount > 0) {
+      feeTxId = txId();
+      const feeRef = db().collection("transactions").doc(feeTxId);
+      batch.set(feeRef, {
+        id: feeTxId,
+        userId: trimmedUserId,
+        type: "front_end_load_fee",
+        feeKind: "front_end_load",
+        amount: feeAmount,
+        status: "approved",
+        feePct: feeRate * 100,
+        feeBaseAmount: amt,
+        relatedTxId: depositTxId,
+        createdAt: txDate,
+        updatedAt: now,
+        approvedBy: adminUid,
+        notes: "Front-End Processing Fee (2%)",
+        initiatedBy: "admin",
+        source: "admin_deposit_fee",
+      });
+    }
+
+    await batch.commit();
+    await recalculateWallet(trimmedUserId);
+    await syncPortfolioNetDeposits(trimmedUserId);
+
+    await safeAppendAudit(
+      adminUid,
+      "admin",
+      "adminInitiateDeposit",
+      "transaction",
+      depositTxId,
+      null,
+      {
+        userId: trimmedUserId,
+        amountPkr: amt,
+        feeAmount,
+        netAmount,
+        feeTxId,
+        isBackdated: backdated,
+      },
+    );
+
+    await safeNotify(() =>
+      sendCustomerTransactionAlerts(trimmedUserId, {
+        title: "Deposit credited",
+        body: `A deposit of PKR ${amt.toFixed(0)} has been credited to your wallet.`,
+        type: "deposit",
+        category: "wallet",
+        action: "open_wallet",
+        refId: depositTxId,
+        amount: amt,
+        currency: "PKR",
+      }),
+    );
+
+    return {
+      success: true,
+      transactionId: depositTxId,
+      depositTxId,
+      feeTxId,
+      amountPkr: amt,
+      feeAmount,
+      netAmount,
+      applyFrontEndFee: applyFee,
+    };
+  },
+);
+
 /** Admin: set investor account opening date on users/{uid}. */
 exports.setAccountOpeningDate = onCall(
   { region: "us-central1" },

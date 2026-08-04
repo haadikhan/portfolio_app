@@ -1,0 +1,61 @@
+[2026-08-04T10:42:34.717Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[2026-08-04T10:42:34.724Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[2026-08-04T10:42:34.725Z] > authorizing via signed-in user (iscwakala@gmail.com)
+[2026-08-04T10:42:34.725Z] [iam] checking project portfolio-e97b1 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[2026-08-04T10:42:34.727Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:34.727Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:34.728Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1:testIamPermissions [none]
+[2026-08-04T10:42:34.728Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1:testIamPermissions  x-goog-user-project=portfolio-e97b1
+[2026-08-04T10:42:34.728Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2026-08-04T10:42:36.812Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1:testIamPermissions 200
+[2026-08-04T10:42:36.812Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2026-08-04T10:42:36.812Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:36.812Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:36.812Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/portfolio-e97b1/serviceAccounts/portfolio-e97b1@appspot.gserviceaccount.com:testIamPermissions [none]
+[2026-08-04T10:42:36.812Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/portfolio-e97b1/serviceAccounts/portfolio-e97b1@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[2026-08-04T10:42:38.608Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/portfolio-e97b1/serviceAccounts/portfolio-e97b1@appspot.gserviceaccount.com:testIamPermissions 200
+[2026-08-04T10:42:38.608Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/portfolio-e97b1/serviceAccounts/portfolio-e97b1@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+
+=== Deploying to 'portfolio-e97b1'...
+
+i  deploying functions 
+[2026-08-04T10:42:38.611Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:38.611Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:38.611Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1 [none]
+[2026-08-04T10:42:38.950Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1 200
+[2026-08-04T10:42:38.950Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/portfolio-e97b1 {"projectNumber":"500864820062","projectId":"portfolio-e97b1","lifecycleState":"ACTIVE","name":"ISC-WAI","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-03-26T08:42:06.083Z"}
+i  functions: preparing codebase default for deployment 
+i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[2026-08-04T10:42:38.954Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:38.954Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:38.954Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/portfolio-e97b1/adminSdkConfig [none]
+[2026-08-04T10:42:40.180Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/portfolio-e97b1/adminSdkConfig 200
+[2026-08-04T10:42:40.180Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/portfolio-e97b1/adminSdkConfig {"projectId":"portfolio-e97b1","storageBucket":"portfolio-e97b1.firebasestorage.app"}
+[2026-08-04T10:42:40.181Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:40.181Z] Checked if tokens are valid: true, expires at: 1785841460321
+[2026-08-04T10:42:40.181Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/portfolio-e97b1/configs [none]
+[2026-08-04T10:42:41.430Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/portfolio-e97b1/configs 200
+[2026-08-04T10:42:41.430Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/portfolio-e97b1/configs {}
+[2026-08-04T10:42:41.433Z] Validating nodejs source
+!  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[2026-08-04T10:42:43.548Z] > [functions] package.json contents: {
+  "name": "wakalat-invest-functions",
+  "description": "Cloud Functions for Wakalat Invest wallet & ledger",
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "adbkit-apkreader": "^3.2.0",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^7.3.2-rc.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "private": true
+}
+[2026-08-04T10:42:43.548Z] Building nodejs source
+i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[2026-08-04T10:42:43.549Z] Could not find functions.yaml. Must use http discovery
+[2026-08-04T10:42:43.557Z] Found firebase-functions binary at 'D:\Projects\portfolio_app\firebase\functions\node_modules\.bin\firebase-functions'
