@@ -19,6 +19,7 @@ import "../features/update/data/app_update_providers.dart";
 import "../features/update/presentation/update_action.dart";
 import "../models/app_user.dart";
 import "../providers/auth_providers.dart";
+import "../debug/agent_debug_log.dart";
 import "../providers/wallet_providers.dart";
 
 final _money = NumberFormat.currency(symbol: "PKR ", decimalDigits: 2);
@@ -749,6 +750,23 @@ class _WalletCard extends ConsumerWidget {
     final reserved = (wallet?["reservedAmount"] as num?)?.toDouble() ?? 0;
     final td = (wallet?["totalDeposited"] as num?)?.toDouble() ?? 0;
     final tp = (wallet?["totalProfit"] as num?)?.toDouble() ?? 0;
+    if (wallet != null) {
+      // #region agent log
+      agentDebugLog(
+        location: "user_home_screen.dart:_WalletCard",
+        message: "investor dashboard wallet hero",
+        hypothesisId: "H2-H4",
+        data: {
+          "userId": profile.id,
+          "availableBalance": avail,
+          "totalPortfolioHero": totalPortfolioPkr,
+          "moneyMarketAvailable": moneyMarketPkr,
+          "sumHeroPlusMm": totalPortfolioPkr + moneyMarketPkr,
+          "netPortfolioValue": netPortfolioValueFromWallet(wallet),
+        },
+      );
+      // #endregion
+    }
     final dash = context.tr("em_dash");
 
     final depositedLabel = context

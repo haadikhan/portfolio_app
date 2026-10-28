@@ -12,6 +12,7 @@ class TxnItem {
     this.paymentMethod,
     this.proofUrl,
     this.silentFee = false,
+    this.cashSource,
   });
 
   final String id;
@@ -29,6 +30,9 @@ class TxnItem {
 
   /// v2 daily management fee — hidden from investor transaction history.
   final bool silentFee;
+
+  /// `metadata.source`. Cash desk rows use `admin_cash`.
+  final String? cashSource;
 
   factory TxnItem.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data();
@@ -48,7 +52,17 @@ class TxnItem {
       paymentMethod: d["paymentMethod"] as String?,
       proofUrl: d["proofUrl"] as String?,
       silentFee: d["silentFee"] == true,
+      cashSource: _metadataSource(d),
     );
+  }
+
+  static String? _metadataSource(Map<String, dynamic> d) {
+    final meta = d["metadata"];
+    if (meta is Map) {
+      final source = meta["source"];
+      if (source is String && source.trim().isNotEmpty) return source.trim();
+    }
+    return null;
   }
 
   static DateTime? _parseTime(dynamic v) {

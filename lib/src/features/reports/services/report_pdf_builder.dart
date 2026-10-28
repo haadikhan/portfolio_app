@@ -9,6 +9,7 @@ import "package:pdf/widgets.dart" as pw;
 import "../../../core/branding/brand_assets.dart";
 import "../../../core/formatting/transaction_display.dart";
 import "../../investor/data/models/txn_item.dart";
+import "report_balance.dart";
 
 String _pdfTxnId(String id, String type) => formatTransactionId(id, type);
 
@@ -397,6 +398,12 @@ String _titleCaseWords(String s) {
 String _pdfDescriptionCell(TxnItem t) {
   final type = t.type.toLowerCase();
   final amount = t.amount;
+  if (t.cashSource == "admin_cash" && type == "withdrawal") {
+    return "Cash Debit (Admin)";
+  }
+  if (t.cashSource == "admin_cash" && type == "deposit") {
+    return "Cash Credit (Admin)";
+  }
 
   switch (type) {
     case "deposit":
@@ -502,23 +509,13 @@ pw.Widget _buildNote(String number, String text) {
 
 pw.Widget _buildTransactionsLedgerTable({
   required List<TxnItem> transactions,
+  required Map<String, double> balanceAfterTxnId,
   required DateFormat dateTimeFmt,
   required ReportPdfLabels labels,
   required double openingBalance,
 }) {
   final headerStyle = pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold);
   const cellStyle = pw.TextStyle(fontSize: 7);
-
-  final runningBalances = <double>[];
-  var balance = openingBalance;
-  for (final t in transactions) {
-    if (_isCredit(t)) {
-      balance += t.amount.abs();
-    } else {
-      balance -= t.amount.abs();
-    }
-    runningBalances.add(balance);
-  }
 
   final columnWidths = <int, pw.TableColumnWidth>{
     0: const pw.FixedColumnWidth(90),
@@ -553,7 +550,7 @@ pw.Widget _buildTransactionsLedgerTable({
       displayTransactionStatus(t.status),
       _isCredit(t) ? "" : _pdfAmountFmt.format(t.amount.abs()),
       _isCredit(t) ? _pdfAmountFmt.format(t.amount.abs()) : "",
-      _pdfAmountFmt.format(runningBalances[i]),
+      _pdfAmountFmt.format(balanceAfterTxnId[t.id] ?? openingBalance),
       _pdfNoteCell(t),
     ]);
   }
@@ -611,10 +608,20 @@ Future<Uint8List> buildInvestorReportPdf({
   required DateTime periodStart,
   required DateTime periodEndInclusive,
   required List<TxnItem> transactions,
+  List<TxnItem>? ledgerBalanceTransactions,
   required ReportPdfLabels labels,
   required bool isYearlyReport,
   required double openingBalance,
 }) async {
+  final balanceTxns = ledgerBalanceTransactions ?? transactions;
+  final balanceAfterTxnId = computeReportBalanceAfterEach(
+    balanceTxns,
+    openingBalance: openingBalance,
+  );
+  final closingPortfolioBalance = computeReportClosingBalance(
+    balanceTxns,
+    openingBalance: openingBalance,
+  );
   pw.MemoryImage? logoImage;
   try {
     final logoBytes = (await rootBundle.load(
@@ -638,7 +645,7 @@ Future<Uint8List> buildInvestorReportPdf({
   double totalPerfFee = 0;
   double totalReferralFee = 0;
   double totalOtherFees = 0;
-  for (final t in transactions) {
+  for (final t in balanceTxns) {
     final st = t.status;
     final ty = t.type.toLowerCase();
     if (ty == "deposit" && st == "approved") {
@@ -775,6 +782,7 @@ Future<Uint8List> buildInvestorReportPdf({
         else
           _buildTransactionsLedgerTable(
             transactions: transactions,
+            balanceAfterTxnId: balanceAfterTxnId,
             dateTimeFmt: dateTimeFmt,
             labels: labels,
             openingBalance: openingBalance,
@@ -854,14 +862,7 @@ Future<Uint8List> buildInvestorReportPdf({
               ],
               [
                 "Closing Portfolio Value",
-                _pdfAmountFmt.format(
-                  openingBalance +
-                      totalDep -
-                      totalWdr.abs() +
-                      totalPr -
-                      totalMgmtFee -
-                      totalOtherFees,
-                ),
+                _pdfAmountFmt.format(closingPortfolioBalance),
               ],
             ],
             headerStyle: pw.TextStyle(

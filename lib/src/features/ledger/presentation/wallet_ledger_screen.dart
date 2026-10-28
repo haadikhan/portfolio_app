@@ -508,6 +508,8 @@ class _LedgerTransactionCard extends StatelessWidget {
     final type = (m["type"] ?? "").toString();
     final status = (m["status"] ?? "").toString();
     final amt = (m["amount"] as num?)?.toDouble() ?? 0;
+    final metadata = m["metadata"];
+    final cashSource = metadata is Map ? metadata["source"]?.toString() : null;
     final stripe = _stripeForType(type, amt);
     final amountText = formatTransactionAmount(type, amt);
     final amountColor = transactionAmountColor(type, context, amount: amt);
@@ -550,6 +552,7 @@ class _LedgerTransactionCard extends StatelessWidget {
                               context,
                               type,
                               amount: amt,
+                              source: cashSource,
                             ),
                             style: TextStyle(
                               fontWeight: FontWeight.w800,

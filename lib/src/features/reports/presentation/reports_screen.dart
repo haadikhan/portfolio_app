@@ -17,7 +17,10 @@ import "../../../providers/auth_providers.dart";
 import "../../../providers/reports_providers.dart";
 import "../../../providers/transaction_history_providers.dart";
 import "../data/fee_statement_providers.dart";
+import "../../../debug/agent_debug_log.dart";
+import "../services/report_balance.dart";
 import "../services/report_pdf_builder.dart";
+import "../../../core/formatting/transaction_display.dart";
 import "fee_statement_detail_screen.dart";
 import "report_pdf_preview_screen.dart";
 
@@ -154,24 +157,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       range.start.day,
     );
 
-    double openingBalance = 0.0;
-    for (final t in txs) {
-      if (t.status != "approved" && t.status != "completed") continue;
-      if (!t.createdAt.isBefore(periodStartDate)) continue;
-
-      final type = t.type.toLowerCase();
-      if (type == "deposit") {
-        openingBalance += t.amount.abs();
-      } else if (type == "profit" || type == "profit_entry") {
-        openingBalance += t.amount;
-      } else if (type == "adjustment" && t.amount >= 0) {
-        openingBalance += t.amount;
-      } else if (type == "withdrawal") {
-        openingBalance -= t.amount.abs();
-      } else if (type == "adjustment" && t.amount < 0) {
-        openingBalance -= t.amount.abs();
-      }
-    }
+    final openingBalance = computeReportOpeningBalance(txs, periodStartDate);
 
     final filtered = filterTxnsInRange(txs, range.start, range.end);
 
@@ -200,6 +186,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         : "";
     final reportType = resolveReportType(filtered);
 
+    // #region agent log
+    final displayIds = displayTxns.map((e) => e.id).toSet();
+    var hiddenFeeSum = 0.0;
+    var hiddenFeeCount = 0;
+    for (final t in filtered) {
+      if (isFeeType(t.type) &&
+          (t.silentFee || t.type == "management_fee") &&
+          !displayIds.contains(t.id)) {
+        hiddenFeeCount++;
+        hiddenFeeSum += t.amount.abs();
+      }
+    }
+    final closingLedger = computeReportClosingBalance(
+      filtered,
+      openingBalance: openingBalance,
+    );
+    agentDebugLog(
+      location: "reports_screen.dart:_buildPdfBytes",
+      message: "report balance audit",
+      hypothesisId: "H1-H2",
+      data: {
+        "openingBalance": openingBalance,
+        "closingFromLedgerMath": closingLedger,
+        "displayTxnCount": displayTxns.length,
+        "balanceTxnCount": filtered.length,
+        "hiddenFeeCount": hiddenFeeCount,
+        "hiddenFeeSumInPeriod": hiddenFeeSum,
+        "isYearlyReport": isYearlyReport,
+      },
+    );
+    // #endregion
+
     try {
       return await buildInvestorReportPdf(
         accountLabel: accountLabel,
@@ -208,6 +226,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         periodStart: ps,
         periodEndInclusive: pe,
         transactions: displayTxns,
+        ledgerBalanceTransactions: filtered,
         labels: _labels(context),
         isYearlyReport: isYearlyReport,
         openingBalance: openingBalance,

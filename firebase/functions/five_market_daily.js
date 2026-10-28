@@ -10,6 +10,11 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
 const { recalculateWallet, appendAudit } = require("./wallet_helpers");
+const {
+  inspectMoneyAllocation,
+  profitMoneyMarketMetadataStamp,
+  depositMoneyMarketStamp,
+} = require("./moneyMarketFromTransactions");
 
 function db() {
   return admin.firestore();
@@ -418,6 +423,8 @@ function calculateDailyProfit({ basePkr, config, eodSnap }) {
   };
 }
 
+exports.calculateDailyProfit = calculateDailyProfit;
+
 exports.fiveMarketEodSnapshot = onSchedule(
   {
     schedule: "5 16 * * 1-5",
@@ -507,6 +514,15 @@ exports.fiveMarketDailyCredit = onSchedule(
       return;
     }
     const config = configSnap.data();
+    const moneyInspected = inspectMoneyAllocation(config.allocations);
+    const moneyPct = moneyInspected.percent;
+    if (moneyInspected.sumWarning) {
+      logger.warn("five_market_allocations_sum_not_100", {
+        sum: moneyInspected.sum,
+        money: moneyPct,
+        allocations: config.allocations || null,
+      });
+    }
 
     // Default ON: every wallet holder is eligible unless portfolios/{uid}
     // explicitly sets fiveMarketDailyLedger === false.
@@ -594,6 +610,11 @@ exports.fiveMarketDailyCredit = onSchedule(
         if (totalProfitPkr !== 0) {
           const txRef = db().collection("transactions").doc();
           const batch = db().batch();
+          const mmPnlStamp = profitMoneyMarketMetadataStamp({
+            amountPkr: totalProfitPkr,
+            markets,
+            allocationPercent: moneyPct,
+          });
 
           batch.set(txRef, {
             id: txRef.id,
@@ -606,6 +627,7 @@ exports.fiveMarketDailyCredit = onSchedule(
               periodKey: datePkt,
               source: "five_market_daily",
               markets,
+              ...mmPnlStamp,
             },
             createdAt: now,
             updatedAt: now,
@@ -620,7 +642,7 @@ exports.fiveMarketDailyCredit = onSchedule(
 
           await batch.commit();
 
-          await recalculateWallet(uid);
+          await recalculateWallet(uid, { moneyAllocationPercent: moneyPct });
         } else {
           await dailyRef.update({
             creditedToWallet: true,
@@ -872,6 +894,16 @@ exports.adminAutoBackfillInvestor = onCall(
       configSnap.exists && configSnap.data()
         ? configSnap.data()
         : { allocations: {}, rates: {} };
+    const moneyInspected = inspectMoneyAllocation(config.allocations);
+    const moneyPct = moneyInspected.percent;
+    if (moneyInspected.sumWarning) {
+      logger.warn("five_market_allocations_sum_not_100", {
+        sum: moneyInspected.sum,
+        money: moneyPct,
+        allocations: config.allocations || null,
+        context: "adminAutoBackfillInvestor",
+      });
+    }
 
     const holidays = holSnap.exists
       ? (holSnap.data().holidays || []).map((h) => h && h.date).filter(Boolean)
@@ -1331,6 +1363,7 @@ exports.adminAutoBackfillInvestor = onCall(
         backdatedBy: adminUid,
         backdatedAt: now,
         isAutoBackfill: true,
+        ...depositMoneyMarketStamp(dep.amount, moneyPct),
       });
       depositTids.push(depTid);
     }
@@ -1428,6 +1461,11 @@ exports.adminAutoBackfillInvestor = onCall(
             periodKey: entry.date,
             source: "five_market_daily",
             markets: entry.markets,
+            ...profitMoneyMarketMetadataStamp({
+              amountPkr: entry.totalProfitPkr,
+              markets: entry.markets,
+              allocationPercent: moneyPct,
+            }),
           },
           createdAt: dayTs,
           updatedAt: dayTs,
@@ -1601,7 +1639,7 @@ exports.adminAutoBackfillInvestor = onCall(
 
     // ── Step 4: Recalculate wallet from all written transactions ──────────
     const { recalculateWallet } = require("./wallet_helpers");
-    await recalculateWallet(uid);
+    await recalculateWallet(uid, { moneyAllocationPercent: moneyPct });
 
     const walletSnap = await db().collection("wallets").doc(uid).get();
     if (walletSnap.exists) {

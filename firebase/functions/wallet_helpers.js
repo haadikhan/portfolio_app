@@ -1,4 +1,10 @@
 const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
+const { logger } = require("firebase-functions");
+const {
+  moneyMarketFromTransactions,
+  inspectMoneyAllocation,
+} = require("./moneyMarketFromTransactions");
 
 const db = () => admin.firestore();
 
@@ -25,11 +31,54 @@ async function appendAudit(actorId, actorRole, action, entityType, entityId, bef
     entityId,
     before: before || null,
     after: after || null,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 }
 
-async function recalculateWallet(userId) {
+/**
+ * Reads settings/five_market_calc allocations.money once per cache object
+ * (pass the same `cache` within a Cloud Function invocation / batch).
+ * Returns Number(allocations.money) if finite and >= 0, else 5.
+ * If allocations do not sum to ~100, still uses allocations.money as-is
+ * and logs a warning — no resplit.
+ */
+async function loadFiveMarketMoneyAllocationPercent(cache) {
+  if (cache && cache._loaded === true) {
+    return cache.percent;
+  }
+  let percent = 5;
+  try {
+    const snap = await db().collection("settings").doc("five_market_calc").get();
+    const allocations = snap.exists ? snap.data()?.allocations : undefined;
+    const inspected = inspectMoneyAllocation(allocations);
+    percent = inspected.percent;
+    if (inspected.sumWarning) {
+      logger.warn("five_market_allocations_sum_not_100", {
+        sum: inspected.sum,
+        money: percent,
+        allocations: allocations || null,
+      });
+    }
+  } catch (e) {
+    logger.warn("loadFiveMarketMoneyAllocationPercent_failed", {
+      error: String(e),
+    });
+    percent = 5;
+  }
+  if (cache && typeof cache === "object") {
+    cache._loaded = true;
+    cache.percent = percent;
+  }
+  return percent;
+}
+
+async function recalculateWallet(userId, options = {}) {
+  const explicit = options.moneyAllocationPercent;
+  const moneyAllocationPercent =
+    Number.isFinite(Number(explicit)) && Number(explicit) >= 0
+      ? Number(explicit)
+      : await loadFiveMarketMoneyAllocationPercent(options.allocCache);
+
   const snap = await db().collection("transactions").where("userId", "==", userId).get();
   let totalDeposited = 0;
   let totalWithdrawn = 0;
@@ -41,9 +90,6 @@ async function recalculateWallet(userId) {
   let managementFees = 0;
   let performanceFees = 0;
   let reservedAmount = 0;
-  let moneyMarketCreditedTotal = 0;
-  let moneyMarketWithdrawnTotal = 0;
-  let moneyMarketReserved = 0;
 
   snap.forEach((doc) => {
     const d = doc.data();
@@ -53,7 +99,6 @@ async function recalculateWallet(userId) {
 
     if (ty === "deposit" && st === "approved") {
       totalDeposited += amt;
-      moneyMarketCreditedTotal += amt * 0.05;
     } else if (ty === "withdrawal") {
       // Canonical withdrawal lifecycle used across wallet projections:
       // pending  -> reserved only
@@ -61,11 +106,9 @@ async function recalculateWallet(userId) {
       // completed -> counted as withdrawn (settled)
       if (st === "pending" || st === "approved") {
         reservedAmount += amt;
-        moneyMarketReserved += amt;
       }
       if (st === "completed") {
         totalWithdrawn += amt;
-        moneyMarketWithdrawnTotal += amt;
       }
     } else if (
       (ty === "profit" || ty === "profit_entry") &&
@@ -87,6 +130,17 @@ async function recalculateWallet(userId) {
     }
   });
 
+  // MM cash is deposits×rate + non-MM P/L×rate − full withdrawals.
+  // Fees already reduce availableBalance / NAV; they are not deducted again
+  // from the MM cash bucket (no existing canonical rule that fees also cut MM).
+  const {
+    moneyMarketCreditedTotal,
+    moneyMarketWithdrawnTotal,
+    moneyMarketReserved,
+    moneyMarketBalance,
+    moneyMarketAvailable,
+  } = moneyMarketFromTransactions(snap.docs, { moneyAllocationPercent });
+
   const availableBalance =
     totalDeposited +
     totalProfit +
@@ -94,11 +148,6 @@ async function recalculateWallet(userId) {
     totalWithdrawn -
     reservedAmount -
     totalFees;
-  const moneyMarketBalance = Math.max(
-    0,
-    moneyMarketCreditedTotal - moneyMarketWithdrawnTotal,
-  );
-  const moneyMarketAvailable = Math.max(0, moneyMarketBalance - moneyMarketReserved);
 
   await db()
     .collection("wallets")
@@ -123,7 +172,7 @@ async function recalculateWallet(userId) {
         moneyMarketAvailable,
         availableBalance,
         currentBalance: availableBalance,
-        lastRecalculatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastRecalculatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
@@ -132,6 +181,7 @@ async function recalculateWallet(userId) {
 module.exports = {
   recalculateWallet,
   appendAudit,
+  loadFiveMarketMoneyAllocationPercent,
   FEE_TX_TYPES,
   isFeeType,
 };

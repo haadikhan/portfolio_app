@@ -36,6 +36,7 @@ import "screens/admin_app_updates_screen.dart";
 import "screens/admin_backdated_entries_screen.dart";
 import "screens/admin_auto_backfill_screen.dart";
 import "screens/admin_change_requests_screen.dart";
+import "screens/admin_cash_desk_screen.dart";
 import "widgets/admin_shell.dart";
 
 bool _crmMustRedirect(String loc) {
@@ -136,6 +137,12 @@ final adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: "/investors",
             builder: (_, __) => const AdminInvestorListScreen(),
+          ),
+          GoRoute(
+            path: "/cash-desk",
+            builder: (_, state) => AdminCashDeskScreen(
+              initialUserId: state.uri.queryParameters["userId"],
+            ),
           ),
           GoRoute(
             path: "/returns",

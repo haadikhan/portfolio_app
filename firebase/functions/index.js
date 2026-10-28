@@ -13,6 +13,32 @@ setGlobalOptions({
 });
 
 const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
+
+// The functions emulator binds admin.firestore() and drops statics such as
+// FieldValue. Restore them on a real function so existing callables keep
+// working. Production uses the same FieldValue class.
+const _firestoreProto = Object.getPrototypeOf(admin);
+const _firestoreDesc = Object.getOwnPropertyDescriptor(
+  _firestoreProto,
+  "firestore",
+);
+if (_firestoreDesc && _firestoreDesc.get) {
+  const _originalFirestoreGet = _firestoreDesc.get;
+  Object.defineProperty(_firestoreProto, "firestore", {
+    configurable: true,
+    enumerable: _firestoreDesc.enumerable,
+    get() {
+      const raw = _originalFirestoreGet.call(this);
+      function firestore(app) {
+        return raw(app);
+      }
+      if (raw && typeof raw === "function") Object.assign(firestore, raw);
+      if (!firestore.FieldValue) firestore.FieldValue = FieldValue;
+      return firestore;
+    },
+  });
+}
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -201,3 +227,7 @@ exports.resetYtdManagementFee = mgmtFeeDaily.resetYtdManagementFee;
 // ── Fee System v2 — Daily Performance Fee (Phase 4) ──────────
 const perfFeeDaily = require("./performance_fee_daily");
 exports.applyDailyPerformanceFeeJob = perfFeeDaily.applyDailyPerformanceFeeJob;
+
+const adminCashDesk = require("./admin_cash_desk");
+exports.adminCashWithdraw = adminCashDesk.adminCashWithdraw;
+exports.adminCashCredit = adminCashDesk.adminCashCredit;

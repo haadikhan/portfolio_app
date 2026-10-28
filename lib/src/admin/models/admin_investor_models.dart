@@ -41,19 +41,40 @@ class AdminInvestorWalletSnapshot {
     required this.totalDeposited,
     required this.totalWithdrawn,
     required this.totalProfit,
+    required this.totalFees,
+    required this.totalAdjustments,
+    required this.reservedAmount,
+    required this.availableBalance,
+    required this.moneyMarketAvailable,
   });
 
   final double totalDeposited;
   final double totalWithdrawn;
   final double totalProfit;
+  final double totalFees;
+  final double totalAdjustments;
+  final double reservedAmount;
+  /// Ledger payout cap (same as Cash Desk and investor app Available).
+  final double availableBalance;
+  final double moneyMarketAvailable;
 
-  double get balance => totalDeposited + totalProfit - totalWithdrawn;
+  /// Gross before fees — do not use for admin cash payout.
+  double get balanceBeforeFees =>
+      totalDeposited + totalProfit + totalAdjustments - totalWithdrawn;
+
+  /// @deprecated Use [availableBalance] for withdrawable ledger amount.
+  double get balance => balanceBeforeFees;
 
   factory AdminInvestorWalletSnapshot.fromFirestore(Map<String, dynamic> data) {
     return AdminInvestorWalletSnapshot(
       totalDeposited: _toDouble(data["totalDeposited"]),
       totalWithdrawn: _toDouble(data["totalWithdrawn"]),
       totalProfit: _toDouble(data["totalProfit"]),
+      totalFees: _toDouble(data["totalFees"]),
+      totalAdjustments: _toDouble(data["totalAdjustments"]),
+      reservedAmount: _toDouble(data["reservedAmount"]),
+      availableBalance: _toDouble(data["availableBalance"]),
+      moneyMarketAvailable: _toDouble(data["moneyMarketAvailable"]),
     );
   }
 
@@ -61,6 +82,11 @@ class AdminInvestorWalletSnapshot {
     totalDeposited: 0,
     totalWithdrawn: 0,
     totalProfit: 0,
+    totalFees: 0,
+    totalAdjustments: 0,
+    reservedAmount: 0,
+    availableBalance: 0,
+    moneyMarketAvailable: 0,
   );
 }
 
@@ -72,6 +98,7 @@ class AdminInvestorTransaction {
     required this.amount,
     required this.createdAt,
     this.notes,
+    this.cashSource,
   });
 
   final String id;
@@ -80,6 +107,9 @@ class AdminInvestorTransaction {
   final double amount;
   final DateTime? createdAt;
   final String? notes;
+
+  /// `metadata.source` when present. Cash desk rows use `admin_cash`.
+  final String? cashSource;
 
   factory AdminInvestorTransaction.fromFirestore(
     String id,
@@ -92,6 +122,7 @@ class AdminInvestorTransaction {
       amount: _toDouble(data["amount"]),
       createdAt: _parseTime(data["createdAt"]),
       notes: (data["notes"] as String?)?.trim(),
+      cashSource: _metadataSource(data),
     );
   }
 }
@@ -116,6 +147,15 @@ DateTime? _parseTime(dynamic v) {
   if (v == null) return null;
   if (v is Timestamp) return v.toDate();
   return DateTime.tryParse(v.toString());
+}
+
+String? _metadataSource(Map<String, dynamic> data) {
+  final meta = data["metadata"];
+  if (meta is Map) {
+    final source = meta["source"];
+    if (source is String && source.trim().isNotEmpty) return source.trim();
+  }
+  return null;
 }
 
 double _toDouble(dynamic value) {

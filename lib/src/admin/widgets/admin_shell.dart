@@ -31,6 +31,7 @@ const _kAdminShellRoutes = <String>[
   "/app-updates",
   "/notifications",
   "/broadcast",
+  "/cash-desk",
 ];
 
 /// CRM-only staff: CRM area + notifications.
@@ -264,6 +265,15 @@ class AdminShell extends ConsumerWidget {
                         title: const Text("Auto Backfill"),
                         selected: loc.startsWith("/auto-backfill"),
                         onTap: () => _go(context, "/auto-backfill"),
+                      ),
+                    if (isAdmin)
+                      ListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        leading: const Icon(Icons.point_of_sale_outlined),
+                        title: const Text("Cash Desk"),
+                        selected: loc.startsWith("/cash-desk"),
+                        onTap: () => _go(context, "/cash-desk"),
                       ),
                     ListTile(
                       dense: true,
@@ -683,6 +693,11 @@ class _AdminNavigationRail extends StatelessWidget {
           selectedIcon: const Icon(Icons.campaign),
           label: Text(context.tr("broadcast_to_investors")),
         ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.point_of_sale_outlined),
+          selectedIcon: const Icon(Icons.point_of_sale),
+          label: const Text("Cash Desk"),
+        ),
       ],
     );
   }
@@ -696,6 +711,7 @@ int _indexForCrm(String loc) {
 }
 
 int _indexForAdmin(String loc) {
+  if (loc.startsWith("/cash-desk")) return 21;
   if (loc.startsWith("/broadcast")) return 20;
   if (loc.startsWith("/notifications")) return 19;
   if (loc.startsWith("/app-updates")) return 18;

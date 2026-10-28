@@ -8,7 +8,16 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
-const { recalculateWallet, appendAudit } = require("./wallet_helpers");
+const {
+  recalculateWallet,
+  appendAudit,
+  loadFiveMarketMoneyAllocationPercent,
+} = require("./wallet_helpers");
+const {
+  moneyMarketFromTransactions,
+  depositMoneyMarketStamp,
+  profitMoneyMarketMetadataStamp,
+} = require("./moneyMarketFromTransactions");
 const {
   notifyAllAdmins,
   sendCustomerTransactionAlerts,
@@ -279,15 +288,12 @@ async function getAvailableBalance(userId) {
   return Number(w.data()?.availableBalance) || 0;
 }
 
-function deriveWalletFromTransactions(docs) {
+function deriveWalletFromTransactions(docs, options = {}) {
   let totalDeposited = 0;
   let totalWithdrawn = 0;
   let totalProfit = 0;
   let totalAdjustments = 0;
   let reservedAmount = 0;
-  let moneyMarketCreditedTotal = 0;
-  let moneyMarketWithdrawnTotal = 0;
-  let moneyMarketReserved = 0;
 
   for (const doc of docs) {
     const d = doc.data ? doc.data() : doc;
@@ -297,7 +303,6 @@ function deriveWalletFromTransactions(docs) {
 
     if (ty === "deposit" && st === "approved") {
       totalDeposited += amt;
-      moneyMarketCreditedTotal += amt * 0.05;
     }
     if (ty === "withdrawal") {
       // Canonical withdrawal lifecycle used across wallet projections:
@@ -306,10 +311,8 @@ function deriveWalletFromTransactions(docs) {
       // completed -> counted as withdrawn (settled)
       if (st === "pending" || st === "approved") {
         reservedAmount += amt;
-        moneyMarketReserved += amt;
       } else if (st === "completed") {
         totalWithdrawn += amt;
-        moneyMarketWithdrawnTotal += amt;
       }
     }
     if (
@@ -327,18 +330,14 @@ function deriveWalletFromTransactions(docs) {
     totalAdjustments -
     totalWithdrawn -
     reservedAmount;
-  const moneyMarketBalance = Math.max(
-    0,
-    moneyMarketCreditedTotal - moneyMarketWithdrawnTotal,
-  );
-  const moneyMarketAvailable = Math.max(0, moneyMarketBalance - moneyMarketReserved);
+  const mm = moneyMarketFromTransactions(docs, options);
   return {
     availableBalance,
-    moneyMarketCreditedTotal,
-    moneyMarketWithdrawnTotal,
-    moneyMarketReserved,
-    moneyMarketBalance,
-    moneyMarketAvailable,
+    moneyMarketCreditedTotal: mm.moneyMarketCreditedTotal,
+    moneyMarketWithdrawnTotal: mm.moneyMarketWithdrawnTotal,
+    moneyMarketReserved: mm.moneyMarketReserved,
+    moneyMarketBalance: mm.moneyMarketBalance,
+    moneyMarketAvailable: mm.moneyMarketAvailable,
   };
 }
 
@@ -708,12 +707,15 @@ exports.createWithdrawalRequest = onCall(
     const tid = txId();
     const tRef = db().collection("transactions").doc(tid);
     const now = admin.firestore.FieldValue.serverTimestamp();
+    const moneyAllocationPercent = await loadFiveMarketMoneyAllocationPercent();
 
     await db().runTransaction(async (tx) => {
       const txsSnap = await tx.get(
         db().collection("transactions").where("userId", "==", uid),
       );
-      const wallet = deriveWalletFromTransactions(txsSnap.docs);
+      const wallet = deriveWalletFromTransactions(txsSnap.docs, {
+        moneyAllocationPercent,
+      });
       if (wallet.availableBalance < amt) {
         throw new HttpsError(
           "failed-precondition",
@@ -811,6 +813,9 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
   const tid = req.transactionId;
   const tRef = db().collection("transactions").doc(tid);
   const now = admin.firestore.FieldValue.serverTimestamp();
+  const amt = Number(req.amount) || 0;
+  const moneyPct = await loadFiveMarketMoneyAllocationPercent();
+  const mmStamp = depositMoneyMarketStamp(amt, moneyPct);
 
   const batch = db().batch();
   batch.update(reqSnap.ref, {
@@ -823,12 +828,11 @@ exports.approveDeposit = onCall({ region: "us-central1" }, async (request) => {
     updatedAt: now,
     notes: note || null,
     approvedBy: request.auth.uid,
+    ...mmStamp,
   });
   await batch.commit();
   await recalculateWallet(req.userId);
   await syncPortfolioNetDeposits(req.userId);
-
-  const amt = Number(req.amount) || 0;
   let feesApplied = [];
   try {
     const result = await applyDepositFees({
@@ -1203,6 +1207,10 @@ exports.addProfitEntry = onCall({ region: "us-central1" }, async (request) => {
     updatedAt: now,
     notes: note || "profit",
     approvedBy: request.auth.uid,
+    ...profitMoneyMarketMetadataStamp({
+      amountPkr: amt,
+      allocationPercent: await loadFiveMarketMoneyAllocationPercent(),
+    }),
   };
   if (effectiveDate) {
     docData.isBackdated = true;
@@ -1284,16 +1292,21 @@ exports.addAdjustmentEntry = onCall(
       createdAt = now;
     }
 
+    const signedAmt = Math.abs(amt) * (amt < 0 ? -1 : 1);
     const docData = {
       id: tid,
       userId,
       type: "adjustment",
-      amount: Math.abs(amt) * (amt < 0 ? -1 : 1),
+      amount: signedAmt,
       status: "approved",
       createdAt,
       updatedAt: now,
       notes: note.trim(),
       approvedBy: request.auth.uid,
+      ...profitMoneyMarketMetadataStamp({
+        amountPkr: signedAmt,
+        allocationPercent: await loadFiveMarketMoneyAllocationPercent(),
+      }),
     };
     if (effectiveDate) {
       docData.isBackdated = true;
@@ -1387,6 +1400,10 @@ exports.adminCreateDeposit = onCall(
       notes: (note || "Admin deposit entry").trim(),
       paymentMethod: (paymentMethod || "admin_entry").trim(),
       approvedBy: request.auth.uid,
+      ...depositMoneyMarketStamp(
+        amt,
+        await loadFiveMarketMoneyAllocationPercent(),
+      ),
     };
 
     if (effectiveDate) {
@@ -1504,6 +1521,10 @@ exports.adminInitiateDeposit = onCall(
       source: "admin_deposit",
       frontEndFeeApplied: applyFee,
       frontEndFeeAmount: feeAmount,
+      ...depositMoneyMarketStamp(
+        amt,
+        await loadFiveMarketMoneyAllocationPercent(),
+      ),
     };
     if (backdated) {
       depositDoc.isBackdated = true;
@@ -1887,10 +1908,18 @@ exports.adminApproveTransaction = onCall(
     // Legacy behavior is type-specific:
     // deposit -> approved, withdrawal -> completed.
     const nextStatus = type === "withdrawal" ? "completed" : "approved";
+    const depositStamp =
+      type === "deposit"
+        ? depositMoneyMarketStamp(
+            amount,
+            await loadFiveMarketMoneyAllocationPercent(),
+          )
+        : {};
     batch.update(txRef, {
       status: nextStatus,
       approvedAt: now,
       approvedBy: adminUid,
+      ...depositStamp,
       ...(type === "withdrawal"
         ? {
             completedAt: now,
@@ -2066,8 +2095,9 @@ exports.repairApprovedWithdrawals = onCall(
       updatedCount++;
     }
 
+    const allocCache = {};
     for (const uid of affectedUsers) {
-      await recalculateWallet(uid);
+      await recalculateWallet(uid, { allocCache });
     }
 
     await safeAppendAudit(
@@ -2427,6 +2457,7 @@ exports.repairUserBalances = onCall(
     const results = [];
     let fixedCount = 0;
     let errorCount = 0;
+    const allocCache = {};
 
     for (const userDoc of usersSnap.docs) {
       const uid = userDoc.id;
@@ -2439,7 +2470,7 @@ exports.repairUserBalances = onCall(
         const oldWithdrawn = Number(oldWallet.totalWithdrawn) || 0;
 
         // Recalculate from transaction ledger
-        await recalculateWallet(uid);
+        await recalculateWallet(uid, { allocCache });
 
         // Read new values
         const newWallet =
@@ -2493,6 +2524,7 @@ exports.repairUserBalances = onCall(
 
 /** Nightly reconciliation: log mismatches */
 exports.reconcileWalletsDaily = onSchedule("0 3 * * *", async () => {
+  const allocCache = {};
   let cursor = null;
   while (true) {
     let q = db()
@@ -2506,7 +2538,7 @@ exports.reconcileWalletsDaily = onSchedule("0 3 * * *", async () => {
     for (const doc of usersSnap.docs) {
       const uid = doc.id;
       const wBefore = (await db().collection("wallets").doc(uid).get()).data();
-      await recalculateWallet(uid);
+      await recalculateWallet(uid, { allocCache });
       const wAfter = (await db().collection("wallets").doc(uid).get()).data();
       if (
         wBefore &&

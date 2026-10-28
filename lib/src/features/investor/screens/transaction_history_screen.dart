@@ -234,6 +234,7 @@ class TransactionRowItem extends StatelessWidget {
       context,
       txn.type,
       amount: txn.amount,
+      source: txn.cashSource,
     );
     final detailLine = transactionListSubtitle(
       id: txn.id,

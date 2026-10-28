@@ -5,6 +5,10 @@
     "node": "22"
   },
   "main": "index.js",
+  "scripts": {
+    "test": "node --test moneyMarketFromTransactions.test.js five_market_daily.profit.test.js admin_cash_desk.test.js",
+    "test:emulator": "firebase emulators:exec --only auth,firestore,functions --project portfolio-e97b1 \"node --test admin_cash_desk.emulator.test.js\""
+  },
   "dependencies": {
     "adbkit-apkreader": "^3.2.0",
     "firebase-admin": "^12.6.0",

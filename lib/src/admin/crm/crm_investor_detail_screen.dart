@@ -75,7 +75,7 @@ class _CrmInvestorDetailScreenState extends ConsumerState<CrmInvestorDetailScree
                   Chip(label: Text("${context.tr("crm_kyc_label")}: ${u.kycStatus}")),
                   Chip(
                     label: Text(
-                      "${context.tr("current_balance")}: ${currency.format(detail.wallet.balance)}",
+                      "${context.tr("current_balance")}: ${currency.format(detail.wallet.availableBalance)}",
                     ),
                   ),
                 ],

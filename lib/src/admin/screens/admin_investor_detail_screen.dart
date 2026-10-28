@@ -12,6 +12,8 @@ import "package:intl/intl.dart";
 import "package:open_filex/open_filex.dart";
 import "package:printing/printing.dart";
 
+import "../../debug/agent_debug_log.dart";
+import "../../core/formatting/transaction_display.dart";
 import "../../core/i18n/app_translations.dart";
 import "../../features/reports/presentation/report_pdf_preview_screen.dart";
 import "../services/consent_agreement_pdf_builder.dart";
@@ -194,6 +196,20 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
   Widget build(BuildContext context) {
     final user = widget.detail.summary;
     final wallet = widget.detail.wallet;
+    // #region agent log
+    agentDebugLog(
+      location: "admin_investor_detail_screen.dart:build",
+      message: "admin investor wallet metrics",
+      hypothesisId: "H1-H3",
+      data: {
+        "userId": user.userId,
+        "availableBalance": wallet.availableBalance,
+        "balanceBeforeFees": wallet.balanceBeforeFees,
+        "totalFees": wallet.totalFees,
+        "moneyMarketAvailable": wallet.moneyMarketAvailable,
+      },
+    );
+    // #endregion
     final tx = widget.detail.transactions;
     final kycAsync = ref.watch(kycDetailProvider(user.userId));
     final currency = NumberFormat.currency(symbol: "PKR ", decimalDigits: 0);
@@ -278,6 +294,13 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
               ),
             ),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  context.go("/cash-desk?userId=${user.userId}"),
+              icon: const Icon(Icons.point_of_sale_outlined),
+              label: const Text("Cash Desk"),
+            ),
+            const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: widget.isDeleting ? null : widget.onDelete,
               style: FilledButton.styleFrom(
@@ -328,9 +351,19 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                 icon: Icons.trending_up,
               ),
               _MetricCard(
-                title: "Current Balance",
-                value: currency.format(wallet.balance),
+                title: "Available balance (Cash Desk)",
+                value: currency.format(wallet.availableBalance),
                 icon: Icons.account_balance_wallet_outlined,
+              ),
+              _MetricCard(
+                title: "Total fees (ledger)",
+                value: currency.format(wallet.totalFees),
+                icon: Icons.receipt_long_outlined,
+              ),
+              _MetricCard(
+                title: "Balance before fees",
+                value: currency.format(wallet.balanceBeforeFees),
+                icon: Icons.calculate_outlined,
               ),
               _MetricCard(
                 title: "Invested (from ledger)",
@@ -542,7 +575,16 @@ class _InvestorDetailBodyState extends ConsumerState<_InvestorDetailBody> {
                                   : "—",
                             ),
                           ),
-                          DataCell(Text(t.type)),
+                          DataCell(
+                            Text(
+                              t.cashSource == "admin_cash"
+                                  ? displayTransactionType(
+                                      t.type,
+                                      source: t.cashSource,
+                                    )
+                                  : t.type,
+                            ),
+                          ),
                           DataCell(Text(t.status)),
                           DataCell(Text(currency.format(t.amount))),
                           DataCell(

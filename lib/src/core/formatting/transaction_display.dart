@@ -59,7 +59,19 @@ String formatTransactionAmount(String type, double amount) {
 }
 
 /// User-facing transaction type label (English; PDF / non-UI).
-String displayTransactionType(String type, {double? amount}) {
+String displayTransactionType(
+  String type, {
+  double? amount,
+  String? source,
+}) {
+  if (source == "admin_cash") {
+    switch (type.toLowerCase()) {
+      case "withdrawal":
+        return "Cash Debit (Admin)";
+      case "deposit":
+        return "Cash Credit (Admin)";
+    }
+  }
   switch (type.toLowerCase()) {
     case "deposit":
       return "Deposit";
@@ -89,7 +101,16 @@ String localizedTransactionTypeLabel(
   BuildContext context,
   String type, {
   double? amount,
+  String? source,
 }) {
+  if (source == "admin_cash") {
+    switch (type.toLowerCase()) {
+      case "withdrawal":
+        return context.tr("txn_type_cash_debit_admin");
+      case "deposit":
+        return context.tr("txn_type_cash_credit_admin");
+    }
+  }
   switch (type.toLowerCase()) {
     case "deposit":
       return context.tr("txn_type_deposit");

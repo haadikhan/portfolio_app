@@ -17,7 +17,8 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
-const { recalculateWallet, appendAudit } = require("./wallet_helpers");
+const { recalculateWallet, appendAudit, loadFiveMarketMoneyAllocationPercent } = require("./wallet_helpers");
+const { profitMoneyMarketMetadataStamp } = require("./moneyMarketFromTransactions");
 
 const db = () => admin.firestore();
 
@@ -555,6 +556,10 @@ async function bookMonthEndFeesAndProfit({
       : 0;
 
   const profitTxRef = db().collection("transactions").doc();
+  const mmPnlStamp = profitMoneyMarketMetadataStamp({
+    amountPkr: netProfit,
+    allocationPercent: await loadFiveMarketMoneyAllocationPercent(),
+  });
   batch.set(profitTxRef, {
     id: profitTxRef.id,
     userId: uid,
@@ -571,6 +576,7 @@ async function bookMonthEndFeesAndProfit({
     managementFeeDeducted: managementFee,
     monthlyPct,
     annualRatePct,
+    ...mmPnlStamp,
   });
 
   if (performanceFee > 0) {
